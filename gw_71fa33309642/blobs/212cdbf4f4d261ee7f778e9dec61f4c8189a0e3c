@@ -1,0 +1,53 @@
+{
+ "enter": [
+  [
+   0,
+   "pipe/main"
+  ],
+  [
+   32,
+   "play/coinroom"
+  ]
+ ],
+ "coinroom": {
+  "x_end": 228,
+  "frames_in_room": 300,
+  "coins": 14,
+  "score_gain": 2800,
+  "state": "play"
+ },
+ "exit": {
+  "transitions": [
+   [
+    0,
+    "play/coinroom"
+   ],
+   [
+    84,
+    "pipe/coinroom"
+   ],
+   [
+    116,
+    "pipe/main"
+   ],
+   [
+    130,
+    "play/main"
+   ]
+  ],
+  "x": 2618,
+  "camX": 2538,
+  "area": "main",
+  "time": 384,
+  "power": 0
+ },
+ "sound_calls": {
+  "stopMusic:": 6,
+  "playMusic:overworld": 2,
+  "play:pipe": 3,
+  "playMusic:underground": 1,
+  "play:jump_small": 3,
+  "play:coin": 14
+ },
+ "console_errors": []
+}

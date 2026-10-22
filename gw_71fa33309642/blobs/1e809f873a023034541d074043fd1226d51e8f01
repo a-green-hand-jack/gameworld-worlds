@@ -1,0 +1,23 @@
+"""Decode every assets/audio/*.ogg in Chromium; report duration, peak, RMS, leading silence, loop-seam jump. BUILD_DIR=... python3 qa/audio_check.py"""
+import os, sys, json, threading, http.server, functools
+from playwright.sync_api import sync_playwright
+root = os.path.abspath(os.environ.get('BUILD_DIR', '.'))
+h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=root); h.log_message = lambda *a, **k: None
+srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), h); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+names = sorted(f for f in os.listdir(root + '/assets/audio') if f.endswith('.ogg'))
+JS = """async (names) => { const ctx = new AudioContext(); const out = {};
+ for (const n of names) { const buf = await (await fetch('assets/audio/' + n)).arrayBuffer(); let a;
+  try { a = await ctx.decodeAudioData(buf); } catch (e) { out[n] = {error: String(e)}; continue; }
+  const d = a.getChannelData(0); let pk = 0, ss = 0, lead = -1; for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > pk) pk = v; ss += d[i]*d[i]; if (lead < 0 && v > 0.01) lead = i; }
+  out[n] = {dur: +a.duration.toFixed(2), peak: +pk.toFixed(2), rms: +Math.sqrt(ss/d.length).toFixed(3), lead_ms: Math.round(lead/a.sampleRate*1000), seam: +Math.abs(d[d.length-1]-d[0]).toFixed(3), tail: +Math.max(...Array.from(d.slice(-200)).map(Math.abs)).toFixed(3)}; }
+ return out; }"""
+with sync_playwright() as p:
+    b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required']); pg = b.new_page()
+    pg.goto(f'http://127.0.0.1:{port}/index.html'); pg.wait_for_timeout(500)
+    res = pg.evaluate(JS, names); b.close()
+bad = []
+for n, r in res.items():
+    print(n, r)
+    if 'error' in r or r['peak'] < 0.05 or r['dur'] < 0.05: bad.append(n)
+print('BAD:', bad)

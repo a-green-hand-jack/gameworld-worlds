@@ -1,0 +1,784 @@
+{
+ "level": "1-3",
+ "start": {
+  "state": "play",
+  "area": "main",
+  "frame": 153
+ },
+ "lifts": [
+  {
+   "i": 0,
+   "kind": "vert",
+   "x": 880,
+   "y": 96.07709080286897,
+   "w": 48
+  },
+  {
+   "i": 1,
+   "kind": "horiz",
+   "x": 1375.8121374044051,
+   "y": 128,
+   "w": 48
+  },
+  {
+   "i": 2,
+   "kind": "horiz",
+   "x": 1503.8121374044051,
+   "y": 144,
+   "w": 48
+  },
+  {
+   "i": 3,
+   "kind": "horiz",
+   "x": 2095.812137404405,
+   "y": 96,
+   "w": 48
+  }
+ ],
+ "trials": [
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 40,
+   "landed": true,
+   "frames": 12,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 24,
+   "landed": true,
+   "frames": 12,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.06,
+   "height": 24,
+   "landed": true,
+   "frames": 11,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 2,
+   "landed": false,
+   "frames": 13,
+   "kept_riding_20f": null
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 24,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.06,
+   "height": 6,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 2,
+   "landed": false,
+   "frames": 13,
+   "kept_riding_20f": null
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 40,
+   "landed": true,
+   "frames": 12,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.06,
+   "height": 24,
+   "landed": true,
+   "frames": 11,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 2,
+   "landed": false,
+   "frames": 13,
+   "kept_riding_20f": null
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 24,
+   "landed": true,
+   "frames": 12,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 2,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.06,
+   "height": 12,
+   "landed": true,
+   "frames": 8,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 24,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 12,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.06,
+   "height": 24,
+   "landed": true,
+   "frames": 11,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 24,
+   "landed": true,
+   "frames": 9,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 2,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 2,
+   "landed": false,
+   "frames": 13,
+   "kept_riding_20f": null
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 6,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": -0.51,
+   "height": 6,
+   "landed": true,
+   "frames": 4,
+   "kept_riding_20f": false
+  },
+  {
+   "lift": 0,
+   "kind": "vert",
+   "dy": 0.06,
+   "height": 12,
+   "landed": true,
+   "frames": 8,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 1,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 2,
+   "landed": true,
+   "frames": 3,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 2,
+   "landed": true,
+   "frames": 3,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 2,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 2,
+   "landed": true,
+   "frames": 3,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 2,
+   "landed": true,
+   "frames": 3,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 40,
+   "landed": true,
+   "frames": 14,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 6,
+   "landed": true,
+   "frames": 5,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 12,
+   "landed": true,
+   "frames": 7,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 2,
+   "landed": true,
+   "frames": 3,
+   "kept_riding_20f": true
+  },
+  {
+   "lift": 3,
+   "kind": "horiz",
+   "dy": 0,
+   "height": 24,
+   "landed": true,
+   "frames": 10,
+   "kept_riding_20f": true
+  }
+ ],
+ "by_kind_and_direction": {
+  "vert#0": {
+   "rising(dy<-0.2)": {
+    "n": 18,
+    "landed": 14
+   },
+   "falling(dy>0.2)": {
+    "n": 12,
+    "landed": 12
+   },
+   "level(|dy|<=0.2)": {
+    "n": 6,
+    "landed": 6
+   }
+  },
+  "horiz#1": {
+   "rising(dy<-0.2)": {
+    "n": 0
+   },
+   "falling(dy>0.2)": {
+    "n": 0
+   },
+   "level(|dy|<=0.2)": {
+    "n": 12,
+    "landed": 12
+   }
+  },
+  "horiz#2": {
+   "rising(dy<-0.2)": {
+    "n": 0
+   },
+   "falling(dy>0.2)": {
+    "n": 0
+   },
+   "level(|dy|<=0.2)": {
+    "n": 12,
+    "landed": 12
+   }
+  },
+  "horiz#3": {
+   "rising(dy<-0.2)": {
+    "n": 0
+   },
+   "falling(dy>0.2)": {
+    "n": 0
+   },
+   "level(|dy|<=0.2)": {
+    "n": 12,
+    "landed": 12
+   }
+  }
+ },
+ "rising_by_height": {
+  "2": {
+   "n": 4,
+   "landed": 0
+  },
+  "6": {
+   "n": 5,
+   "landed": 5
+  },
+  "12": {
+   "n": 4,
+   "landed": 4
+  },
+  "24": {
+   "n": 3,
+   "landed": 3
+  },
+  "40": {
+   "n": 2,
+   "landed": 2
+  }
+ },
+ "falling_by_height": {
+  "2": {
+   "n": 2,
+   "landed": 2
+  },
+  "6": {
+   "n": 4,
+   "landed": 4
+  },
+  "12": {
+   "n": 4,
+   "landed": 4
+  },
+  "24": {
+   "n": 2,
+   "landed": 2
+  },
+  "40": {
+   "n": 0
+  }
+ },
+ "page_errors": []
+}

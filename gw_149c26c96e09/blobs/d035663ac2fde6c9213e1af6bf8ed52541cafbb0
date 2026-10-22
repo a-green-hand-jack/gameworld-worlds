@@ -1,0 +1,17 @@
+[Enter] died at 1.46s cause wall score 0
+[Enter] at +0.2s: screen visible Game Over |  | Final score: 0 |  | Best: 0 |  | Play again |  | or press Enter / Space btn disabled True
+[Enter] restarted 0.561s after death
+[Enter] after: state playing score 0 len 3 hud 0
+[Space] died at 1.42s cause wall score 0
+[Space] at +0.2s: screen visible Game Over |  | Final score: 0 |  | Best: 0 |  | Play again |  | or press Enter / Space btn disabled True
+[Space] restarted 0.576s after death
+[Space] after: state playing score 0 len 3 hud 0
+[click] died at 1.44s cause wall score 0
+[click] at +0.2s: screen visible Game Over |  | Final score: 0 |  | Best: 0 |  | Play again |  | or press Enter / Space btn disabled True
+[click] restarted 0.535s after death
+[click] after: state playing score 0 len 3 hud 0
+B: died, state over
+B: button disabled after 700ms False focus on restart-button
+B: Space after guard -> playing score 0 len 3
+console/network errors: []
+plays tail ['gameover.ogg', 'start.ogg', 'music.ogg', 'gameover.ogg', 'start.ogg', 'music.ogg']

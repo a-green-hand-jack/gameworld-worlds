@@ -1,0 +1,131 @@
+# Playtest report — build-2 (World 1-1 candidate rc1)
+
+Played by `playtester`. Earlier report: `playtests/build-1/report.md` (issue `world/producer#7`, closed by producer as received). Summary issue for producer for this build: see "Where this was reported" at the end.
+
+## 1. What was played
+
+| | |
+|---|---|
+| Build | release `build-2` of `world/producer` ("build-2: World 1-1 candidate rc1", republished from `world/game-developer` release `w1-rc1`), asset `smb-w1-rc1.zip` |
+| zip sha256 | `3cfe5541f65b2b1be440eb5c2e678910a779793f5820b36422498a652271cd4e` (matches the release notes) |
+| Source (from release notes) | game-developer `8bbb0325661334ec3511fbb7be27d2d558ec6f27` (index.html, src/), artist `c042385d007674cce5de34db0ebe885e84f6f225` (assets/) |
+| Scope of the build | World 1-1 only; "YOU CLEARED WORLD 1" screen after the castle |
+| Opened as | `file:///hutian/builds/build-2/game/smb-w1-rc1/index.html` (unzipped, no server, no network) |
+| Browsers | Chromium headless shell 156 (all probes, full run, real-time run). **Firefox 157** (Playwright build): loads, plays the full run, real keyboard run, viewport check — but see "What I could not do": no audio device there. |
+
+### How it was played (same method as build-1)
+
+1. **Deterministic stepping** (`?manual`, `SMB.step(n)`, `SMB.Input.set()`), via `tools/smb_drive.py`: feel measurements, mechanic probes, the complete run.
+2. **Real time** (`tools/realtime_check.py`, `tools/probe_mute_music.py`): normal page, rAF loop, real Playwright keyboard events, music elements playing, video recorded.
+3. **Complete run**: a seeded bot plays 1-1 from the title with keyboard inputs only. build-1's input log does not replay on build-2 (jump physics changed, which is the D1 fix), so the bot was run again (`tools/bot_search.py`, seed 2009): flag at logic frame 1893 on one life, clear screen at frame 2192, final score 018900. The log `playtests/build-2/win_1-1_seed2009.json` replays it exactly, in Chromium **and** in Firefox (trace, events and sound-call list identical; four screenshots compared pixel by pixel — start, flag slide, tally, clear screen — 0 different pixels).
+
+### What I could not do
+
+- **I did not hear anything.** Sound is judged from which `SMB.Sound` calls fire per event and from decoding the 30 audio files. "Sounds right" is **not verified**.
+- **Firefox audio is not verifiable here**: the container has no audio output device, so Firefox logs `NS_ERROR_DOM_MEDIA_MEDIASINK_ERR` for the music files and reports `error.code 3` on the music element (the jingle `ended` event then fires early: hurry → fast music after 0.8 s instead of 2.8 s). I treat that as an environment limit, not a game defect, and did not test Firefox sound further.
+- Input latency as a human feels it is not measured (logic frames only). No display, no gamepad.
+- Comparison with the original 1-1 is from my memory of the NES game (no reference supplied); marked *assumed*.
+
+### Instrumentation (so nobody mistakes these for normal play)
+
+Same as build-1: arena cleared in `measure_feel.py`/`probes_enemies.py`; teleports, set time, spawned enemies in `probes_*.py`, `probe_pipe4.py`, `probe_mute_music.py` (time set to 102 and Mario placed on the pipe). The complete run (section 3 rows 23, 29), the Firefox replay and the real-time check use **no** teleport or state edit, except that `realtime_check.py`'s hurry-up part sets the time to 102.
+
+## 2. Experience in one paragraph
+
+Build-2 opens straight from `index.html` and plays title → 1-1 → flagpole → castle → clear screen on one life. It is build-1 with the standing-jump fix and a clean console: small Mario now reaches the top of all four pipes from a standstill (apex 66 px against a 64 px pipe), the console shows no failed requests and no page errors, and the title no longer has the hint over the brick row (the controls now show on the "WORLD 1-1 / × 3" screen). Everything else I measured in build-1 behaves the same (speeds, skid, enemies, items, pipe, flag, death, game over, time-up, audio files). I found **no blocker and no major**. One new minor: if you mute with M and the music changes while muted (hurry-up, star, pipe), un-muting leaves the level silent until the next music change.
+
+## 3. P1 requirements: pass / fail on build-2
+
+"PASS" = I ran it on build-2 and saw it. Numbers are logic frames (60 per second) and pixels (16 px = one tile). "= b1" means the measured values equal build-1's (compared by script, `playtests/build-2/evidence` against `playtests/build-1/evidence`; only event frames shifted by 1–5 frames because the jump changed).
+
+| # | Brief P1 requirement | Result | What I saw (evidence under `playtests/build-2/evidence/`) |
+|---|---|---|---|
+| 1 | Opens from static `index.html`, offline | **PASS** | `file://`, reaches `title`, **0 failed requests**, no page errors, no console errors (build-1: 39 404s). `enemies/probes_enemies.json` (`failed_requests: count=0`), `win1/win1_trace.json`, `firefox/win1/ff_trace.json` |
+| 2 | Title screen with start | **PASS** | Title with logo, TOP score, mushroom cursor, blinking PRESS ENTER (seen in the Firefox viewport shots; the Chromium shot caught the off phase); Enter starts; intro "WORLD 1-1 × 3" with the controls for 150 frames (2.5 s), then play. `screens/title.png`, `screens/intro.png` |
+| 3 | 1-1 layout as original | **PASS** (assumed vs original) | The five panorama images are pixel-identical to build-1's (pipes at tiles 28/38/46/57 of height 2/3/4/4, first pit at 69, checkpoint 82); hidden 1-up (64,8), multi-coin (94,9), star (101,9) all found. `layout/` (compared with `playtests/build-1/evidence/layout/`) |
+| 4 | Walk/run with momentum | **PASS** (= b1) | Walk max 1.562 px/f after 42 frames, run max 2.562 after 46; coast 51 frames, 63.4 px. `feel/feel.json` |
+| 5 | Skid | **PASS** (= b1) | 25 frames flagged, vx 2.46 → 0 then reverses. `feel/feel.json` |
+| 6 | Variable jump | **PASS** (D1 fixed) | Apex: stand tap 23.1 / hold **66** (4.12 tiles); walk tap 28.7 / hold 70.3; run tap 31.8 / hold 82.5 (140.9 px). Hold > tap, run > walk. `feel/feel.json` |
+| 7 | Air control | **PASS** (= b1) | Reversing mid-air: vx 0.742 → 0.371 in 10 frames. |
+| 8 | Camera forward-only | **PASS** (= b1) | After running left camX stays 472.7, Mario stops at screen x 0. `feel/feel.json`, `extra/left_edge.png` |
+| 9 | Goomba stomp flattens | **PASS** (= b1) | +100, squash then gone. `enemies/e1_*.png` |
+| 10 | Koopa stomp → shell, kick, chain | **PASS** (= b1) | Shell 2.8 px/f, chain 500, 800, 1000, 2000, 4000, 5000; revives. `enemies/probes_enemies.json`, `e3_*.png` |
+| 11 | Enemies fall in pits, turn at walls | **PASS** (= b1) | Goomba turns at the first pipe and drops into the first pit. `enemies2/probe_wallpit.json` (0 differences to build-1) |
+| 12 | Touching an enemy hurts | **PASS** (= b1) | Small dies; big and fire shrink to small with 120 frames of invulnerability. `enemies/e2_*.png` |
+| 13 | Super Mushroom, big breaks bricks | **PASS** | Rises, walks, pickup transform, +1000; big breaks a brick (+50), small bumps. `items/p2*`, `p3_brick_break.png`, `misc/m2_brick_break_big.png` |
+| 14 | Fire Flower, fireballs | **PASS** | Flower when big; fire Mario; max 2 fireballs; kills Goombas. `items/p4_*`, `misc/m1_*` |
+| 15 | Starman | **PASS** | Star bounces out of the brick at (101,9); star music; contact kills with 100/200/400/500. `items/p7_*`, `enemies/e4_star_run.png` |
+| 16 | 1-up mushroom (hidden block) | **PASS** | Invisible block at (64,8) appears, 1-up, lives 3 → 4. `items/p5_*` |
+| 17 | Coins, multi-coin brick, 100 coins = 1-up | **PASS** (D7) | `?` block +1 coin, +200; multi-coin brick pays 13 coins at 21-frame hit cadence (12 at 22 in build-1); the slow cadence (a hit every 90 frames) gave 4 coins. `misc/probes_misc.json` |
+| 18 | HUD | **PASS** (= b1) | MARIO/score, coins, WORLD, TIME 400, one tick per 24 frames; HUD on every screen. |
+| 19 | Time-out kills; hurry-up | **PASS** | Hurry jingle at 100, then fast music; at 0 Mario dies. `enemies/e6_*.png`, `realtime/realtime_check.json` (overworld → hurry 0.9 s → overworld_fast 3.7 s → death 5.8 s) |
+| 20 | Lives, death animation, pit death | **PASS** (= b1) | Start with 3; enemy and pit deaths lose a life, respawn at start or at the checkpoint (tile 82). `enemies/e5_*.png`, `misc/m6_checkpoint_respawn.png` |
+| 21 | Game over, restart | **PASS** (= b1) | 0 lives → GAME OVER → title → Enter → score 0, coins 0, lives 3, time 400; TOP persists. `enemies/e7_*.png`, `extra/top_score_title.png` |
+| 22 | Pipe to coin room and back | **PASS** (= b1) | Down on pipe at col 57 → underground room, scroll locked, coins, side pipe → back in 1-1 at x≈2618. `pipe/*.png`, `misc/m5_*` |
+| 23 | Flagpole, castle walk, time → score | **PASS** | Complete run: flag grab 2000 at frame 1893 (time 328), slide, turn, walk, tally 328 × 50 = 16 400, castle flag, fireworks, clear screen; final 018900. `win1/win1_*.png`, `win1/win1.gif`, `win1/win1_trace.json` |
+| 24 | Fireworks | **PASS** | Only when the last time digit is 1, 3 or 6 (six at +500). `extra/fw_*.png` |
+| 25 | Pause and mute | **PASS** (N1) | Enter pauses (PAUSE, frozen), M mutes. But see N1: music does not come back after un-muting if it changed while muted. `misc/m4_paused.png`, `mute/mute_music.json` |
+| 26 | Sound effects and music per event | **NOT VERIFIED BY EAR** — triggers PASS | The same 23 cues as in build-1 fired, including every cue on producer's "play first" list (powerup_appear, powerup, jump_big, break, kick, pipe, underground, fireball, oneup, starman, hurry, death, game_over, pause). 30 files decode, none silent, peaks −0.5 to −5 dB, no clipping, loop seams smooth, files identical to build-1 (0 differences). `sound/audio_check.json`, `win1/win1_trace.json` (`sound_calls`) |
+| 27 | 256×240, integer-scaled, crisp | **PASS** (D4) | Same 11 viewport/DPR combinations as build-1 (0 differences); same in Firefox. `viewport/`, `firefox/viewport/` |
+| 28 | 60 Hz logic, real-time loop | **PASS** | Title 59.93 Hz; running reaches 2.5625 px/f with real keys; music plays. Firefox: 59.92 Hz, same position after the same key run. `realtime/realtime_check.json`, `firefox/realtime/realtime_check.json`, `realtime_run.webm` (release) |
+| 29 | No stuck/softlock/fall-through | **PASS** | Full run, all probes and the Firefox replay: no fall-through, no stuck, no page errors. Eight tries (four pipes × two timings): Mario stood on top every time (`pipe4/probe_pipe4.json`). |
+
+Page errors: none on any run. Console: no errors, no failed requests (Chromium). Firefox console only shows the audio-sink warnings described above.
+
+## 4. Re-verification of build-1 findings (D1–D7)
+
+| Finding (build-1 report) | Status on build-2 | Evidence |
+|---|---|---|
+| **D1 major** — standing jump does not reach a 4-tile pipe | **verified-fixed** | Standing hold apex 66 px (was 62), walk 70.3 (66), run 82.5 (77.5). Small Mario at a standstill next to each of the four pipes (tiles 28, 38, 46, 57; 2, 3, 4, 4 high), A held, two timings each: stood on top 8/8. Tap jumps are within 2 px of build-1 (stand/walk/run 22/27/30 → 23.1/28.7/31.8). `feel/feel.json`, `pipe4/probe_pipe4.json`, `pipe4/pipe4_col46_ontop.png`, `pipe4_col57_ontop.png`. Same probe on build-1 (`playtests/build-1/evidence/pipe4/probe_pipe4.json`): the 2- and 3-high pipes are mounted, both 4-high pipes fail (Mario's top edge reaches y 132 but standing on the pipe needs y 130, 2 px short) in all four tries there. |
+| **D2 minor** — 39 asset 404s | **verified-fixed** | 0 failed requests in every run; art files unchanged (coin room render pixel-identical to build-1's, 1-1 unchanged). |
+| **D3 minor** — key tap shorter than one frame is lost | **still-present** | A key down+up in one JS task → no jump; held for one frame → jump. `subframe.json`. Already `game-developer#8`; humans cannot do it. |
+| **D4 polish** — small windows clipped, no touch | **still-present** | `viewport/viewport_check.json` identical to build-1 (320×200 loses 20 px top and bottom; phones 1×). Out of scope per brief. |
+| **D5 polish** — title hint over the brick row | **verified-fixed** | The title has no control hint any more (only PRESS ENTER blinking under 1 PLAYER GAME); the controls (ARROWS MOVE, Z RUN, X JUMP, ENTER PAUSE, M MUTE) are on the intro screen on black, readable, shown 2.5 s. `screens/title.png`, `screens/intro.png` |
+| **D6 polish** — "YOU CLEARED WORLD 1" with only 1-1 | **still-present** | `win1/win1_02192_clearscreen_fireworks.png`. Producer: goes away with 1-2…1-4. |
+| **D7 polish/unverified** — multi-coin brick pays 12 | **still-present** | 13 coins at 21-frame cadence (slow cadence 4). Unverified against the original; no action wanted until a reference exists. |
+
+No regression found: every other measured value equals build-1's (listed in section 3).
+
+## 5. New findings on build-2
+
+**N1 (minor) — Un-muting leaves the level silent if the music changed while muted.** *Observed* (real time, real `M` key presses, `tools/probe_mute_music.py`, `mute/mute_music.json`):
+- Control: M, wait, M with no music change → music resumes (`paused` false, `t` advances). Fine.
+- Hurry-up while muted: time reaches 100 while muted; after M the music element does not exist (`has_element: false`, `musicName: "hurry"`) and 3.5 s later it is still silent and never switched to the fast track. (From reading `src/game.js`, *assumed*: it stays silent until the next music change: pipe, star ending, death, flag.) The not-muted control goes hurry → overworld_fast as designed.
+- Pipe to the coin room while muted: `musicName: "underground"`, no element; still silent 2.5 s after un-muting in the coin room (the not-muted control has the element playing).
+- Cause, *assumed from reading `src/sound.js`*: `playMusic()` returns before it creates the `Audio` element when `muted` is set, so `resumeMusic()` has nothing to resume and the hurry jingle's `onEnd` (which switches to the fast track) never runs.
+- Repro: Enter to start, M (mute), set time to 102 (or play to 100), M. Expected: fast music; actual: silence. Owner: game-developer.
+
+**N2 (polish) — README mentions `tests/mechanics.py`; the zip has no `tests/` folder.** `README.md` line 28 ("`tests/` — headless-Chromium checks"). Ship the folder or drop the line. Owner: game-developer.
+
+**N3 (polish, dev only) — `index.html#level=1-2` (and `#level=9-9`) give a black screen and an uncaught `TypeError: Cannot read properties of undefined (reading 'startArea')`.** The README advertises `#level=` as a developer shortcut; levels other than 1-1 do not exist yet, so it is only a problem if someone follows a link. Same on build-1 (not a regression). `evidence/level_hash.json`, `level_hash_1-2.png`. Owner: game-developer; ignore until 1-2 exists.
+
+### Notes (not defects)
+
+- The controls are shown only on the 2.5 s intro screen; a player who looks away misses them. Nothing else in the game explains Z/X.
+- Firefox: apart from sound (not verifiable here) it behaved the same as Chromium: crisp scaling (`image-rendering: crisp-edges`), same integer scale at all 11 viewports, 59.92 Hz, same key-run result, identical full-run trace.
+
+## 6. Evidence index
+
+All paths under `playtests/build-2/evidence/` in `world/playtester` unless marked. The input log is `playtests/build-2/win_1-1_seed2009.json`.
+
+| Folder | Content | How it was made |
+|---|---|---|
+| `screens/` | title, intro | `tools/smb_drive.py` |
+| `win1/` | winning run shots, `win1.gif`, `win1_trace.json` (sound calls, no console output) | `python3 tools/replay.py --build /hutian/builds/build-2/game/smb-w1-rc1 --log playtests/build-2/win_1-1_seed2009.json --out <dir>` (log found with `tools/bot_search.py <build> <out> 2000 20`) |
+| `feel/` | speeds, skid, jump heights, air control, camera | `tools/measure_feel.py` |
+| `pipe4/` | each pipe mounted from a standstill (D1) | `tools/probe_pipe4.py` |
+| `items/`, `enemies/`, `enemies2/`, `misc/`, `pipe/`, `extra/`, `layout/` | as in build-1 | `probes_items.py`, `probes_enemies.py`, `probe_wallpit.py`, `probes_misc.py`, `probe_pipe.py`, `probes_extra.py`, `panorama.py` |
+| `sound/` | `audio_check.json` of the 30 files | `tools/audio_check.py <build>/assets/audio <out.json>` |
+| `viewport/` | 11 viewport/DPR combinations | `tools/viewport_check.py` |
+| `realtime/` | real-time run: json + 3 shots (video in the release) | `tools/realtime_check.py` |
+| `mute/` | N1 | `tools/probe_mute_music.py` |
+| `subframe.json` | D3 | `tools/probe_subframe.py` |
+| `level_hash*.json/png` | N3 | `tools/probe_level_hash.py` |
+| `firefox/` | Firefox 157: `win1/` (replay shots and trace; same shots as `win1/`), `viewport/`, `realtime/` (json, shots; video in the release) | `SMB_BROWSER=firefox LD_LIBRARY_PATH=/hutian/.mamba/ffdeps/lib` plus the tools above |
+| release `playtest-build-2` of `world/playtester` | `realtime_run.webm` (Chromium real-time run with music and keyboard), `realtime_run_firefox.webm` | `tools/realtime_check.py` |
+
+Also added on build-1 (same repository): `playtests/build-1/evidence/pipe4/` (the same probe on build-1: the two 4-high pipes cannot be mounted from a standstill) and `subframe.json`.
+
+## 7. Where this was reported
+
+One issue in `world/producer` titled "Playtest build-2 (1-1 rc1): playable title to castle, D1/D2/D5 fixed, no blocker, 0 major".

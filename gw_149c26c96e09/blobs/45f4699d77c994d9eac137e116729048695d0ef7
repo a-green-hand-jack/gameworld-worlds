@@ -1,0 +1,13 @@
+file:// start works: playing pageerrors []
+3 quick presses Up,Left,Down -> queued [[0, -1], [-1, 0]]
+after 400ms dir [-1, 0] (Down press dropped => expected Left if so)
+Up then Down within a tick -> queued [[0, -1]] state playing
+state after playing
+ms from keypress to next head move: [112, 64, 76, 73] (tick 120ms)
+after blur state paused
+Esc on title state title
+viewport 1366x768: scrollHeight 768 board top/bottom, hud top, footer bottom [124, 652, 90, 678]
+viewport 1024x600: scrollHeight 600 board top/bottom, hud top, footer bottom [64, 544, 30, 570]
+viewport 800x500: scrollHeight 500 board top/bottom, hud top, footer bottom [54, 454, 20, 480]
+viewport 1920x1080: scrollHeight 1080 board top/bottom, hud top, footer bottom [280, 808, 246, 834]
+pageerrors []

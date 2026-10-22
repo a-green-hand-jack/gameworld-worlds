@@ -1,0 +1,90 @@
+{
+ "bowser_fireballs": {
+  "hp_log": [
+   [
+    0,
+    5
+   ],
+   [
+    18,
+    4
+   ],
+   [
+    35,
+    3
+   ],
+   [
+    53,
+    2
+   ],
+   [
+    76,
+    1
+   ],
+   [
+    99,
+    0
+   ]
+  ],
+  "kill_frame_rel": 154,
+  "score_delta": 5000,
+  "events": [
+   {
+    "type": "bowser",
+    "frame": 263,
+    "by": "fire"
+   }
+  ],
+  "sounds_bowser": [
+   [
+    243,
+    "play",
+    [
+     "bowser_fire"
+    ]
+   ],
+   [
+    263,
+    "play",
+    [
+     "bowser_fall"
+    ]
+   ]
+  ],
+  "fireball_sound_count": 8,
+  "state_after": "play",
+  "enemies_left": [
+   {
+    "t": "bowserfire",
+    "x": 2049,
+    "y": 144,
+    "dying": false,
+    "vx": -1
+   }
+  ],
+  "walk_to_axe": {
+   "frames": 155,
+   "state": "axe"
+  },
+  "axe_sequence": [
+   [
+    478,
+    "axe",
+    "1-4"
+   ],
+   [
+    1186,
+    "clearscreen",
+    "1-4"
+   ]
+  ],
+  "score_end": 19350,
+  "events_end": [
+   "intro",
+   "start",
+   "bowser",
+   "axe",
+   "allclear"
+  ]
+ }
+}

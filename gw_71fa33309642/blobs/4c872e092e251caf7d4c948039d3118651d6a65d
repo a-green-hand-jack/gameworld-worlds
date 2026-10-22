@@ -1,0 +1,12 @@
+{
+ "jump_tap_in_same_frame": {
+  "moved_up": false,
+  "y": 194,
+  "ground": true
+ },
+ "jump_held_1_frame": {
+  "moved_up": true,
+  "y": 176.5625
+ },
+ "page_errors": []
+}

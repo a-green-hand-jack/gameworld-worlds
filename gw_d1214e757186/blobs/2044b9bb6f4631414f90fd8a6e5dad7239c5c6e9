@@ -1,0 +1,114 @@
+"""Shape helpers shared by the exporter: alignment, outlined masks, scenery silhouettes."""
+import math
+
+def bottom_align(rows):
+    """Shift art down so its lowest non-empty row sits on the last row."""
+    h = len(rows)
+    last = max(i for i, r in enumerate(rows) if r.strip("."))
+    shift = h - 1 - last
+    return ["." * len(rows[0])] * shift + rows[:h - shift]
+
+
+# ------------------------------------------------------------ scenery shapes
+def mask_to_rows(mask, w, h, shade=None):
+    """Outline a boolean mask: 'K' on edge pixels, 'F' fill, 'S' shade."""
+    rows = []
+    for y in range(h):
+        r = ""
+        for x in range(w):
+            if not mask(x, y):
+                r += "."
+                continue
+            edge = any(not (0 <= x + dx < w and 0 <= y + dy < h and mask(x + dx, y + dy))
+                       for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            if edge:
+                r += "K"
+            elif shade and shade(x, y):
+                r += "S"
+            else:
+                r += "F"
+        rows.append(r)
+    return rows
+
+
+def puff_shape(n, h, flat_bottom):
+    """Cloud/bush silhouette: n round puffs over a rounded body."""
+    w = 16 * n + 16
+    cy, r = 9.5, 8.6
+    centres = [16 + 16 * i for i in range(n)]
+    body_top = 10
+
+    def inside(x, y):
+        px, py = x + 0.5, y + 0.5
+        for c in centres:
+            if (px - c) ** 2 + (py - cy) ** 2 <= r * r:
+                return True
+        if flat_bottom:
+            if py >= body_top and 3 <= px <= w - 3:
+                # rounded end caps
+                if px < 8:
+                    return (px - 8) ** 2 + (py - body_top - 2) ** 2 <= 6.2 ** 2 or py < body_top + 2
+                if px > w - 8:
+                    return (px - (w - 8)) ** 2 + (py - body_top - 2) ** 2 <= 6.2 ** 2 or py < body_top + 2
+                return True
+            return False
+        # cloud: lower body is a fat rounded bar
+        if body_top <= py <= h - 1:
+            ry = (h - 1 - body_top) / 2
+            my = body_top + ry
+            if 8 <= px <= w - 8:
+                return abs(py - my) <= ry + 0.2
+            for ex in (8, w - 8):
+                if (px - ex) ** 2 / 7.5 ** 2 + (py - my) ** 2 / (ry + 0.3) ** 2 <= 1:
+                    return True
+        return False
+
+    def shade(x, y):
+        # light-blue band along the inside of the lower edge, as on NES clouds
+        if flat_bottom:
+            return False
+        return y >= body_top + 3 and (not inside(x, y + 2) or not inside(x, y + 3))
+
+    return mask_to_rows(inside, w, h, shade), w
+
+
+def hill_shape(tiles_wide, height):
+    w = tiles_wide * 16
+    top_r = 8.5
+    peak_y = top_r + 0.5
+
+    def inside(x, y):
+        px, py = x + 0.5, y + 0.5
+        cx = w / 2
+        if py >= peak_y and abs(px - cx) <= (py - peak_y) + top_r:
+            return True
+        return (px - cx) ** 2 + (py - peak_y) ** 2 <= top_r ** 2
+
+    rows = mask_to_rows(inside, w, height)
+    # flat bottom: no outline on the last row (hills sit on the ground)
+    rows[-1] = rows[-1].replace("K", "F")
+    rows[-1] = rows[-1][:1].replace("F", "K") + rows[-1][1:]
+    rows = [list(r) for r in rows]
+    # leave the outer edge outlined on the bottom row
+    for x in range(w):
+        if rows[-1][x] != ".":
+            rows[-1][x] = "K"
+            break
+    for x in range(w - 1, -1, -1):
+        if rows[-1][x] != ".":
+            rows[-1][x] = "K"
+            break
+    # spots
+    spots = [(w / 2 - 6, peak_y + 7), (w / 2 + 5, peak_y + 12), (w / 2 - 1, peak_y + 17),
+             (w / 2 + 12, peak_y + 21), (w / 2 - 14, peak_y + 21)]
+    for sx, sy in spots:
+        if sy + 4 >= height - 1:
+            continue
+        for y in range(int(sy) - 3, int(sy) + 3):
+            for x in range(int(sx) - 1, int(sx) + 2):
+                if (x + 0.5 - sx) ** 2 / 1.6 ** 2 + (y + 0.5 - sy) ** 2 / 3.0 ** 2 <= 1 \
+                        and 0 <= y < height and 0 <= x < w and rows[y][x] == "F":
+                    rows[y][x] = "K"
+    return ["".join(r) for r in rows]
+
+

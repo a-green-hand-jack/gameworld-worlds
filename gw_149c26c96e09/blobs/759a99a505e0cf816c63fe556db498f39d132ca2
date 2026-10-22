@@ -1,0 +1,40 @@
+# Acceptance record — Snake
+
+**Delivery judged:** `ht-role delivery` (23 files, no assembly errors): game-developer `f84f9d3c2a8d29f28951a97e5d34a0b2369f4187` (repository root: index.html, src/, docs/, tests/, README.md) + artist `766d875de16320c21d87430f185052dececf080a` (`assets/`). Assignment: `assignment.json` at b3a44e5036157b96f77fc93aeb36aaa1af27df13. Same content as release `playtest-4` in world/producer.
+
+**Standard:** the objective (`producer`#1) as broken down in `brief.md` R1–R11 and priorities 1–4, and my recorded commitment.
+
+## What I played (producer, headless Chromium / Playwright 1.64, real key and mouse events in real time)
+Scripts in `acceptance/scripts/`, screenshots in `acceptance/shots/`.
+
+| Req | Observed on the delivery above |
+|---|---|
+| R1 browser game from index.html | Runs over http and file:// with no console errors and no failed requests; the artist's sprites, logo, wall ring and sounds load |
+| R2 grid movement | 20×20 grid, one cell per 120 ms tick |
+| R3 arrow keys turn | Live steering bot ate 6 foods using only arrow presses; Left while moving Right is ignored (no 180° turn) |
+| R4/R5 +1 cell, +1 point | 6 foods: (score, length) 0,3 → 6,9, +1/+1 each time; HUD matched |
+| R6 wall ends game | Ran Up into the top wall → Game Over (`gameover-wall.png`) |
+| R7 self ends game | U-turn into its own body at length 9 → Game Over, cause `self` (`gameover-self.png`) |
+| R8 title screen | Logo (centred), how-to text, Start button, "or press Enter / Space" (`title.png`) |
+| R9 score during play | "Score: N" above the board, updates live (`play-score6.png`) |
+| R10 final score on game over | "Game Over / Final score: 6 / New best score!" |
+| R11 play again | Button click, Enter or Space starts a fresh game: score 0, length 3, HUD 0. Input is held for 500 ms after death (Enter/Space start at ~508/524 ms; no click lands before ~0.55 s), so the final score is always seen |
+| Priority 3 | Food never on the snake (sampled all run); arrows don't scroll the page (scrollY 0); 2-deep turn queue keeps quick double turns |
+| Sound (optional) | start/eat/gameover/music: 22.05 kHz mono, start and end on 0, peak 0.8 (no clipping), music loop has no discontinuity at the seam. **Not heard by ear:** audio-understanding returned HTTP 429 (daily limit) for me and for playtester |
+
+## What the checks found (qa)
+`qa`#2: report-2 (qa `0a53a508a34cc48dafa65c0b1c90579c007569da`) — R1–R11 and all priority-3 items PASS on game-developer 531454b + artist 766d875, console clean, game-developer#3 (404s) resolved, **no defects open**. The only later game change (f84f9d3, Game Over hold) was verified by me and by playtester.
+
+## What the playtests found (playtester)
+- `report-playtest-1.md`: R1–R11 working; 404 defect (fixed in b4c61e1) and minor items.
+- `report-playtest-3.md` (gd 531454b + artist 766d875): R1–R11 pass, zero console errors/failed requests, head/food/walls/board legible even at 29 cells, screens consistent, sounds fire exactly on start/eat/game over, M mutes.
+- `report-playtest-4.md` (playtester `713f79c8d533ca701c34254a22adec88d7a4dbfa`; the release candidate, gd f84f9d3 + artist 766d875): Game Over hold verified with mashed Enter/Space/clicks (restart 0.54–0.58 s after death), play again fresh, no console errors; "fine to accept".
+
+## Known minor items, accepted
+- Small seam where body segments meet at a corner (cosmetic).
+- A third turn pressed within one 120 ms tick is dropped (queue of 2); only very fast input notices.
+- Constant speed (no ramp); not asked by the input.
+- Sound quality not verified by ear (resource rate-limited); sound is optional in the brief and numerically clean.
+
+## Conclusion
+The delivery is the Snake game the input asks for — grid, arrow keys, +1 length and +1 point per food, wall and self death, title screen, live score, game-over with final score and play again — and it plays cleanly. **Accepted.**

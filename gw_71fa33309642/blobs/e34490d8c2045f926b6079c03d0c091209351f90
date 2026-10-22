@@ -1,0 +1,116 @@
+"""Bowser, 32x32, facing right, painted with simple shapes then outlined.
+
+Frames: walk1, walk2 (mouth closed), walk1, walk2 (mouth open, breathing fire).
+"""
+
+PAL = {"G": 0x1A, "g": 0x0A, "W": 0x30, "Y": 0x27, "y": 0x37, "R": 0x16, "K": 0x0F}
+
+
+def _canvas():
+    return [["."] * 32 for _ in range(32)]
+
+
+def _ell(c, cx, cy, rx, ry, ch, only=None):
+    for y in range(32):
+        for x in range(32):
+            if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1:
+                if only is None or c[y][x] in only:
+                    c[y][x] = ch
+
+
+def _px(c, pts, ch):
+    for x, y in pts:
+        if 0 <= x < 32 and 0 <= y < 32:
+            c[y][x] = ch
+
+
+def _outline(c):
+    out = [row[:] for row in c]
+    for y in range(32):
+        for x in range(32):
+            if c[y][x] == ".":
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                X, Y = x + dx, y + dy
+                outside = not (0 <= X < 32 and 0 <= Y < 32) or c[Y][X] == "."
+                if outside and c[y][x] == "S":  # spikes and horns stay white, outlined outside
+                    if 0 <= X < 32 and 0 <= Y < 32:
+                        out[Y][X] = "K"
+                elif outside:
+                    out[y][x] = "K"
+                    break
+    return out
+
+
+def _spike(c, x, y, dx, dy, length=3.6, half=1.8):
+    """Filled white triangle (S) rising from base point (x, y) along the unit normal (dx, dy)."""
+    for py in range(32):
+        for px in range(32):
+            vx, vy = px + 0.5 - x, py + 0.5 - y
+            t = vx * dx + vy * dy
+            d = abs(-vx * dy + vy * dx)
+            if -1.2 <= t <= length and d <= half * (length - t) / length + 0.2:
+                c[py][px] = "S"
+
+
+def frame(step, mouth_open):
+    import math
+    c = _canvas()
+    # legs (behind body); step alternates which leg is forward
+    back, front = (8, 19) if step == 0 else (10, 17)
+    for fx in (back, front):
+        _ell(c, fx, 26.5, 4.2, 4.5, "G")
+        _px(c, [(fx + d, 30) for d in range(-4, 5)], "G")
+        _px(c, [(fx - 3, 31), (fx - 1, 31), (fx + 1, 31), (fx + 3, 31), (fx + 4, 31)], "W")
+    # shell: dark dome with white spikes standing out of its edge, white rim below
+    _ell(c, 10.5, 16, 10, 9.5, "g")
+    for a in (195, 230, 265, 300):
+        r = math.radians(a)
+        ex, ey = 10.5 + 9.5 * math.cos(r), 16 + 9.0 * math.sin(r)
+        _spike(c, ex, ey, math.cos(r), math.sin(r))
+    for sx, sy in ((6, 14), (11, 11), (15, 16), (9, 19), (4, 20)):
+        _px(c, [(sx, sy), (sx + 1, sy), (sx, sy - 1)], "W")
+    _ell(c, 10.5, 24.5, 9.5, 1.6, "W", only="gG")
+    # belly
+    _ell(c, 20, 20, 5.5, 7, "Y")
+    for y in (15, 18, 21, 24):
+        for x in range(14, 27):
+            if c[y][x] == "Y":
+                c[y][x] = "y"
+    # head and long snout
+    _ell(c, 22, 8, 6.5, 6.5, "G")
+    _ell(c, 27, 9.5, 5, 4, "G")
+    # mane: red tufts sweeping back from the head
+    for x, y0, y1 in ((12, 4, 7), (13, 2, 10), (14, 1, 12), (15, 2, 13), (16, 1, 12), (17, 3, 11)):
+        for y in range(y0, y1):
+            c[y][x] = "R"
+    _px(c, [(11, 6), (12, 9), (13, 11)], "R")
+    # horns
+    _px(c, [(19, 1), (20, 1), (20, 2), (21, 2), (21, 3), (22, 3)], "S")
+    _px(c, [(25, 1), (25, 2), (26, 2), (25, 3), (26, 3)], "S")
+    # brow + eye
+    _px(c, [(22, 4), (23, 4), (24, 4), (25, 5), (26, 5)], "K")
+    _px(c, [(23, 5), (24, 5), (23, 6), (24, 6), (25, 6)], "W")
+    _px(c, [(24, 6), (24, 5)], "K")
+    _px(c, [(30, 7)], "K")  # nostril
+    # mouth
+    if mouth_open:
+        for y in range(10, 14):
+            for x in range(25, 32):
+                c[y][x] = "."
+        _px(c, [(x, 10) for x in range(24, 32)], "R")
+        _px(c, [(x, 13) for x in range(24, 31)], "R")
+        _px(c, [(26, 11), (28, 11), (30, 11), (27, 12), (29, 12)], "W")
+        _px(c, [(x, 14) for x in range(23, 30)], "G")
+    else:
+        _px(c, [(x, 11) for x in range(24, 32)], "K")
+        _px(c, [(26, 12), (29, 12)], "W")
+    # arm with claws
+    _ell(c, 24.5, 17.5, 3.4, 2.4, "G")
+    _px(c, [(28, 16), (29, 17), (28, 18)], "W")
+    c = _outline(c)
+    c = [["W" if ch == "S" else ch for ch in row] for row in c]
+    return ["".join(r) for r in c]
+
+
+FRAMES = [frame(0, False), frame(1, False), frame(0, True), frame(1, True)]

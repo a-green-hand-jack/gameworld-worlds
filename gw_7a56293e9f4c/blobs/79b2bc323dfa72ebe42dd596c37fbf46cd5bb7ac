@@ -1,0 +1,25 @@
+from playwright.sync_api import sync_playwright
+OUT='/hutian/repo/playtest/shots/'
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1280,'height':800})
+    pg.goto('http://localhost:8765/index.html'); pg.wait_for_timeout(1200)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(50)
+    setup="""()=>{const g=__snake.game;g.snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10},{x:7,y:10},{x:6,y:10},{x:5,y:10}];g.dir='right';g.queue=[];g.food={x:0,y:0}}"""
+    # a) all 3 keys at once
+    pg.evaluate(setup)
+    for k in ['ArrowDown','ArrowLeft','ArrowUp']:
+        pg.keyboard.press(k)
+    print('queue after 3 instant presses', pg.evaluate('__snake.game.queue'))
+    pg.wait_for_timeout(600)
+    print('burst:',pg.evaluate('[__snake.state,__snake.game.cause]'))
+    # restart
+    pg.wait_for_timeout(500)
+    if pg.evaluate('__snake.state')=='over': pg.keyboard.press('Enter'); pg.wait_for_timeout(100)
+    pg.evaluate(setup)
+    for k in ['ArrowDown','ArrowLeft','ArrowUp']:
+        pg.keyboard.press(k); pg.wait_for_timeout(135)
+    pg.wait_for_timeout(400)
+    print('paced:',pg.evaluate('[__snake.state,__snake.game.cause,__snake.score]'))
+    pg.wait_for_timeout(600); pg.screenshot(path=OUT+'08-gameover-self.png')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(100); print('Enter 0.6s after death ->',pg.evaluate('__snake.state'))
+    b.close()

@@ -1,0 +1,23 @@
+# Build-4 — light check only (no full playtest)
+
+Played by `playtester` while waiting for the N4 fix. Producer asked for **no full pass on build-4** (`world/producer#10`, last comment); the full pass with the pass/fail table is for build-5. This is working material, not a report.
+
+**Build**: release `build-4` of `world/producer`, `build-4.zip`, sha256 `81372969779ba2b9236448ae174abe91a26a01b484dd2ed67207ae3c819f1d8f` (matches the release notes); game-developer `0fbd0f2c7dc1596e5416ef84eec5fa786c618b65` (`w1-rc4` code) + artist `144b1149ff7aa4cd2bfbd8e88e3572183f399cdd`. Unzipped at `/hutian/builds/build-4/game/w1`. Chromium headless shell 156, manual stepping, real `KeyboardEvent`s for replays; no sound heard.
+Source diff build-3 → build-4 (read, `diff -u`): `src/enemies.js` (`flip = this.facing < 0`), `src/world1.js` (Bowser `facing < 0`), `src/level.js` (`Area.get`: `x < 0 || x >= w` is now an invisible wall at every y, including above the screen), `assets/sprites/bowser.png`, `bowser_fire.png`, `assets/README.md`; `tests/` and `tools/` are no longer in the zip.
+
+| Check | Result | Evidence (`playtests/build-4/evidence/`) |
+|---|---|---|
+| The build-3 campaign key log (title → 1-1 → 1-4 → clear screen) replayed on build-4, real keys | **identical to build-3**: same 17 state changes, same events, same 309 sound calls; end `clearscreen`, 1-4, 3 lives, 66200, 14 coins (the only difference is the length of the idle tail after the log, 300 vs 400 frames) | `campaign/replay_trace_build4.json` vs `playtests/build-3/evidence/campaign/chromium_manual/c_trace.json` |
+| N5: Koopa direction (1-1) | **fixed**: walking left → head left (`vx −0.5, facing −1`); the instrumented flip to `facing 1` → head right | `facing/koopa_left_crop.png`, `koopa_right_crop.png`, `facing_build4_raw.json` (its `code` field is text hard-coded in the probe about build-3 and is marked as such) |
+| N5: Bowser direction and flame (1-4) | **fixed**: `facing −1`, Mario on the left → Bowser looks left; the redrawn flame points left and flies left (`vx −1`) | `facing/bowser_crop.png`, `bowser/bowser_flame_faces_mario.png` |
+| N5: Paratroopa (1-3) | not looked at again; same draw code as the Koopa (`enemies.js:166`) | — |
+| 1-2 warp zone still works | **yes**: the three build-3 warp logs replay on build-4 with real keys to the identical end states (game frames 5986 / 5886 / 6030, score 21350, 9 coins, 3 lives, time 253 / 258 / 252) | `warp/warp{2,3,4}_trace.json`, `warp*_clearscreen*.png` |
+| 1-2 ceiling route and the warp-zone screen | **unchanged**: the zone banner shows at frame 105 / 111 in both builds; on the ceiling Mario ends at x 3028 (the ceiling ends before the area end) | `ceiling/build{3,4}_probe_ceiling.json` |
+| Running off the right end of an area above the screen (game-developer#11) | **fixed** (instrumented: Mario held at y −80 and −20, real Right+B). Build-3: 1-2 ran to x 3480 (> 3328, the width) and 1-4 to 2714 (> 2560). Build-4: both stop at 3316 / 2548 (width − 12). In 1-1 and 1-3 the flagpole takes the run over first in both builds, so those two rows say nothing | `endwall/build{3,4}_probe_endwall.json` |
+| N4 (1-3 rising vertical lift) | **still present, as expected**: `lifts_1-3/ride_log.json` replayed on build-4 still dies at game frame 684 of the log (lives 3 → 2) | `ride/ride_trace_build4.json` |
+| N6a (README vs zip) | the zip no longer holds `tests/` and `tools/`, which makes README l.28 true; README l.36–37 still describes `tools/smb_levels.py` as the decoder "from a public SMB disassembly" (as a source-repository tool). Producer has asked game-developer to remove it and fix the README (game-developer#12) | `diff -rq` build-3/build-4 |
+| N7 (`#level=9-9` TypeError) | not re-run; no change in `src/` touches it | — |
+
+Not checked on build-4: everything else in the build-3 report (1-1 regression, 1-3 lifts other than N4, firebars, Bowser fight, time-up/game over, mute) — the source diff above shows nothing else changed and the campaign replay matches build-3 step for step, but that is not a playtest. These are for build-5.
+
+Tools added: `tools/probe_endwall.py`, `tools/probe_ceiling.py` (listed in `playtests/README.md`).

@@ -1,0 +1,122 @@
+{
+ "walk_vx_trace_every5": [
+  0.074,
+  0.26,
+  0.445,
+  0.631,
+  0.816,
+  1.002,
+  1.188,
+  1.373,
+  1.559,
+  1.562,
+  1.562,
+  1.562,
+  1.562,
+  1.562
+ ],
+ "walk_max": 1.562,
+ "walk_frames_to_max": 42,
+ "run_vx_trace_every10": [
+  0.074,
+  0.631,
+  1.188,
+  1.744,
+  2.301,
+  2.562,
+  2.562,
+  2.562,
+  2.562,
+  2.562,
+  2.562,
+  2.562
+ ],
+ "run_max": 2.562,
+ "run_frames_to_max": 46,
+ "skid_vx_trace_every4": [
+  2.461,
+  2.055,
+  1.648,
+  1.242,
+  0.836,
+  0.43,
+  0,
+  -0.241,
+  -0.464,
+  -0.687,
+  -0.909,
+  -1.132,
+  -1.354,
+  -1.577,
+  -1.8,
+  -2.022,
+  -2.245,
+  -2.468,
+  -2.562,
+  -2.562
+ ],
+ "skid_frames_flagged": 25,
+ "skid_frames_until_vx_zero": 25,
+ "coast_frames_from_run": 51,
+ "coast_distance_px": 63.4,
+ "jump_stand_hold": {
+  "takeoff_vx": 0,
+  "apex_px": 66,
+  "tiles": 4.12,
+  "air_frames": 53,
+  "dist_px": 0
+ },
+ "jump_stand_tap2": {
+  "takeoff_vx": 0,
+  "apex_px": 23.1,
+  "tiles": 1.45,
+  "air_frames": 21,
+  "dist_px": 0
+ },
+ "jump_stand_tap6": {
+  "takeoff_vx": 0,
+  "apex_px": 33.5,
+  "tiles": 2.09,
+  "air_frames": 26,
+  "dist_px": 0
+ },
+ "jump_walk_hold": {
+  "takeoff_vx": 1.521,
+  "apex_px": 70.3,
+  "tiles": 4.39,
+  "air_frames": 57,
+  "dist_px": 89.1
+ },
+ "jump_walk_tap": {
+  "takeoff_vx": 1.521,
+  "apex_px": 28.7,
+  "tiles": 1.79,
+  "air_frames": 25,
+  "dist_px": 39.1
+ },
+ "jump_run_hold": {
+  "takeoff_vx": 2.562,
+  "apex_px": 82.5,
+  "tiles": 5.16,
+  "air_frames": 55,
+  "dist_px": 140.9
+ },
+ "jump_run_tap": {
+  "takeoff_vx": 2.562,
+  "apex_px": 31.8,
+  "tiles": 1.99,
+  "air_frames": 22,
+  "dist_px": 56.4
+ },
+ "air_control_right_then_left": {
+  "vx_after_right20": 0.742,
+  "vx_10f_after_reverse": 0.371
+ },
+ "camera_forward_only": {
+  "camX_after_run_right": 441.6,
+  "camX_after_run_left": 472.7,
+  "mario_screen_x_after_left": 0.0,
+  "mario_x_after_left": 472.7
+ },
+ "console_errors": []
+}

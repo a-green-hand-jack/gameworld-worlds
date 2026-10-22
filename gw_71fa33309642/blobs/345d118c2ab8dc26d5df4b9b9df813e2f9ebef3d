@@ -1,0 +1,8 @@
+down#0 falling {'trials': 220, 'landed': 206, 'kept40': 181, 'other_lift': 0}
+down#0 rising {'trials': 5, 'landed': 5, 'kept40': 5, 'other_lift': 0}
+down#1 falling {'trials': 220, 'landed': 206, 'kept40': 181, 'other_lift': 0}
+down#1 rising {'trials': 5, 'landed': 5, 'kept40': 5, 'other_lift': 0}
+up#2 falling {'trials': 5, 'landed': 1, 'kept40': 1, 'other_lift': 0}
+up#2 rising {'trials': 220, 'landed': 215, 'kept40': 181, 'other_lift': 0}
+up#3 falling {'trials': 5, 'landed': 1, 'kept40': 1, 'other_lift': 0}
+up#3 rising {'trials': 220, 'landed': 215, 'kept40': 181, 'other_lift': 0}

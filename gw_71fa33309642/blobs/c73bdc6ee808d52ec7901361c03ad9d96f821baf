@@ -1,0 +1,46 @@
+{
+ "(none)": {
+  "smb": {
+   "loaded": true,
+   "state": "title",
+   "level": "1-1"
+  },
+  "page_errors": [],
+  "console_errors": [],
+  "screenshot": "level_hash_none.png"
+ },
+ "#level=1-1": {
+  "smb": {
+   "loaded": true,
+   "state": "title",
+   "level": "1-1"
+  },
+  "page_errors": [],
+  "console_errors": [],
+  "screenshot": "level_hash_1-1.png"
+ },
+ "#level=1-2": {
+  "smb": {
+   "loaded": false,
+   "state": "title",
+   "level": "1-2"
+  },
+  "page_errors": [
+   "Cannot read properties of undefined (reading 'startArea')"
+  ],
+  "console_errors": [],
+  "screenshot": "level_hash_1-2.png"
+ },
+ "#level=9-9": {
+  "smb": {
+   "loaded": false,
+   "state": "title",
+   "level": "9-9"
+  },
+  "page_errors": [
+   "Cannot read properties of undefined (reading 'startArea')"
+  ],
+  "console_errors": [],
+  "screenshot": "level_hash_9-9.png"
+ }
+}

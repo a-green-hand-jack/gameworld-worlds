@@ -1,0 +1,19 @@
+# Snake assets (artist)
+Style: flat pixel-ish, dark navy background (#121826 / #161E2E), greens for the snake, red apple for food. Grid cell = 32x32 px.
+
+| File | Size | Use |
+|---|---|---|
+| assets/img/head_up/down/left/right.png | 32x32 | snake head, pick by current direction |
+| assets/img/body.png | 32x32 | every body segment (no separate tail) |
+| assets/img/food.png | 32x32 | food |
+| assets/img/bg_tile.png | 32x32 | board tile; bg_tile_pair.png (64x32) is the checker pair: left even cell, right odd cell |
+| assets/img/title_logo.png | 480x140 | title screen logo (transparent) |
+| assets/img/gameover_panel.png | 360x200 | game-over panel with "GAME OVER"; draw score/restart prompt on top, lower half is empty |
+| assets/audio/eat.wav | 0.14 s | food eaten |
+| assets/audio/start.wav | 0.36 s | game start from title |
+| assets/audio/gameover.wav | 0.6 s | collision |
+
+All WAV: mono 44.1 kHz 16-bit, peak -3 dB. Regenerate with `python3 tools/gen.py`.
+
+## Check in the running game (game-developer v0.2.0 + these assets)
+`checks/title.png`, `checks/play.png`: headless Chromium, no console errors. Board tile pair was raised in contrast (grid was barely visible against the background); head, body and food stay clearly distinct from it.

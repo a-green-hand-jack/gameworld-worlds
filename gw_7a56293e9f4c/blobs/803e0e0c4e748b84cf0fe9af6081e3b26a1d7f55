@@ -1,0 +1,35 @@
+# Playtest report — Snake build to play #1 (release `play-1`)
+
+**Build played:** `snake-build-1.zip` from release `play-1` in `world/producer` (game-developer 78f16e43, artist f5b3b5d5), unzipped and served statically (`python3 -m http.server`) at `/index.html`.
+**How:** headless Chromium (Playwright 1.64), 1280×800 viewport, real keyboard/mouse events, real-time play at the build's normal pace (130 ms/tick). A bot pressing real arrow keys steered to food; game state was read from `window.__snake` only to decide moves and to report. Scripts: `play.py`, `self2.py`. Recording: `play-1-session.webm`. Screenshots: `shots/`.
+Limits: no human hands/ears; sound was checked only as files (3 short wavs, 0.14–0.6 s, peaks −3 dB, no clipping) — I did not listen to them in a browser.
+
+## Per requirement
+| Req | Result | Evidence |
+|---|---|---|
+| R1 runs in browser, no build step | PASS | loads from static server, no console errors/warnings across the whole run (title → play → eat → die → replay ×3) |
+| R2 grid, steady pace | PASS | 20×20 checker board, snake moves cell by cell; interval 130 ms at score 0 (`04-play-score.png`) |
+| R3 arrow keys / reverse / scroll | PASS | Left while heading right: ignored, still alive (head kept advancing). `scrollY` stayed 0; at 800×600 the page is exactly viewport-height (no scrollbar) |
+| R4 food | PASS | scores 1,2,3…6 with length 4,5,6…9 (exactly +1/+1 each); food respawns on a free cell (`03-ate-first.png`, `04-play-score.png`) |
+| R5 death | PASS | wall death (`06-gameover-wall.png`, cause=wall) and self death (`08-gameover-self.png`, cause=self, via real keys down/left/up at 135 ms spacing on a 6-long snake) |
+| R6 title | PASS | `01-title.png`: "SNAKE", rules line, "Arrow keys to turn", "Press Enter or Space to start"; an arrow key also starts the game |
+| R7 score during play | PASS | "Score: N" top-left always visible, updates per food; "Best" top-right |
+| R8 game over / replay | PASS | Final score + best, "Press Enter, Space or click to play again"; Enter and mouse click both start a fresh game (score 0, length 3) with no reload |
+| R9 look | PASS | head faces direction of travel, body segments, red apple, checker board, green title logo, red-framed game-over panel: distinct and consistent |
+
+## Feel (player's view)
+- Starting is obvious; the board/snake is faintly visible behind the title veil, which is fine.
+- Pace: 130 ms/tick is comfortable for the first points; speed-up of 2 ms/point is gentle (70 ms floor reached only at 30 points).
+- Controls responsive; turns are buffered (max 2 queued). Quick U-turn manoeuvres work when keys are ~one tick apart.
+- Replay guard: "play again" text appears only after 0.4 s, and Enter inside that window is ignored — I did not find it annoying; it prevents accidental restarts.
+- Pause (P) works with its own screen; switching away (blur) auto-pauses — good.
+
+## Minor observations (none block release; none violate R1–R8)
+1. **Third key in a burst is dropped.** Pressing Down, Left, Up within one tick keeps only the first two (`queue` = down,left). Intentional cap, only noticeable on very fast combos (tight U-turn escapes). Repro: `self2.py`, burst section.
+2. **Death scene is hidden by the 80 % veil** on the game-over screen; the head partly sits under the panel/veil so the player can't see clearly what they hit. Cosmetic.
+3. **Wall has no distinct look**: the bounded board is delimited only by a thin border line; a player cannot see a "wall" tile. Readable, but R2's "visible, bounded grid" is met only modestly.
+4. Sound unverified by ear (see limits); music loop/turn sound start only after the first key press, as browsers require.
+5. Title help line and in-page footer ("Arrow keys: turn · Enter / Space: start · P: pause · M: sound") are small/low-contrast.
+
+## Verdict
+Playable start to finish and matches the objective on every point. **Nothing found that should block release.**

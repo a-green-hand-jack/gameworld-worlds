@@ -1,0 +1,25 @@
+"""Smoke check: python qa/smoke.py <dir-with-index.html> [outdir]. Serves statically, loads, reports console errors, off-origin requests, canvas size, screenshots title + after Enter + after input."""
+import sys, os, threading, http.server, functools, json
+from playwright.sync_api import sync_playwright
+root = os.path.abspath(sys.argv[1]); out = sys.argv[2] if len(sys.argv) > 2 else "qa/out"
+os.makedirs(out, exist_ok=True)
+h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=root)
+h.log_message = lambda *a, **k: None
+srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), h); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+res = {"console_errors": [], "offorigin": [], "failed": []}
+with sync_playwright() as p:
+    b = p.chromium.launch(args=["--autoplay-policy=no-user-gesture-required"])
+    pg = b.new_page(viewport={"width": 1024, "height": 960})
+    pg.on("console", lambda m: m.type == "error" and res["console_errors"].append(m.text))
+    pg.on("pageerror", lambda e: res["console_errors"].append(str(e)))
+    pg.on("request", lambda r: not r.url.startswith(f"http://127.0.0.1:{port}") and not r.url.startswith("data:") and res["offorigin"].append(r.url))
+    pg.on("requestfailed", lambda r: res["failed"].append(r.url))
+    pg.goto(f"http://127.0.0.1:{port}/index.html"); pg.wait_for_timeout(1500)
+    pg.screenshot(path=f"{out}/01-title.png")
+    res["canvas"] = pg.evaluate("(()=>{const c=document.querySelector('canvas');return c?{w:c.width,h:c.height,cw:c.clientWidth,ch:c.clientHeight,css:getComputedStyle(c).imageRendering}:null})()")
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(2500); pg.screenshot(path=f"{out}/02-after-enter.png")
+    pg.keyboard.down("ArrowRight"); pg.wait_for_timeout(1500); pg.keyboard.down("x"); pg.wait_for_timeout(300); pg.keyboard.up("x")
+    pg.wait_for_timeout(1500); pg.keyboard.up("ArrowRight"); pg.screenshot(path=f"{out}/03-after-run.png")
+    b.close()
+print(json.dumps(res, indent=1))

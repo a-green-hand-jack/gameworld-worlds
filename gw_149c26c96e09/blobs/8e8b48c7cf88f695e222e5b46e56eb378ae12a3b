@@ -1,0 +1,25 @@
+import sys, subprocess, time
+from playwright.sync_api import sync_playwright
+root=sys.argv[1]
+srv=subprocess.Popen([sys.executable,'-m','http.server','8767','-d',root],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1)
+errs=[]
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page()
+    pg.on('console', lambda m: errs.append(m.text) if m.type=='error' else None)
+    pg.goto('http://localhost:8767/'); pg.wait_for_timeout(1200)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(100)
+    pg.keyboard.press('ArrowUp')
+    while pg.evaluate('SnakeGame.game.state')=='playing': pg.wait_for_timeout(10)
+    t=time.time()
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(50)
+    print('Enter %.0f ms after death -> state'%((time.time()-t)*1000), pg.evaluate('SnakeGame.game.state'), 'final shown', pg.is_visible('#gameover-screen'), pg.inner_text('#final-score'))
+    pg.keyboard.press('Space'); pg.wait_for_timeout(50); print('Space ~150ms ->', pg.evaluate('SnakeGame.game.state'))
+    pg.click('#restart-button'); pg.wait_for_timeout(50); print('click ~250ms ->', pg.evaluate('SnakeGame.game.state'))
+    pg.wait_for_timeout(500)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(100); print('Enter ~800ms ->', pg.evaluate('SnakeGame.game.state'), pg.evaluate('SnakeGame.game.score'), pg.evaluate('SnakeGame.game.snake.length'))
+    # second cycle: click after guard
+    pg.keyboard.press('ArrowUp')
+    while pg.evaluate('SnakeGame.game.state')=='playing': pg.wait_for_timeout(10)
+    pg.wait_for_timeout(800); pg.click('#restart-button'); pg.wait_for_timeout(100); print('click after 800ms ->', pg.evaluate('SnakeGame.game.state'))
+    print('errors',errs); b.close()
+srv.terminate()

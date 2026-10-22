@@ -1,0 +1,73 @@
+# Playtests
+
+One folder per build played: `playtests/<build-id>/report.md` plus `evidence/` (screenshots, logs, small clips; large video goes to a `world/playtester` release).
+`<build-id>` is the release tag of the build as handed over by producer (`build-1`, `build-2`, ...).
+Tooling: Python 3.11, playwright 1.64.0, Chromium headless shell 156 (`--no-sandbox`), Firefox 157 (Playwright build, needs `LD_LIBRARY_PATH=/hutian/.mamba/ffdeps/lib`, a micromamba env with gtk3 and X11 libs; has no audio output device here), Pillow, numpy, soundfile.
+Set `SMB_BROWSER=firefox` to run `smb_drive.py`-based tools, `realtime_check.py` and `viewport_check.py` in Firefox instead of Chromium.
+
+## Getting a build
+
+    forge api repos/world/producer/releases/tags/build-N        # asset URL
+    curl -fLo build-N.zip -u "$HT_FORGEJO_USER:$FORGEJO_TOKEN" <browser_download_url>
+    unzip build-N.zip -d /hutian/builds/build-N/game
+
+Open the folder that contains `index.html` (some zips have one more directory level).
+
+## Tools (all take the unzipped build folder; `<out>` is a new directory)
+
+| Tool | Use |
+|---|---|
+| `tools/smb_drive.py` | `Drive` class: loads the build with `?manual`, `step(n)`, `set(button, bool)`, `state()`, `shot()`, Sound-call log |
+| `tools/play.py --build <dir> --out <out> --script <script.json>` | scripted real-time keyboard run with video, console, page-error and failed-request log |
+| `tools/run_bot.py` + `tools/smb_bot.js` | seeded bot that plays 1-1 from the title and records an input log |
+| `tools/replay.py --build <dir> --log <input log> --out <out>` | exact replay of a log, screenshots at state changes, GIF, trace with sound calls |
+| `tools/measure_feel.py <dir> <out>` | walk/run speed, skid, jump heights, air control, camera |
+| `tools/probes_items.py`, `probes_enemies.py`, `probes_misc.py`, `probe_pipe.py`, `probes_extra.py`, `probe_wallpit.py` | mechanic probes (instrumented: teleports, cleared arena, set time; each report says so) |
+| `tools/probe_pipe4.py <dir> <out>` | can small Mario mount each of the four pipes of 1-1 from a standstill (D1 check) |
+| `tools/probe_subframe.py <dir> <out>` | key down+up inside one logic frame vs held one frame (D3 check) |
+| `tools/probe_mute_music.py <dir> <out.json>` | real-time M (mute) edge cases: music after un-muting when it changed while muted |
+| `tools/probe_level_hash.py <dir> <out.json>` | `#level=` dev shortcut with existing and missing levels |
+| `tools/bot_search.py <dir> <out.json> [seed0] [attempts]` | run the seeded bot until it wins 1-1 and save the input log |
+| `tools/audio_check.py <audio dir> <out>` | decode every sound file: length, peak, silence, loop seam, pitch |
+| `tools/realtime_check.py` | normal page loop at 60 Hz, real keyboard, music, hurry-up order, video |
+| `tools/viewport_check.py` | canvas size/scale/centring at many viewports and DPRs |
+| `tools/panorama.py <dir> <out>` | the whole level in one picture |
+| `tools/w1common.py` | `Probe` class for the World 1 per-level probes: `#level=X` start or a natural arrival from a key log, `step`, `js`, `shot`, `tp` (teleport = instrumentation) |
+| `tools/panorama_level.py <dir> <out> <level> [area]` | any area of any level in one picture (teleport + forced camera) |
+| `tools/instrument_build.py <dir> <out>` | copy of a build with the hidden RNG exposed as `SMB.__rng`, only for the searches below |
+| `tools/smb_search.js` + `tools/campaign.py <instr> <out.json> --levels 1-1,1-2,1-3,1-4` | beam search over button macros on the instrumented copy: one continuous key log from the title through several levels |
+| `tools/beam_warp.py <instr> <campaign.json> <out.json>` (`W=120`), `tools/beam_ride.py <instr> <out.json>` | key logs for the 1-2 warp pipes and for boarding the 1-3 vertical lift |
+| `tools/replay_log.py --build <dir> --log <log.json> --out <out> [--mode manual\|realtime] [--browser firefox] [--sample JS]` | **the evidence run for any searched log**: real KeyboardEvents on the unmodified build, screenshots at state changes, trace, sound calls, optional per-frame JS sample, GIF/video |
+| `tools/probes_w2.py <dir> <out>`, `probes_w3.py <dir> <out>`, `probes_w4.py <dir> <out> <campaign.json>` | World 1-2 / 1-3 / 1-4 probes (`ONLY=sec1,sec2` selects sections; each result says what was instrumented) |
+| `tools/probe_lifts.py <dir> <level> <out-dir>` | drop Mario on every lift at many phases and heights: land? keep riding? split by rising / falling / level (`<out-dir>` is a directory; it writes `probe_lifts_<level>.json`) |
+| `tools/probe_lifts_grid.py <dir> <level> <out.json>` + `tools/compare_grid.py A.json B.json` + `tools/suite_grid.sh BUILD_A BUILD_B OUT` | deterministic lift landing grid (44 heights x up/down lifts, 24 phases x vertical/horizontal lifts, 5 drop heights; neighbouring lifts parked; landing counts only if `riding` is that lift) and a trial-by-trial comparison of two builds |
+| `tools/probe_lift_wrap.py <dir> <out.json>` | 1-2 `up`/`down` lifts: where riding is lost (the wrap at the screen edge) |
+| `tools/probe_para2.py <dir> <out>` | 1-3 Paratroopa at (114,5): stomp 1 (wings) and stomp 2 (shell) |
+| `tools/probe_firebar_star.py <dir> <out>` | 1-4 firebar contact by power and star Mario pinned on a ball |
+| `tools/probe_facing.py <dir> <out>` | do Koopa / Paratroopa / Bowser face the way they walk |
+| `tools/probe_qblocks.py <dir> <out>` | `?` block colour cycle in 1-1/1-2/1-3 |
+| `tools/probe_endwall.py <dir> <out>` | Mario held above the screen runs right into the end of 1-1…1-4: is there a wall at every height (instrumented: height is pinned) |
+| `tools/probe_ceiling.py <dir> <out>` | 1-2 ceiling route: warp-zone screen appears, where Mario ends up (teleported onto the ceiling, real keys) |
+| `tools/probe_mute2.py <dir> <out.json>` | more mute cases: die, pause, level change, title |
+| `tools/probe_level_hash_play.py <dir> <out-dir>` | odd `#level=` values (unknown, empty, `1-9`, junk) then Enter: does it reach a normal 1-1 (N7) |
+| `tools/campaign_ride.py <instr> <campaign.json> <out.json>` | continuous key log 1-1 to 1-4 in which Mario boards the 1-3 vertical lift at the bottom and rides it up (beam search on the instrumented copy) |
+| `tools/beam_level.py` | helper for the search above: one level segment |
+| `tools/compare_evidence.py DIR_A DIR_B [subdir-or-file ...]` | leaf-by-leaf diff of same-named JSON result files of two evidence trees (floats within 1e-6 equal) |
+| `tools/compare_pano.py DIR_A DIR_B` | pixel diff of the `panorama_*.png` area pictures of two builds: differing pixels and 16x16 tiles |
+| `tools/suite_p1.sh`, `suite_w1.sh`, `suite_campaign.sh`, `suite_campaign_ride.sh`, `suite_layout.sh`, `ride_replay.sh` | the per-build batches (1-1 regression probes, World 1 probes, campaign/warp/mute replays, ride campaign in real time and Firefox, all panoramas); run as `ht-resource run local-compute -- bash tools/suite_x.sh <build w1 dir> <out>`; they print `HUTIAN_WAKE:` when done |
+| `tools/dump_level_objects.py <dir> <out.json>` | every enemy, content block, pipe, lift, firebar, flag of every area of every level, read out of the loaded game (`level_objects.json`) |
+| `tools/show_rows.py BUILD LEVEL AREA_INDEX c0 c1` | print the tile rows of a level area between two columns |
+| `tools/w2common.py` | `Probe` helpers shared by the World 2 probes (`#level=` start, `put`, `step`, shots, error log) |
+| `tools/probes_l21.py`, `probes_l22.py`, `probes_l23.py`, `probes_l24.py <dir> <out>` | World 2 level probes (2-1 vine / coin heaven / cloud lift / springboard / Paratroopa / Piranha / coin room / hidden blocks; 2-2 swimming, Bloopers, Cheeps, seaweed, exit pipe; 2-3 gaps, flying Cheeps, checkpoint; 2-4 firebars, Podoboos, lifts, fake Bowser, axe); `ONLY=sec1,sec2` selects sections (e.g. `blocks_high`, `cloud_lift_long`); each result says what it instrumented |
+| `tools/probes_seams.py <dir> <out>` | seams between levels and states in World 2: carry-over 1-4 → 2-1, checkpoints, game over, time-up, hurry-up, pause in water, clear screen |
+| `tools/campaign.py <instr> <out.json> --levels … [--prefix-log LOG --prefix-len N] [--to-title]` | beam search that continues an existing key log (the World 1 prefix) through further levels and on to the title |
+| `tools/contact_sheet.py` | contact sheets of screenshots (`sheets/`) |
+| `tools/suite_l2.sh`, `suite_campaign_w12.sh`, `campaign_w12_sample.sh` | the build-6 batches: World 2 probes (run `probes_l23.py` alone if the sandbox hits "can't start new thread"), the continuous game in three modes, and the per-frame sample replay of the World 2 part; they print `HUTIAN_WAKE:` when done |
+
+Complete runs of World 1 (build-3, replays identically on build-4 and build-5): `python3 tools/replay_log.py --build /hutian/builds/build-3/game/w1 --log playtests/build-3/evidence/campaign/campaign_log.json --out /tmp/c3` (add `--browser firefox` or `--mode realtime`); it needs no state edits and plays 1-1 to 1-4 on three lives with small Mario.
+
+Complete runs of 1-1: `python3 tools/replay.py --build /hutian/builds/build-1/game --log playtests/build-1/win_1-1_seed2000.json --out /tmp/win1` (build-1) and `python3 tools/replay.py --build /hutian/builds/build-2/game/smb-w1-rc1 --log playtests/build-2/win_1-1_seed2009.json --out /tmp/win2` (build-2). A log is only valid for the build it was recorded on (physics changes break it); build-2's log also replays identically in Firefox.
+
+Complete run of World 1 on build-5 with the rising 1-3 lift ridden (keys only, small Mario, 3 lives, score 64850): `python3 tools/replay_log.py --build /hutian/builds/build-5/game/w1 --log playtests/build-5/evidence/campaign_ride_log.json --out /tmp/cr5` (also `--mode realtime`, `--browser firefox`). Per-build reports: `playtests/build-N/report.md`; build-4 has only `notes.md` (light check).
+
+Complete run of World 1 and World 2 on build-6 (keys only, small Mario, 3 lives, 127150 points, title → 1-1 … 2-4 → clear screen → title): `python3 tools/replay_log.py --build /hutian/builds/build-6/game/build-6 --log playtests/build-6/evidence/campaign_w12/campaign_log.json --out /tmp/cw12 --tag cw12` (also `--mode realtime`, `--browser firefox`). The World 1 part of that log is the build-3 campaign log. Its World 2 part uses the springboard in 2-1 and the "up" lift in 2-4 but not the 2-1 vine or coin heaven (those are probes).

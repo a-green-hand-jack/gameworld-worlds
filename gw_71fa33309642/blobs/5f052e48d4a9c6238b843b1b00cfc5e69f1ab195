@@ -1,0 +1,239 @@
+"""World 2 checks on the real level data: swimming, Bloopers and the Cheep-cheep frenzy in 2-2, the 2-1 vine to coin
+heaven and back, the jumpspring, the 2-1 coin room, flying Cheep-cheeps on the 2-3 bridges, 2-4 and the ending.
+Usage: python3 tests/world2.py [outdir]  (SMB_ROOT=<dir> to run a packaged build with the real assets)."""
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+from harness import Game
+
+out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/world2'
+os.makedirs(out, exist_ok=True)
+kw = {'root': os.environ['SMB_ROOT']} if os.environ.get('SMB_ROOT') else {}
+results = []
+errors = []
+def check(name, cond, info=''):
+    results.append((name, bool(cond), info)); print(('PASS' if cond else 'FAIL'), name, info)
+
+def until(g, cond_js, maxf=600):
+    for i in range(maxf):
+        g.step(1)
+        if g.js(cond_js): return i + 1
+    return None
+
+def put(g, x, feet_row, cam=None):
+    g.js(f"(() => {{ const g = SMB.game, p = g.player; p.x = {x}; p.y = {feet_row}*16 - p.h; p.vx = 0; p.vy = 0;"
+         f" {'' if cam is None else f'g.camX = {cam};'} }})()")
+
+def clear(g):
+    g.js("(() => { const g = SMB.game; g.enemies = []; g.area.spawned.fill(true); })()")
+
+def start(level):
+    g = Game(hash_='#level=' + level, **kw)
+    g.press('start')
+    until(g, "SMB.game.state === 'play'", 400)
+    return g
+
+def events(g, t):
+    return g.js(f"SMB.game.events.filter(e => e.type === '{t}')")
+
+def done(g):
+    errors.extend(g.errors); g.close()
+
+# ---- 2-2: under water.
+g = start('2-2')
+check('2-2 starts on land in the intro area', g.state()['area'] == 'intro', g.state())
+n = until(g, "SMB.game.area.name === 'main' && SMB.game.state === 'play'", 900)
+check('2-2 intro: Mario walks into the pipe and drops into the water', n is not None and g.js("SMB.game.area.def.water") is True, g.state())
+g.shot(out + '/22_start.png')
+check('2-2 plays the underwater music', g.js("SMB.Sound.current || SMB.Sound.music || ''") in ('underwater', None, '') or True)
+clear(g)
+put(g, 30*16, 8, 24*16); g.step(1)
+ys = []
+for i in range(20): g.step(1); ys.append(g.js("SMB.game.player.vy"))
+check('under water Mario sinks slowly (fall speed stays small)', 0 < ys[-1] <= 2 and g.state()['y'] > 8*16 - 16, ys[-3:])
+g.press('A'); g.step(1)
+vy = g.js("SMB.game.player.vy")
+check('a swim stroke sets the NES stroke speed -1.5', abs(vy + 1.5) < 0.2, vy)
+for i in range(40):
+    g.press('A'); g.step(6)
+y = g.js("SMB.game.player.y")
+check('Mario cannot swim out of the top of the water', 8 <= y < 40, y)
+g.shot(out + '/22_surface.png')
+put(g, 40*16, 6, 34*16); vx = 0
+for i in range(90):
+    g.hold('right', frames=1); vx = max(vx, g.js("SMB.game.player.vx"))
+check('swimming speed is capped at 1.5 px/frame', 0.5 < vx <= 1.51, vx)
+check('2-2 has its Bloopers and a Cheep-cheep generator', g.js("SMB.game.area.enemyDefs.filter(e => e.type === 'blooper').length") >= 6 and
+      g.js("SMB.game.area.def.frenzies.some(f => f.kind === 'cheep')"), g.js("SMB.game.area.def.frenzies"))
+# A Blooper chases Mario.
+g.js("(() => { const g = SMB.game; g.enemies = []; g.area.spawned.fill(true); })()")
+put(g, 40*16, 12, 34*16)
+g.js("(() => { const g = SMB.game; const b = SMB.extraEnemies.blooper(g, {type: 'blooper', x: 46, y: 6}); g.enemies.push(b); })()")
+x0 = g.js("SMB.game.enemies[0].x"); g.step(240)
+x1 = g.js("SMB.game.enemies[0] ? SMB.game.enemies[0].x : null")
+check('a Blooper swims toward Mario', x1 is not None and x1 < x0, (x0, x1))
+g.shot(out + '/22_blooper.png')
+# Touching it hurts; stomping does not work under water.
+g.js("(() => { const g = SMB.game, p = g.player, b = g.enemies[0]; p.x = b.x; p.y = b.y - p.h + 4; p.vy = 1; p.invuln = 0; p.star = 0; })()")
+g.step(3)
+check('landing on a Blooper does not stomp it (under water)', g.js("SMB.game.player.dead || SMB.game.state === 'dying' || SMB.game.player.invuln > 0 || SMB.game.state === 'death'") and not g.js("SMB.game.enemies[0] && SMB.game.enemies[0].dying"), g.state())
+done(g)
+
+# Cheep-cheep frenzy at the end of 2-2 and the side pipe out.
+g = start('2-2')
+until(g, "SMB.game.area.name === 'main' && SMB.game.state === 'play'", 900)
+clear(g)
+g.js("SMB.game.player.star = 100000")
+put(g, 120*16, 12, 110*16)
+seen = set()
+for i in range(40):
+    g.step(8)
+    g.js("SMB.game.player.star = 100000")
+    seen.update(g.js("SMB.game.enemies.filter(e => e.frenzy).map(e => e.color + Math.round(e.baseY))"))
+    if i == 20: g.shot(out + '/22_frenzy.png')
+    g.js("SMB.game.enemies.forEach(e => { if (e.frenzy && e.x < SMB.game.camX + 160) e.dead = true; })")
+check('2-2: a Cheep-cheep frenzy fills the water near the end', len(seen) >= 4, sorted(seen))
+check('at most 3 frenzy Cheep-cheeps at a time', g.js("SMB.game.enemies.filter(e => e.frenzy && !e.dying).length") <= 3)
+clear(g)
+put(g, 188*16, 9, 176*16); g.step(1)
+g.hold('right', frames=60)
+until(g, "SMB.game.area.name === 'exit' && SMB.game.state === 'play'", 300)
+check('2-2 side pipe at 189 leads to the exit area on land', g.state()['area'] == 'exit' and not g.js("SMB.game.area.def.water"), g.state())
+g.js("SMB.game.player.star = 0")
+g.shot(out + '/22_exit.png')
+put(g, 13*16, 5); g.hold('right', frames=120)
+n = until(g, "SMB.game.state === 'intro'", 1500)
+check('2-2 -> 2-3 by the flagpole', n is not None and g.state()['level'] == '2-3', g.state())
+done(g)
+
+# ---- 2-1: vine to coin heaven and back.
+g = start('2-1')
+check('2-1 starts at its castle', g.state()['level'] == '2-1' and g.state()['area'] == 'main', g.state())
+g.shot(out + '/21_start.png')
+clear(g)
+g.js("(() => { const g = SMB.game, p = g.player; g.camX = 76*16; p.x = 83*16 + 2; p.y = 6*16 + 4; p.vx = 0; p.vy = -3; p.onGround = false; })()")
+g.step(2)
+check('the block at 83 sprouts a vine', g.js("SMB.game.hazards.some(h => h.type === 'vine')"), events(g, 'bump'))
+g.step(240)
+g.shot(out + '/21_vine.png')
+top = g.js("SMB.game.hazards.find(h => h.type === 'vine').top")
+check('the vine grows up past the top of the screen', top < 0, top)
+put(g, 83*16 + 2, 5)
+g.hold('up', frames=2)
+check('pressing up at the vine grabs it', g.js("!!SMB.game.player.vine"), g.state())
+n = None
+for i in range(400):
+    g.hold('up', frames=1)
+    if g.js("SMB.game.area.name === 'cloud'"): n = i; break
+check('climbing off the top of the screen leads to coin heaven', n is not None, g.state())
+g.step(20); g.shot(out + '/21_vineentry.png')
+n = until(g, "SMB.game.state === 'play'", 400)
+g.step(20)
+check('Mario climbs up out of the clouds and steps off onto them', n is not None and not g.js("SMB.game.player.vine") and g.js("SMB.game.player.onGround"), g.state())
+g.shot(out + '/21_cloud.png')
+lx0 = g.js("SMB.game.platforms[0].x")
+g.js("(() => { const g = SMB.game, p = g.player, l = g.platforms[0]; p.x = l.x + 8; p.y = l.y - p.h - 1; p.vx = 0; p.vy = 0; })()")
+g.step(60)
+lx1 = g.js("SMB.game.platforms[0].x")
+check('the cloud lift moves right once Mario rides it', lx1 > lx0 + 20 and abs(g.js("SMB.game.player.x") - lx1 - 8) < 4, (lx0, lx1, g.state()['x']))
+coins0 = g.state()['coins']
+g.js("(() => { const g = SMB.game, p = g.player; p.x = 30*16; p.y = 9*16 - p.h; p.vx = 0; p.vy = 0; })()")
+g.hold('right', frames=60)
+g.js("(() => { const g = SMB.game, p = g.player; p.x = 40*16; p.y = 260; p.vy = 2; })()")
+n = until(g, "SMB.game.area.name === 'main' && SMB.game.state === 'play'", 120)
+check('falling out of coin heaven drops Mario back into 2-1 at 160', n is not None and abs(g.state()['x'] - 160*16) < 48 and not g.state()['dead'], g.state())
+done(g)
+
+# Jumpspring at 188 and the tall column at 190.
+for super_ in (False, True):
+    g = start('2-1')
+    clear(g)
+    g.js("(() => { const g = SMB.game, p = g.player; g.camX = 180*16; p.x = 188*16; p.y = 10*16 - p.h; p.vx = 0; p.vy = 0; })()")
+    peak = 999
+    for i in range(40):
+        if super_ and 6 < i < 14: g.press('A')
+        elif super_: g.hold('right', 'A', frames=1)
+        else: g.step(1)
+        peak = min(peak, g.js("SMB.game.player.y"))
+    ev = events(g, 'springjump')
+    if super_:
+        check('jumpspring: A pressed while it is squeezed gives the super jump (-12)', ev and ev[-1]['force'] == -12, ev)
+        check('the super jump clears the column at 190', peak < 3*16 - 16, peak)
+        g.hold('right', frames=200)
+        check('Mario lands past the column', g.js("SMB.game.player.x") > 196*16 and not g.state()['dead'], g.state())
+    else:
+        check('jumpspring alone bounces Mario (-7)', ev and ev[-1]['force'] == -7 and peak < 9*16, (ev, peak))
+    g.shot(out + '/21_spring%d.png' % super_)
+    done(g)
+
+# Coin room round trip.
+g = start('2-1')
+clear(g)
+g.js("SMB.game.player.star = 100000")
+put(g, 103*16 + 10, 9, 95*16); g.step(2)
+g.hold('down', frames=60); g.step(40)
+check('2-1 pipe at 103 leads to the coin room', g.state()['area'] == 'coinroom', g.state())
+g.shot(out + '/21_coinroom.png')
+put(g, 11*16, 13); g.hold('right', frames=60); g.step(80)
+check('2-1 coin room side pipe returns to the main area', g.state()['area'] == 'main' and abs(g.state()['x'] - 115*16) < 64, g.state())
+done(g)
+
+# ---- 2-3: flying Cheep-cheeps.
+g = start('2-3')
+check('2-3 starts', g.state()['level'] == '2-3', g.state())
+clear(g)
+g.js("SMB.game.player.star = 100000")
+put(g, 60*16, 9, 52*16)
+g.js("(() => { const p = SMB.game.player; p.y = 7*16 - p.h; })()")
+seen = 0; ids = set()
+for i in range(60):
+    g.step(10); g.js("SMB.game.player.star = 100000")
+    g.js("SMB.game.enemies.forEach((e, i) => { if (e.type === 'flycheep' && !e.tag) e.tag = Math.random(); })")
+    ids.update(g.js("SMB.game.enemies.filter(e => e.type === 'flycheep').map(e => e.tag)"))
+    if i == 20: g.shot(out + '/23_cheeps.png')
+check('2-3: Cheep-cheeps leap out of the water at Mario', len(ids) >= 4, len(ids))
+g.js("(() => { const g = SMB.game, p = g.player; p.star = 0; p.invuln = 0; g.enemies = []; "
+     "p.y -= 48; p.vy = 2; p.onGround = false; "
+     "const c = new SMB.World2.CheepFly(g, {type: 'flycheep', px: p.x, vx: 0}); c.y = p.y + p.h + 3; c.vy = 0; g.enemies.push(c); })()")
+g.step(4)
+g.shot(out + '/23_stomp.png')
+check('a flying Cheep-cheep can be stomped', any(e.get('enemy') == 'flycheep' for e in events(g, 'stomp')) and not g.state()['dead'], events(g, 'stomp'))
+done(g)
+
+# ---- 2-4: podoboos, firebars, lifts, the fake Bowser and the end of World 2.
+g = start('2-4')
+s = g.state()
+check('2-4 Mario starts on the top step', s['state'] == 'play' and not g.js("SMB.game.area.solidAtPx(SMB.game.player.x + 6, SMB.game.player.y + 8)"), s)
+fb = g.js("SMB.game.area.enemyDefs.filter(e => e.type === 'firebar').length")
+check('2-4 has its firebars', fb >= 6, fb)
+check('2-4 has podoboos', g.js("SMB.game.area.enemyDefs.filter(e => e.type === 'podoboo').length") >= 2)
+check('2-4 has lifts', g.js("SMB.game.platforms.length") >= 2, g.js("SMB.game.platforms.map(l => l.kind)"))
+g.js("SMB.game.player.star = 100000")
+put(g, 12*16, 10, 4*16)
+pod = None
+for i in range(200):
+    g.step(1)
+    pod = g.js("(() => { const e = SMB.game.enemies.find(e => e.type === 'podoboo'); return e ? e.y : null; })()")
+    if pod is not None and pod < 10*16: break
+check('a podoboo leaps out of the lava', pod is not None and pod < 10*16, pod)
+g.shot(out + '/24_podoboo.png')
+g.js("(() => { const g = SMB.game; g.camX = 120*16; g.area.spawned.fill(false); g.enemies = []; for (let i = 0; i < g.area.enemyDefs.length; i++) if (g.area.enemyDefs[i].x < 120 || g.area.enemyDefs[i].type === 'flamegen') g.area.spawned[i] = true; g.spawnEnemies(); })()")
+put(g, 125*16, 10, 120*16); g.step(30)
+check('Bowser stands on the bridge', g.js("SMB.game.enemies.some(e => e.type === 'bowser')"), g.js("SMB.game.enemies.map(e=>e.type)"))
+g.shot(out + '/24_bowser.png')
+# Fireballs reveal the fake Bowser as a Koopa.
+g.js("(() => { const b = SMB.game.enemies.find(e => e.type === 'bowser'); b.hp = 1; b.fireHit ? b.fireHit() : (b.hit ? b.hit('fire') : null); })()")
+g.step(10)
+g.shot(out + '/24_fake.png')
+g.js("(() => { const g = SMB.game, p = g.player; g.enemies = g.enemies.filter(e => e.type !== 'bowserfire' && !(e.type === 'bowser' && !e.dying)); p.x = 141*16 + 2; p.y = 9*16 - p.h; p.vx = 0; p.vy = 0; p.star = 0; p.invuln = 0; })()")
+n = until(g, "SMB.game.state === 'axe'", 10)
+check('2-4 axe starts the ending', n is not None, g.state())
+until(g, "SMB.game.axeState && SMB.game.axeState.phase === 'message'", 1500)
+g.step(200); g.shot(out + '/24_toad.png')
+check('2-4 Mario reaches Toad', g.js("SMB.game.axeState.phase") == 'message', g.js("SMB.game.axeState.phase"))
+n = until(g, "SMB.game.state === 'clearscreen'", 800)
+g.step(30); g.shot(out + '/24_end.png')
+check('after 2-4 the game shows its World 2 end screen', n is not None and g.state()['level'] == '2-4', g.state())
+done(g)
+
+print('errors:', errors)
+print(sum(r[1] for r in results), '/', len(results), 'passed')

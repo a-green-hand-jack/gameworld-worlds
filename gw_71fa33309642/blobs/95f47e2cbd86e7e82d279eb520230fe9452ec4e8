@@ -1,0 +1,15 @@
+# QA report: build-4 (acceptance candidate)
+
+**Build:** `build-4` (producer release, build-4.zip sha256 81372969...1d8f): game-developer 0fbd0f2c7dc1 + artist 144b1149ff7a. `diff -r` of its `w1/` against the unzipped game-developer `w1-rc4` is empty, so it is the same content I reported on in `w1-rc4.md`. Run from its own unzipped contents, headless Chromium.
+
+| Suite | Result |
+|---|---|
+| `smoke.py` | 0 console errors, 0 off-origin, 0 failed requests; 256x240 at 4x crisp |
+| `check_build.py` P1 (1-1) | 83/83 |
+| `check_p2.py` (lifts, 1-2, 1-3, 1-4, flow) | 43/43 |
+| `bot_playthrough.py` fair 1-1 | flag at frame 1591, 3 lives, no deaths |
+| `edge_check.py` | game-developer#11 verified fixed: Mario stops at x=3316 (right) and x=0 (left) above the screen |
+| `mute_check.py` | pass (game-developer#9) |
+| 1-2 warp zone with walled level ends | still works: the check runs the ceiling route and drops into the zone (`warpzone` event, banner), then the pipe leads on (World 1 end screen) |
+
+Open defects: none. Not checked: music by ear, real-keyboard feel, a fair play of 1-2..1-4 with all enemies (playtester), firebar timing and pixel fidelity against the original. Observation: 1-4 has no Podoboo.

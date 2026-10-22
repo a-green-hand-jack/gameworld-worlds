@@ -1,0 +1,98 @@
+"""Traversability check: a macro-search bot that looks ahead by simulating the game's own physics (in-page, snapshot/restore)
+and plays one level in godmode to its end. If it gets through, the level can be traversed with run-jumps and lifts; if it stalls, inspect.
+BUILD_DIR=... python3 qa/search_bot.py LEVEL OUTDIR [startx_px]    (enemies are ignored while searching)"""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+BUILD = os.path.abspath(os.environ.get('BUILD_DIR', '.'))
+level, OUT = sys.argv[1], sys.argv[2]
+os.makedirs(OUT, exist_ok=True)
+g = Game(BUILD, '#level=' + level); g.press('start'); g.step(160)
+JS = r"""
+(() => {
+const G = SMB.game, I = SMB.Input;
+const MACROS = [];
+for (const h of [5, 8, 11, 15, 22, 40]) { MACROS.push({n: 'runjump' + h, f: (t) => ({right: 1, B: 1, A: t >= 1 && t < h + 1})}); }
+for (const h of [8, 40]) { MACROS.push({n: 'walkjump' + h, f: (t) => ({right: 1, B: 0, A: t >= 1 && t < h + 1})}); }
+MACROS.push({n: 'leftjump', f: (t) => ({left: 1, B: 1, A: t >= 1 && t < 41})});
+MACROS.push({n: 'standjump', f: (t) => ({A: t >= 1 && t < 41})});
+MACROS.push({n: 'run', f: (t) => ({right: 1, B: 1}), len: 10});
+MACROS.push({n: 'left', f: (t) => ({left: 1, B: 1}), len: 10});
+MACROS.push({n: 'wait', f: (t) => ({}), len: 20});
+const BTN = ['left', 'right', 'up', 'down', 'A', 'B'];
+function snap() {
+  return {p: Object.assign({}, G.player), pl: G.platforms.map(l => Object.assign({}, l)), cam: G.camX, time: G.time,
+    en: G.enemies.slice(), it: G.items.slice(), fb: G.fireballs.slice(), ef: G.effects.slice(), st: G.state, area: G.area, lvl: G.levelId};
+}
+function restore(s) {
+  Object.assign(G.player, s.p); G.platforms.forEach((l, i) => Object.assign(l, s.pl[i]));
+  G.camX = s.cam; G.time = s.time; G.enemies = s.en.slice(); G.items = s.it.slice(); G.fireballs = s.fb.slice(); G.effects = s.ef.slice(); G.state = s.st;
+}
+function apply(o) { for (const b of BTN) I.down[b] = !!o[b]; }
+function sim(m) {
+  const p = G.player; let air = false;
+  const maxT = m.len || 90;
+  for (let t = 0; t < maxT; t++) {
+    apply(m.f(t)); G.update();
+    if (G.state === 'flag' || G.state === 'axe' || G.state === 'clearscreen') return 'end';
+    if (G.state !== 'play' || p.dead) return false;
+    if (p.y > 232) return false;
+    if (!p.onGround) air = true;
+    if (!m.len && air && p.onGround) { break; }
+  }
+  return true;
+}
+// Evaluate depth-limited sequences; return best first macro index.
+function score() { const p = G.player; return p.x + (p.onGround ? 0 : -0.5); }
+let ENDED = false;
+function search(depth) {
+  const s0 = snap(); const savedEn = G.enemies; G.enemies = [];
+  let best = {sc: -1e9, i: -1};
+  const rec = (d) => {
+    if (d === 0) return score();
+    let b = -1e9; const s = snap();
+    for (let i = 0; i < MACROS.length; i++) {
+      restore(s); I.held = Object.assign({}, I.held);
+      const r = sim(MACROS[i]); if (!r) { continue; }
+      if (r === 'end') { b = Math.max(b, 1e6); continue; }
+      b = Math.max(b, rec(d - 1));
+    }
+    restore(s); return b;
+  };
+  for (let i = 0; i < MACROS.length; i++) {
+    restore(s0);
+    const r = sim(MACROS[i]); if (!r) continue;
+    const sc = r === 'end' ? 1e6 + 1 : rec(depth - 1);
+    if (sc > best.sc) best = {sc, i};
+  }
+  restore(s0); G.enemies = savedEn;
+  return best;
+}
+window.__bot = {MACROS, search, apply, sim, G};
+})()
+"""
+g.js(JS)
+if level == '1-2':
+    g.step(400)
+RUN = """(depth) => { const G = SMB.game, B = window.__bot; G.player.invuln = 99999999;
+  const b = B.search(depth); if (b.i < 0) return {fail: true};
+  const m = B.MACROS[b.i]; const p = G.player; let air = false; const maxT = m.len || 90;
+  for (let t = 0; t < maxT; t++) { B.apply(m.f(t)); G.player.invuln = 99999999; G.update();
+    if (G.state !== 'play') break; if (!p.onGround) air = true; if (!m.len && air && p.onGround) break; }
+  return {m: m.n, x: p.x, y: p.y, st: G.state, area: G.area.name, lvl: G.levelId, sc: b.sc}; }"""
+maxx = 0; stall = 0; log = []; result = None
+for it in range(900):
+    r = g.js('(' + RUN + ')(3)')
+    if r.get('fail'):
+        result = 'SEARCH FAIL (every macro dies) at ' + str(g.state()); g.step(0); g.shot(OUT + '/fail_%s.png' % level); break
+    log.append((r['m'], round(r['x']), round(r['y']), r['area']))
+    if r['st'] in ('flag', 'axe', 'clearscreen', 'castlewalk', 'intro') or r['lvl'] != level:
+        result = 'END (%s) in area %s after %d macros, x=%.0f' % (r['st'], r['area'], it, r['x']); g.step(0); g.shot(OUT + '/end_%s.png' % level); break
+    if r['x'] > maxx + 2: maxx = r['x']; stall = 0
+    else: stall += 1
+    if stall > 25:
+        result = 'STALL at area %s x=%.0f y=%.0f (maxx %.0f); last macros %s' % (r['area'], r['x'], r['y'], maxx, log[-8:]); g.step(0); g.shot(OUT + '/stall_%s.png' % level); break
+print(level, result)
+print('macros', len(log), 'errors', g.errors)
+open(OUT + '/macro_log_%s.txt' % level, 'w').write('\n'.join(map(str, log)))
+g.close()

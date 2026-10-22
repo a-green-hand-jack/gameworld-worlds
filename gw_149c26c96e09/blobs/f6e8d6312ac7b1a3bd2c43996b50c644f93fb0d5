@@ -1,0 +1,49 @@
+import sys, os, subprocess, time
+from playwright.sync_api import sync_playwright
+root=sys.argv[1]; out=sys.argv[2]; os.makedirs(out,exist_ok=True)
+srv=subprocess.Popen([sys.executable,'-m','http.server','8766','-d',root],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1)
+errs=[]
+S="(()=>{const g=SnakeGame.game;return {st:g.state,len:g.snake.length,score:g.score,h:g.snake[0],d:g.dir,f:g.food,body:g.snake,hud:document.getElementById('score').textContent,cause:g.deathCause}})()"
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':900,'height':800})
+    pg.on('console', lambda m: errs.append(m.text) if m.type=='error' else None)
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto('http://localhost:8766/'); pg.wait_for_timeout(1200)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(100)
+    log=[]; prev=pg.evaluate(S); onsnake=0
+    t0=time.time()
+    while time.time()-t0<40:
+        s=pg.evaluate(S)
+        if s['st']!='playing': break
+        if s['f'] and any(c['x']==s['f']['x'] and c['y']==s['f']['y'] for c in s['body']): onsnake+=1
+        if s['score']!=prev['score']:
+            log.append((prev['score'],prev['len'],s['score'],s['len'],s['hud']))
+        prev=s
+        if s['score']>=6: break
+        h,f,d=s['h'],s['f'],s['d']
+        want=None
+        if f['x']>h['x'] and d['x']!=-1: want='ArrowRight'
+        elif f['x']<h['x'] and d['x']!=1: want='ArrowLeft'
+        elif f['y']>h['y'] and d['y']!=-1: want='ArrowDown'
+        elif f['y']<h['y'] and d['y']!=1: want='ArrowUp'
+        else: want='ArrowDown' if d['x']!=0 else 'ArrowRight'
+        cur={(1,0):'ArrowRight',(-1,0):'ArrowLeft',(0,1):'ArrowDown',(0,-1):'ArrowUp'}[(d['x'],d['y'])]
+        if want!=cur: pg.keyboard.press(want)
+        pg.wait_for_timeout(40)
+    print('eat log (score,len)->(score,len,hud):',log)
+    print('food-on-snake samples',onsnake)
+    pg.screenshot(path=out+'/play-score.png')
+    s=pg.evaluate(S); print('before self-crash',s['st'],s['score'],s['len'])
+    # self collision: quick U-turn sequence (needs len>=5)
+    d=s['d']
+    if d['x']!=0: seq=['ArrowUp','ArrowLeft' if d['x']==1 else 'ArrowRight','ArrowDown']
+    else: seq=['ArrowLeft','ArrowDown' if d['y']==-1 else 'ArrowUp','ArrowRight']
+    for k in seq: pg.keyboard.press(k); pg.wait_for_timeout(130)
+    pg.wait_for_timeout(600)
+    s=pg.evaluate(S); print('after U-turn',s['st'],s['cause'],'final',pg.inner_text('#final-score'),'score',s['score'])
+    pg.screenshot(path=out+'/self-over.png')
+    pg.click('#restart-button'); pg.wait_for_timeout(200)
+    s=pg.evaluate(S); print('after click replay',s['st'],s['score'],s['len'],s['hud'])
+    print('scrollY',pg.evaluate('scrollY'),'errors',errs)
+    b.close()
+srv.terminate()

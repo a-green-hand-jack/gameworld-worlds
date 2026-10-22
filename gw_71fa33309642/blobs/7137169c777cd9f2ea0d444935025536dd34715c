@@ -1,0 +1,47 @@
+"""Scripted run of World 1-1 from title to course clear in deterministic (?manual) mode. BUILD_DIR=... python3 qa/bot_playthrough.py [godmode] OUTDIR
+godmode = Mario cannot be hurt (tests terrain/softlocks only); otherwise a fair run, may die (reports deaths)."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+BUILD = os.path.abspath(os.environ.get('BUILD_DIR', '.'))
+god = len(sys.argv) > 1 and sys.argv[1] == 'godmode'
+OUT = sys.argv[-1] if len(sys.argv) > 2 or (len(sys.argv) > 1 and sys.argv[1] != 'godmode') else '/tmp/bot'
+os.makedirs(OUT, exist_ok=True)
+g = Game(BUILD, ''); g.press('start'); g.step(160)
+BOT = """(() => { const G = SMB.game, p = G.player, I = SMB.Input, a = G.area;
+  if (G.state !== 'play' || p.dead || G.area.name !== 'main') { I.set('A', false); return; }
+  const ahead = (dx) => Math.floor((p.x + p.w + dx) / 16);
+  let jump = false;
+  const feetRow = Math.floor((p.y + p.h - 1) / 16);
+  // wall ahead
+  for (const dx of [6, 14, 22, 32, 42, 52, 60]) { const c = ahead(dx); let h = 0; while (h < 6 && a.solid(c, feetRow - h)) h++;
+    if (h > 0 && dx <= 10 + 12 * h) jump = true; }
+  // pit ahead (no ground within 3 tiles below at 10px ahead)
+  { const c = ahead(8); let ground = false; for (let r = feetRow + 1; r <= feetRow + 3 && r <= 14; r++) if (a.solid(c, r)) ground = true; if (!ground && p.onGround) jump = true; }
+  // enemy ahead
+  for (const e of G.enemies) { if (e.dead || e.dying) continue; const dx = e.x - (p.x + p.w); if (dx > -2 && dx < 34 && Math.abs(e.y - p.y) < 30 && p.onGround) jump = true; }
+  I.set('right', true); I.set('B', true);
+  if (p.onGround) { I.set('A', jump && !I.down.A); } else { I.set('A', p.vy < 0 && I.down.A); }
+})()"""
+if god: g.js("SMB.game.player.invuln = 99999999")
+deaths = 0; maxx = 0; last_progress = 0; t = 0; result = None
+for frame in range(60 * 200):
+    g.js(BOT); g.step(1)
+    s = g.state(); t += 1
+    if god and s['state'] == 'play': g.js("SMB.game.player.invuln = 99999999")
+    if s['state'] in ('flag',) and result is None:
+        result = 'flag reached at frame %d, x=%.0f' % (frame, s['x']); g.shot(OUT + '/bot_flag.png')
+        g.set('right', False); g.set('B', False); g.set('A', False)
+        g.js("SMB.Input.set('right', false); SMB.Input.set('B', false); SMB.Input.set('A', false)")
+        for i in range(100):
+            g.step(30)
+            if g.state()['state'] in ('clearscreen', 'intro', 'title'): break
+        break
+    if s['x'] > maxx + 1: maxx = s['x']; last_progress = frame
+    if s['state'] == 'dying' and frame - last_progress >= 0 and not getattr(g, '_d', 0): pass
+    if frame - last_progress > 60 * 20 and s['state'] == 'play':
+        result = 'STUCK at x=%.0f y=%.0f (no progress 20 s)' % (s['x'], s['y']); g.shot(OUT + '/bot_stuck.png'); break
+s = g.state()
+ev = g.js("SMB.game.events.filter(e => ['death','start','flag','1up','power'].includes(e.type)).map(e => e.type + '@' + (e.x||'') + (e.fell?' pit':''))")
+print(('GODMODE ' if god else 'FAIR ') + 'result:', result, '| final', s['state'], 'score', s['score'], 'lives', s['lives'], 'time', s['time'], '| events', ev)
+g.close()

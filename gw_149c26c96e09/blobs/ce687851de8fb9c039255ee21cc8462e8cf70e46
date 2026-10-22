@@ -1,0 +1,24 @@
+import sys, subprocess, time
+from playwright.sync_api import sync_playwright
+root=sys.argv[1]
+srv=subprocess.Popen([sys.executable,'-m','http.server','8768','-d',root],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1)
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page()
+    pg.goto('http://localhost:8768/'); pg.wait_for_timeout(1200)
+    for kind in ['click','Enter','Space']:
+        pg.keyboard.press('Enter') if pg.evaluate('SnakeGame.game.state')!='playing' else None
+        pg.wait_for_timeout(100); pg.keyboard.press('ArrowUp')
+        while pg.evaluate('SnakeGame.game.state')=='playing': pg.wait_for_timeout(5)
+        res=[]
+        for i in range(30):
+            el=pg.evaluate('performance.now()-SnakeGame.game.overAt')
+            if kind=='click': pg.click('#restart-button')
+            else: pg.keyboard.press(kind)
+            st=pg.evaluate('SnakeGame.game.state'); el2=pg.evaluate('SnakeGame.game.overAt'); res.append(('t_click_done',round(pg.evaluate('performance.now()')-el2) if st!='playing' else None))
+            res.append((round(el),st))
+            if st=='playing': break
+            pg.wait_for_timeout(40)
+        print(kind, res[-3:])
+        pg.wait_for_timeout(200)
+    b.close()
+srv.terminate()

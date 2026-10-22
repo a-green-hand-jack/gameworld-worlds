@@ -1,0 +1,42 @@
+# Brief: Snake (round 1)
+
+## What the input asks (quoted, `producer`#1)
+
+> Make Snake as a web game played in the browser: the snake moves on a grid and is turned with the arrow keys, eating food makes it one cell longer and adds a point, and running into a wall or itself ends the game. It has a title screen, the score during play, and a game-over screen with the final score and a way to play again.
+
+No other material was supplied.
+
+## Requirements (each is judged at acceptance)
+
+- R1 Web game: it runs in a current desktop browser (Chromium) by opening the delivered `index.html`, or by serving the delivery as static files; no install or build step for the player.
+- R2 Grid: the snake moves cell by cell on a visible, bounded grid, continuously, at a steady pace.
+- R3 Controls: the arrow keys turn the snake. A key pressing straight back into the snake's own neck must not kill it (ignored). Arrow keys must not scroll the page.
+- R4 Food: eating food makes the snake exactly one cell longer and adds exactly one point; new food then appears on a free cell (never on the snake).
+- R5 Death: moving into a wall or into the snake's own body ends the game.
+- R6 Title screen: shown first, names the game, says how to start and how to play (arrow keys).
+- R7 Score during play: the current score is visible the whole time and updates on each food eaten.
+- R8 Game-over screen: shows the final score and offers a way to play again (key and/or button, stated on screen); playing again starts a fresh game (score 0, initial length) without reloading the page.
+- R9 Look and feel: snake, food, grid/walls and screens are visually distinct, readable and consistent in style. Sound is not asked; if present it must not be broken or jarring.
+
+## Focus and priorities for this round
+
+1. Correct core loop (R2–R5) first: this is the game.
+2. The three screens and score (R6–R8), with a working replay.
+3. Art and polish (R9) on top of a correct game; never at the cost of 1 and 2.
+4. No console errors during a full play (title → play → eat → die → replay).
+
+## Standard of acceptance
+
+The producer approves only a delivery that: was played by the producer in a headless browser through title → play → eating several foods → death by wall and by self → replay; was checked by `qa` against R1–R9 with reproducible reports; and was played and reported on by `playtester` on that same build. Open defects against R1–R8 block release.
+
+## Not established by the input (left to the owners, within the standard above)
+
+Grid size, speed, starting length and position, whether speed rises with score, high-score keeping, sound, touch/mobile controls. Owners decide; none of these is required.
+
+## Split (see `assignment.json`)
+
+- `game-developer`: the game (repository root of the delivery, entry `index.html`) and builds to play.
+- `artist`: assets under `assets/` in the delivery, matched to what the game loads (agree names/sizes with `game-developer`).
+- `qa`: checks of each build against R1–R9, defect reports in the owner's repository; no delivered path.
+- `playtester`: plays each build as a player, reports with evidence (captures); no delivered path.
+- `producer`: this brief, the assignment, acceptance and approval.

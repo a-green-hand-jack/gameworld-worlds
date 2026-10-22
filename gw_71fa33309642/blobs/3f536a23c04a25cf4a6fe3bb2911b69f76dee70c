@@ -1,0 +1,30 @@
+# QA report: build-1 (World 1-1 preview)
+
+Build: producer release `build-1` (`build-1.zip`) = game-developer a72265d7d707d5bd7aca34b5360548c458f04d7c + artist 35440031d24312c194d6f420d55e45b8808fe4d4.
+Also run on game-developer main 8bbb032 + build-1 assets (to verify the pipe fix).
+Method: headless Chromium (Playwright), `file://` load, `?manual` deterministic stepping (`qa/check_build.py`), a joypad bot playing 1-1 (`qa/bot_playthrough.py`), decoded-audio analysis (`qa/audio_check.py`), screenshots viewed by hand.
+Scope: P1 (World 1-1). P2/P3 not built yet, not checked.
+
+## Result
+- build-1: 82/83 automated checks pass. Fail: G4 zero-length keypress (minor, D-C).
+- Bot (build-1): cannot finish 1-1; stuck at the first 4-high pipe (D-A). On 8bbb032 the bot reaches the flag (~frame 1591, score 19200).
+- 8bbb032 + assets: 83/83 (the G4 check passes there; D-C stays open, see below), 4-high pipes mountable.
+- Audio: all 32 oggs decode, none silent/quiet. Subjective melody fidelity NOT checked (no ear).
+
+## Defects
+| ID | Owner | Severity | Summary | Status |
+|---|---|---|---|---|
+| D-A | game-developer | major (blocks 1-1 completion) | Small Mario cannot jump onto 4-high pipes (col 46, 57 area) from a standstill: apex ~62 px vs 64 px needed. 2-3 high pipes fine. | fixed in 8bbb032; re-verify on next release |
+| D-B | artist (via producer) | minor | 39-40 console 404 errors on load: optional underground/castle tiles undelivered and no `assets/manifest.js`. Game still runs. | open |
+| D-C | game-developer | minor | A keydown+keyup landing inside one logic frame is dropped (Input snapshots per frame); synthetic zero-length taps do nothing. Human taps OK. Suggest latching a press for >= 1 frame. | open |
+
+## Per-ID status (test-plan.md)
+PASS (automated unless noted): G1 load/offline, G2 canvas 256x240 integer-scaled crisp, G3 60 Hz logic, G4 keys/blur (zero-length tap: D-C), M1 walk/run/skid/momentum, M2 jump heights + variable height, M4 camera no-left-scroll, M5 big crouch, L1 question-block positions (13) and ground gaps, L2 hidden 1-up, multi-coin brick, star brick, pipe entry + coin room, exit pipe, C1/C2 coins and 100-coin 1-up, P1-P6 mushroom/flower/fireballs (max 2)/star/1-up/hurt/invuln, E1-E5 goomba/koopa/shell/pit/spawn range, D1-D5 death/respawn/checkpoint/game over/restart, H1-H3 timer, hurry, time-out, F1 flag heights (5000/2000/100) and time tally, S1/S2 sound triggers and music switches (by event log).
+FAIL: M-pipe4 (D-A) on build-1 only.
+NOT CHECKED: melody/SFX fidelity by ear, real-keyboard feel, gamepad, mobile touch, castle/ending sequence after flag beyond clearscreen state, pixel-level tile/sprite fidelity beyond visual spot check (title, mushroom, flag, coin room, game over, shell, fire looked NES-like).
+
+## Observation (not claimed as defect)
+The 2-tile gap between the staircases at columns 138-139 traps small Mario unless he does a run jump. Unsure of original behavior; producer/game-developer to confirm.
+
+## Reproduce
+`BUILD_DIR=<unzipped build> python3 qa/check_build.py OUT`, `BUILD_DIR=<dir> python3 qa/bot_playthrough.py [godmode] OUT`, `BUILD_DIR=<dir> python3 qa/audio_check.py`.

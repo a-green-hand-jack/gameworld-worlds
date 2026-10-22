@@ -1,0 +1,138 @@
+{
+ "before": [
+  {
+   "t": "redparakoopa",
+   "x": 1825,
+   "y": 101.7,
+   "state": "walk",
+   "fly": true,
+   "vx": 0,
+   "vy": 0,
+   "ground": null
+  }
+ ],
+ "stomp_1": {
+  "frames": 3,
+  "score_gain": 100,
+  "mario": "play",
+  "koopas": [
+   {
+    "t": "redparakoopa",
+    "x": 1825,
+    "y": 102.9,
+    "state": "walk",
+    "fly": false,
+    "vx": -0.5,
+    "vy": 0,
+    "ground": null
+   }
+  ]
+ },
+ "track_after_stomp_1": [
+  [
+   6,
+   [
+    {
+     "t": "redparakoopa",
+     "x": 1822,
+     "y": 110.8,
+     "state": "walk",
+     "fly": false,
+     "vx": -0.5,
+     "vy": 2.25,
+     "ground": false
+    }
+   ]
+  ],
+  [
+   12,
+   [
+    {
+     "t": "redparakoopa",
+     "x": 1819,
+     "y": 131.5,
+     "state": "walk",
+     "fly": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ]
+  ],
+  [
+   18,
+   [
+    {
+     "t": "redparakoopa",
+     "x": 1816,
+     "y": 155.5,
+     "state": "walk",
+     "fly": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ]
+  ],
+  [
+   24,
+   [
+    {
+     "t": "redparakoopa",
+     "x": 1813,
+     "y": 179.5,
+     "state": "walk",
+     "fly": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ]
+  ],
+  [
+   30,
+   [
+    {
+     "t": "redparakoopa",
+     "x": 1810,
+     "y": 186,
+     "state": "walk",
+     "fly": false,
+     "vx": -0.5,
+     "vy": 0,
+     "ground": true
+    }
+   ]
+  ]
+ ],
+ "stomp_2": {
+  "frames": 3,
+  "score_gain": 200,
+  "mario": "play",
+  "koopas": [
+   {
+    "t": "redparakoopa",
+    "x": 1809,
+    "y": 194,
+    "state": "shell",
+    "fly": false,
+    "vx": 0,
+    "vy": 0,
+    "ground": true
+   }
+  ]
+ },
+ "after_stomp_2": [
+  {
+   "t": "redparakoopa",
+   "x": 1809,
+   "y": 194,
+   "state": "shell",
+   "fly": false,
+   "vx": 0,
+   "vy": 0,
+   "ground": true
+  }
+ ],
+ "page_errors": []
+}

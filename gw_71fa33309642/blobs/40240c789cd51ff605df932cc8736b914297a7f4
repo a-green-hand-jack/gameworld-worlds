@@ -1,0 +1,1770 @@
+{
+ "start": {
+  "state": "play",
+  "level": "1-3",
+  "area": "main",
+  "time": 300,
+  "lives": 3,
+  "x": 34,
+  "y": 194,
+  "power": 0
+ },
+ "lifts": [
+  {
+   "def": {
+    "kind": "vert",
+    "x": 880,
+    "y": 96.07709080286897,
+    "w": 48,
+    "range": 128
+   },
+   "x_min": 880,
+   "x_max": 880,
+   "y_min": 96.1,
+   "y_max": 224,
+   "samples_every_6f": [
+    [
+     0,
+     880,
+     96.1
+    ],
+    [
+     6,
+     880,
+     97.2
+    ],
+    [
+     12,
+     880,
+     99.7
+    ],
+    [
+     18,
+     880,
+     103.6
+    ],
+    [
+     24,
+     880,
+     108.6
+    ],
+    [
+     30,
+     880,
+     114.7
+    ],
+    [
+     36,
+     880,
+     121.9
+    ],
+    [
+     42,
+     880,
+     129.8
+    ],
+    [
+     48,
+     880,
+     138.4
+    ],
+    [
+     54,
+     880,
+     147.5
+    ],
+    [
+     60,
+     880,
+     156.9
+    ],
+    [
+     66,
+     880,
+     166.3
+    ],
+    [
+     72,
+     880,
+     175.6
+    ],
+    [
+     78,
+     880,
+     184.5
+    ],
+    [
+     84,
+     880,
+     192.9
+    ],
+    [
+     90,
+     880,
+     200.6
+    ],
+    [
+     96,
+     880,
+     207.4
+    ],
+    [
+     102,
+     880,
+     213.2
+    ],
+    [
+     108,
+     880,
+     217.9
+    ],
+    [
+     114,
+     880,
+     221.2
+    ],
+    [
+     120,
+     880,
+     223.3
+    ],
+    [
+     126,
+     880,
+     224
+    ],
+    [
+     132,
+     880,
+     223.3
+    ],
+    [
+     138,
+     880,
+     221.2
+    ],
+    [
+     144,
+     880,
+     217.9
+    ],
+    [
+     150,
+     880,
+     213.2
+    ],
+    [
+     156,
+     880,
+     207.4
+    ],
+    [
+     162,
+     880,
+     200.6
+    ],
+    [
+     168,
+     880,
+     192.9
+    ],
+    [
+     174,
+     880,
+     184.5
+    ],
+    [
+     180,
+     880,
+     175.6
+    ],
+    [
+     186,
+     880,
+     166.3
+    ],
+    [
+     192,
+     880,
+     156.9
+    ],
+    [
+     198,
+     880,
+     147.5
+    ],
+    [
+     204,
+     880,
+     138.4
+    ],
+    [
+     210,
+     880,
+     129.8
+    ],
+    [
+     216,
+     880,
+     121.9
+    ],
+    [
+     222,
+     880,
+     114.7
+    ],
+    [
+     228,
+     880,
+     108.6
+    ],
+    [
+     234,
+     880,
+     103.6
+    ]
+   ]
+  },
+  {
+   "def": {
+    "kind": "horiz",
+    "x": 1375.8121374044051,
+    "y": 128,
+    "w": 48,
+    "range": 52.48
+   },
+   "x_min": 1323.5,
+   "x_max": 1376.0,
+   "y_min": 128,
+   "y_max": 128,
+   "samples_every_6f": [
+    [
+     0,
+     1375.8,
+     128
+    ],
+    [
+     6,
+     1373.0,
+     128
+    ],
+    [
+     12,
+     1367.3,
+     128
+    ],
+    [
+     18,
+     1359.3,
+     128
+    ],
+    [
+     24,
+     1350.1,
+     128
+    ],
+    [
+     30,
+     1340.9,
+     128
+    ],
+    [
+     36,
+     1332.8,
+     128
+    ],
+    [
+     42,
+     1326.8,
+     128
+    ],
+    [
+     48,
+     1323.8,
+     128
+    ],
+    [
+     54,
+     1324.1,
+     128
+    ],
+    [
+     60,
+     1327.7,
+     128
+    ],
+    [
+     66,
+     1334.1,
+     128
+    ],
+    [
+     72,
+     1342.4,
+     128
+    ],
+    [
+     78,
+     1351.8,
+     128
+    ],
+    [
+     84,
+     1360.8,
+     128
+    ],
+    [
+     90,
+     1368.5,
+     128
+    ],
+    [
+     96,
+     1373.8,
+     128
+    ],
+    [
+     102,
+     1376.0,
+     128
+    ],
+    [
+     108,
+     1374.8,
+     128
+    ],
+    [
+     114,
+     1370.5,
+     128
+    ],
+    [
+     120,
+     1363.5,
+     128
+    ],
+    [
+     126,
+     1354.8,
+     128
+    ],
+    [
+     132,
+     1345.4,
+     128
+    ],
+    [
+     138,
+     1336.6,
+     128
+    ],
+    [
+     144,
+     1329.4,
+     128
+    ],
+    [
+     150,
+     1324.9,
+     128
+    ],
+    [
+     156,
+     1323.5,
+     128
+    ],
+    [
+     162,
+     1325.5,
+     128
+    ],
+    [
+     168,
+     1330.6,
+     128
+    ],
+    [
+     174,
+     1338.1,
+     128
+    ],
+    [
+     180,
+     1347.1,
+     128
+    ],
+    [
+     186,
+     1356.5,
+     128
+    ],
+    [
+     192,
+     1365.0,
+     128
+    ],
+    [
+     198,
+     1371.5,
+     128
+    ],
+    [
+     204,
+     1375.3,
+     128
+    ],
+    [
+     210,
+     1375.8,
+     128
+    ],
+    [
+     216,
+     1373.0,
+     128
+    ],
+    [
+     222,
+     1367.2,
+     128
+    ],
+    [
+     228,
+     1359.2,
+     128
+    ],
+    [
+     234,
+     1350.0,
+     128
+    ]
+   ]
+  },
+  {
+   "def": {
+    "kind": "horiz",
+    "x": 1503.8121374044051,
+    "y": 144,
+    "w": 48,
+    "range": 52.48
+   },
+   "x_min": 1451.5,
+   "x_max": 1504.0,
+   "y_min": 144,
+   "y_max": 144,
+   "samples_every_6f": [
+    [
+     0,
+     1503.8,
+     144
+    ],
+    [
+     6,
+     1501.0,
+     144
+    ],
+    [
+     12,
+     1495.3,
+     144
+    ],
+    [
+     18,
+     1487.3,
+     144
+    ],
+    [
+     24,
+     1478.1,
+     144
+    ],
+    [
+     30,
+     1468.9,
+     144
+    ],
+    [
+     36,
+     1460.8,
+     144
+    ],
+    [
+     42,
+     1454.8,
+     144
+    ],
+    [
+     48,
+     1451.8,
+     144
+    ],
+    [
+     54,
+     1452.1,
+     144
+    ],
+    [
+     60,
+     1455.7,
+     144
+    ],
+    [
+     66,
+     1462.1,
+     144
+    ],
+    [
+     72,
+     1470.4,
+     144
+    ],
+    [
+     78,
+     1479.8,
+     144
+    ],
+    [
+     84,
+     1488.8,
+     144
+    ],
+    [
+     90,
+     1496.5,
+     144
+    ],
+    [
+     96,
+     1501.8,
+     144
+    ],
+    [
+     102,
+     1504.0,
+     144
+    ],
+    [
+     108,
+     1502.8,
+     144
+    ],
+    [
+     114,
+     1498.5,
+     144
+    ],
+    [
+     120,
+     1491.5,
+     144
+    ],
+    [
+     126,
+     1482.8,
+     144
+    ],
+    [
+     132,
+     1473.4,
+     144
+    ],
+    [
+     138,
+     1464.6,
+     144
+    ],
+    [
+     144,
+     1457.4,
+     144
+    ],
+    [
+     150,
+     1452.9,
+     144
+    ],
+    [
+     156,
+     1451.5,
+     144
+    ],
+    [
+     162,
+     1453.5,
+     144
+    ],
+    [
+     168,
+     1458.6,
+     144
+    ],
+    [
+     174,
+     1466.1,
+     144
+    ],
+    [
+     180,
+     1475.1,
+     144
+    ],
+    [
+     186,
+     1484.5,
+     144
+    ],
+    [
+     192,
+     1493.0,
+     144
+    ],
+    [
+     198,
+     1499.5,
+     144
+    ],
+    [
+     204,
+     1503.3,
+     144
+    ],
+    [
+     210,
+     1503.8,
+     144
+    ],
+    [
+     216,
+     1501.0,
+     144
+    ],
+    [
+     222,
+     1495.2,
+     144
+    ],
+    [
+     228,
+     1487.2,
+     144
+    ],
+    [
+     234,
+     1478.0,
+     144
+    ]
+   ]
+  },
+  {
+   "def": {
+    "kind": "horiz",
+    "x": 2095.812137404405,
+    "y": 96,
+    "w": 48,
+    "range": 52.48
+   },
+   "x_min": 2043.5,
+   "x_max": 2096.0,
+   "y_min": 96,
+   "y_max": 96,
+   "samples_every_6f": [
+    [
+     0,
+     2095.8,
+     96
+    ],
+    [
+     6,
+     2093.0,
+     96
+    ],
+    [
+     12,
+     2087.3,
+     96
+    ],
+    [
+     18,
+     2079.3,
+     96
+    ],
+    [
+     24,
+     2070.1,
+     96
+    ],
+    [
+     30,
+     2060.9,
+     96
+    ],
+    [
+     36,
+     2052.8,
+     96
+    ],
+    [
+     42,
+     2046.8,
+     96
+    ],
+    [
+     48,
+     2043.8,
+     96
+    ],
+    [
+     54,
+     2044.1,
+     96
+    ],
+    [
+     60,
+     2047.7,
+     96
+    ],
+    [
+     66,
+     2054.1,
+     96
+    ],
+    [
+     72,
+     2062.4,
+     96
+    ],
+    [
+     78,
+     2071.8,
+     96
+    ],
+    [
+     84,
+     2080.8,
+     96
+    ],
+    [
+     90,
+     2088.5,
+     96
+    ],
+    [
+     96,
+     2093.8,
+     96
+    ],
+    [
+     102,
+     2096.0,
+     96
+    ],
+    [
+     108,
+     2094.8,
+     96
+    ],
+    [
+     114,
+     2090.5,
+     96
+    ],
+    [
+     120,
+     2083.5,
+     96
+    ],
+    [
+     126,
+     2074.8,
+     96
+    ],
+    [
+     132,
+     2065.4,
+     96
+    ],
+    [
+     138,
+     2056.6,
+     96
+    ],
+    [
+     144,
+     2049.4,
+     96
+    ],
+    [
+     150,
+     2044.9,
+     96
+    ],
+    [
+     156,
+     2043.5,
+     96
+    ],
+    [
+     162,
+     2045.5,
+     96
+    ],
+    [
+     168,
+     2050.6,
+     96
+    ],
+    [
+     174,
+     2058.1,
+     96
+    ],
+    [
+     180,
+     2067.1,
+     96
+    ],
+    [
+     186,
+     2076.5,
+     96
+    ],
+    [
+     192,
+     2085.0,
+     96
+    ],
+    [
+     198,
+     2091.5,
+     96
+    ],
+    [
+     204,
+     2095.3,
+     96
+    ],
+    [
+     210,
+     2095.8,
+     96
+    ],
+    [
+     216,
+     2093.0,
+     96
+    ],
+    [
+     222,
+     2087.2,
+     96
+    ],
+    [
+     228,
+     2079.2,
+     96
+    ],
+    [
+     234,
+     2070.0,
+     96
+    ]
+   ]
+  }
+ ],
+ "ride_horizontal": {
+  "rows": [
+   {
+    "f": 0,
+    "px_minus_lx": 11.97,
+    "riding": false,
+    "state": "play"
+   },
+   {
+    "f": 10,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 20,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 30,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 40,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 50,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 60,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 70,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 80,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 90,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 100,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 110,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 120,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 130,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 140,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 150,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 160,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 170,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 180,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "f": 190,
+    "px_minus_lx": 10.54,
+    "riding": true,
+    "state": "play"
+   }
+  ],
+  "always_riding": false,
+  "px_minus_lx_values": [
+   10.54,
+   11.97
+  ]
+ },
+ "lift_jump": {
+  "y_after_3f": 102.375,
+  "riding_again_after_70f": false,
+  "state": "dying"
+ },
+ "ride_vertical_up": {
+  "rows": [
+   {
+    "i": 0,
+    "feet_minus_lift": -5.81,
+    "lift_dy": 0.25,
+    "lift_y": 223.3,
+    "riding": false,
+    "state": "play"
+   },
+   {
+    "i": 1,
+    "feet_minus_lift": -5.15,
+    "lift_dy": 0.21,
+    "lift_y": 223.5,
+    "riding": false,
+    "state": "play"
+   },
+   {
+    "i": 2,
+    "feet_minus_lift": -4.01,
+    "lift_dy": 0.17,
+    "lift_y": 223.7,
+    "riding": false,
+    "state": "play"
+   },
+   {
+    "i": 3,
+    "feet_minus_lift": -2.39,
+    "lift_dy": 0.13,
+    "lift_y": 223.8,
+    "riding": false,
+    "state": "play"
+   },
+   {
+    "i": 4,
+    "feet_minus_lift": -0.3,
+    "lift_dy": 0.1,
+    "lift_y": 223.9,
+    "riding": false,
+    "state": "play"
+   },
+   {
+    "i": 5,
+    "feet_minus_lift": 0,
+    "lift_dy": 0.06,
+    "lift_y": 224,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 6,
+    "feet_minus_lift": 0,
+    "lift_dy": 0.02,
+    "lift_y": 224,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 7,
+    "feet_minus_lift": 0,
+    "lift_dy": -0.02,
+    "lift_y": 224,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 10,
+    "feet_minus_lift": 0,
+    "lift_dy": -0.13,
+    "lift_y": 223.7,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 15,
+    "feet_minus_lift": 0,
+    "lift_dy": -0.33,
+    "lift_y": 222.4,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 20,
+    "feet_minus_lift": 0,
+    "lift_dy": -0.51,
+    "lift_y": 220.3,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 25,
+    "feet_minus_lift": 0,
+    "lift_dy": -0.69,
+    "lift_y": 217.2,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 30,
+    "feet_minus_lift": 0,
+    "lift_dy": -0.86,
+    "lift_y": 213.2,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 35,
+    "feet_minus_lift": 0,
+    "lift_dy": -1.01,
+    "lift_y": 208.5,
+    "riding": true,
+    "state": "play"
+   },
+   {
+    "i": 36,
+    "feet_minus_lift": 1.48,
+    "lift_dy": -1.04,
+    "lift_y": 207.4,
+    "riding": false,
+    "state": "play"
+   }
+  ],
+  "lost_riding_at": {
+   "i": 36,
+   "feet_minus_lift": 1.48,
+   "lift_dy": -1.04,
+   "lift_y": 207.4,
+   "riding": false,
+   "state": "play"
+  }
+ },
+ "paratroopa": {
+  "paratroopa_74_4": {
+   "present_samples": 69,
+   "y_min": 26,
+   "y_max": 90,
+   "x_values": [
+    1185
+   ],
+   "samples_every_6f": [
+    [
+     0,
+     []
+    ],
+    [
+     6,
+     [
+      [
+       "redparakoopa",
+       1185,
+       63,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     12,
+     [
+      [
+       "redparakoopa",
+       1185,
+       67.9,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     18,
+     [
+      [
+       "redparakoopa",
+       1185,
+       72.5,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     24,
+     [
+      [
+       "redparakoopa",
+       1185,
+       76.8,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     30,
+     [
+      [
+       "redparakoopa",
+       1185,
+       80.6,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     36,
+     [
+      [
+       "redparakoopa",
+       1185,
+       83.9,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     42,
+     [
+      [
+       "redparakoopa",
+       1185,
+       86.5,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     48,
+     [
+      [
+       "redparakoopa",
+       1185,
+       88.4,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     54,
+     [
+      [
+       "redparakoopa",
+       1185,
+       89.6,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     60,
+     [
+      [
+       "redparakoopa",
+       1185,
+       90,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     66,
+     [
+      [
+       "redparakoopa",
+       1185,
+       89.6,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     72,
+     [
+      [
+       "redparakoopa",
+       1185,
+       88.4,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     78,
+     [
+      [
+       "redparakoopa",
+       1185,
+       86.5,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     84,
+     [
+      [
+       "redparakoopa",
+       1185,
+       83.9,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     90,
+     [
+      [
+       "redparakoopa",
+       1185,
+       80.6,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     96,
+     [
+      [
+       "redparakoopa",
+       1185,
+       76.8,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     102,
+     [
+      [
+       "redparakoopa",
+       1185,
+       72.5,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     108,
+     [
+      [
+       "redparakoopa",
+       1185,
+       67.9,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     114,
+     [
+      [
+       "redparakoopa",
+       1185,
+       63,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     120,
+     [
+      [
+       "redparakoopa",
+       1185,
+       58,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     126,
+     [
+      [
+       "redparakoopa",
+       1185,
+       53,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     132,
+     [
+      [
+       "redparakoopa",
+       1185,
+       48.1,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     138,
+     [
+      [
+       "redparakoopa",
+       1185,
+       43.5,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     144,
+     [
+      [
+       "redparakoopa",
+       1185,
+       39.2,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     150,
+     [
+      [
+       "redparakoopa",
+       1185,
+       35.4,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     156,
+     [
+      [
+       "redparakoopa",
+       1185,
+       32.1,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     162,
+     [
+      [
+       "redparakoopa",
+       1185,
+       29.5,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     168,
+     [
+      [
+       "redparakoopa",
+       1185,
+       27.6,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ],
+    [
+     174,
+     [
+      [
+       "redparakoopa",
+       1185,
+       26.4,
+       true,
+       false,
+       "walk"
+      ]
+     ]
+    ]
+   ]
+  },
+  "stomp_1": {
+   "enemy_before": {
+    "t": "redparakoopa",
+    "x": 1185,
+    "y": 26,
+    "state": "walk",
+    "fly": true,
+    "wings": false,
+    "vx": 0,
+    "vy": 0,
+    "ground": null
+   },
+   "score_gain": 100,
+   "frames_to_stomp": 3,
+   "enemy_after": {
+    "t": "redparakoopa",
+    "x": 1185,
+    "y": 26.1,
+    "state": "walk",
+    "fly": false,
+    "wings": false,
+    "vx": -0.5,
+    "vy": 0,
+    "ground": null
+   },
+   "mario_state": "play"
+  },
+  "walks_after_stomp_1": [
+   {
+    "t": "redparakoopa",
+    "x": 1181,
+    "y": 39.6,
+    "state": "walk",
+    "fly": false,
+    "wings": false,
+    "vx": -0.5,
+    "vy": 3,
+    "ground": false
+   }
+  ],
+  "walk_after_stomp_track": [
+   [
+    5,
+    {
+     "t": "redparakoopa",
+     "x": 1178.5,
+     "y": 58.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    10,
+    {
+     "t": "redparakoopa",
+     "x": 1176,
+     "y": 78.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    15,
+    {
+     "t": "redparakoopa",
+     "x": 1173.5,
+     "y": 98.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    20,
+    {
+     "t": "redparakoopa",
+     "x": 1171,
+     "y": 118.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    25,
+    {
+     "t": "redparakoopa",
+     "x": 1168.5,
+     "y": 138.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": -0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    30,
+    {
+     "t": "redparakoopa",
+     "x": 1169.5,
+     "y": 158.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": 0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    35,
+    {
+     "t": "redparakoopa",
+     "x": 1172,
+     "y": 178.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": 0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    40,
+    {
+     "t": "redparakoopa",
+     "x": 1174.5,
+     "y": 198.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": 0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    45,
+    {
+     "t": "redparakoopa",
+     "x": 1177,
+     "y": 218.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": 0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    50,
+    {
+     "t": "redparakoopa",
+     "x": 1179.5,
+     "y": 238.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": 0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    55,
+    {
+     "t": "redparakoopa",
+     "x": 1182,
+     "y": 258.7,
+     "state": "walk",
+     "fly": false,
+     "wings": false,
+     "vx": 0.5,
+     "vy": 4,
+     "ground": false
+    }
+   ],
+   [
+    60,
+    null
+   ]
+  ],
+  "stomp_2": {
+   "enemy_before": null,
+   "note": "no koopa left to stomp"
+  }
+ },
+ "paratroopa_side_contact": {
+  "koopa": {
+   "x": 1185,
+   "y": 80.62741699796952
+  },
+  "result_frame_state_power": [
+   1,
+   "dying",
+   0
+  ]
+ },
+ "checkpoint": {
+  "die_at_col_30": {
+   "x": 34,
+   "camX": 0,
+   "lives": 2,
+   "time": 300,
+   "state": "play",
+   "area": "main"
+  },
+  "flag_after_col_70": true,
+  "die_after_col_66": {
+   "x": 1058,
+   "camX": 978,
+   "lives": 1,
+   "time": 300,
+   "state": "play",
+   "area": "main"
+  }
+ },
+ "console_errors": [],
+ "page_errors": [],
+ "failed_requests": []
+}

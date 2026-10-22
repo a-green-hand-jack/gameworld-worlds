@@ -1,0 +1,37 @@
+{
+ "1-1_koopas": [
+  [
+   1693,
+   186,
+   -0.5,
+   -1,
+   "green"
+  ]
+ ],
+ "1-1_koopa_walking_left": {
+  "x": 1693,
+  "y": 186,
+  "vx": -0.5,
+  "facing": -1
+ },
+ "1-1_koopa_walking_right_after_instrumented_flip": {
+  "x": 1694,
+  "y": 186,
+  "vx": 0.5,
+  "facing": 1
+ },
+ "1-3_koopas": [],
+ "1-4_bowser": [
+  2132,
+  130,
+  -0.5,
+  -1
+ ],
+ "1-3_red_paratroopa_at_x1185": {
+  "type": "redparakoopa",
+  "vx": 0,
+  "facing": -1,
+  "drawn": "head on the right of the shell (see evidence/w3/w3_paratroopa_flying.png)"
+ },
+ "code": "src/enemies.js:166 `const flip = this.facing > 0;` with docs/assets.md:24 \"Characters face right; the game mirrors them for left\" -> mirrored when facing right, so every Koopa/Paratroopa is drawn backwards; same code and same koopa_green.png in build-1, build-2, build-3"
+}

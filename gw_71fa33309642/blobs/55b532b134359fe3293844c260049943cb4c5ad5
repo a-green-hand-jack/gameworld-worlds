@@ -1,0 +1,37 @@
+"""Scripted run of one level in deterministic mode. BUILD_DIR=... python3 qa/bot_level.py LEVEL [godmode] OUTDIR   (LEVEL like 1-2)
+The bot holds right+B, jumps over walls, pits and enemies; it is generic and does not know lifts or pipes, so a stall is a lead to inspect, not by itself a defect."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+BUILD = os.path.abspath(os.environ.get('BUILD_DIR', '.'))
+level = sys.argv[1]; god = 'godmode' in sys.argv; OUT = sys.argv[-1]
+os.makedirs(OUT, exist_ok=True)
+g = Game(BUILD, '#level=' + level); g.press('start'); g.step(160)
+BOT = """(() => { const G = SMB.game, p = G.player, I = SMB.Input, a = G.area;
+  if (G.state !== 'play' || p.dead) { I.set('A', false); return; }
+  const ahead = (dx) => Math.floor((p.x + p.w + dx) / 16);
+  let jump = false;
+  const feetRow = Math.floor((p.y + p.h - 1) / 16);
+  for (const dx of [6, 14, 22, 32, 42, 52, 60]) { const c = ahead(dx); let h = 0; while (h < 6 && a.solid(c, feetRow - h)) h++;
+    if (h > 0 && dx <= 10 + 12 * h) jump = true; }
+  { const c = ahead(8); let ground = false; for (let r = feetRow + 1; r <= feetRow + 3 && r <= 14; r++) if (a.solid(c, r)) ground = true; if (!ground && p.onGround) jump = true; }
+  for (const e of G.enemies) { if (e.dead || e.dying || e.type === 'toad') continue; const dx = e.x - (p.x + p.w); if (dx > -2 && dx < 34 && Math.abs(e.y - p.y) < 30 && p.onGround) jump = true; }
+  I.set('right', true); I.set('B', true);
+  if (p.onGround) { I.set('A', jump && !I.down.A); } else { I.set('A', p.vy < 0 && I.down.A); }
+})()"""
+maxx = 0; last = 0; result = None; trace = []
+for frame in range(60 * 240):
+    g.js(BOT); g.step(1)
+    s = g.state()
+    if god and s['state'] == 'play': g.js("SMB.game.player.invuln = 99999999")
+    if frame % 300 == 0: trace.append((frame, s['state'], s['area'], round(s['x'] or 0), round(s['y'] or 0)))
+    if s['state'] in ('flag', 'axe', 'clearscreen', 'castlewalk') or (s['level'] != level and s['state'] in ('intro',)):
+        result = 'level end reached (%s) at frame %d' % (s['state'], frame); g.shot(OUT + '/end_%s.png' % level); break
+    if s['state'] == 'play' and (s['x'] or 0) > maxx + 1: maxx = s['x']; last = frame
+    if frame - last > 60 * 15 and s['state'] == 'play':
+        result = 'STALL at area=%s x=%.0f y=%.0f (no rightward progress 15 s, maxx=%.0f)' % (s['area'], s['x'], s['y'], maxx); g.shot(OUT + '/stall_%s.png' % level); break
+s = g.state()
+ev = g.js("SMB.game.events.filter(e => ['death','start','flag','1up','power','axe','allclear'].includes(e.type)).map(e => e.type + '@' + (e.x||'') + (e.fell?' pit':''))")
+print(level, 'GOD' if god else 'FAIR', result, '| final', s['state'], s['level'], 'score', s['score'], 'lives', s['lives'], 'time', s['time'], '| events', ev)
+print('trace', trace, 'errors', g.errors)
+g.close()

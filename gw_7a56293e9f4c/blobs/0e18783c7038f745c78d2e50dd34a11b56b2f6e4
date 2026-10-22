@@ -1,0 +1,73 @@
+import sys, time, json
+from playwright.sync_api import sync_playwright
+url = sys.argv[1]; out = sys.argv[2]
+errs = []
+OPP = {'up':'down','down':'up','left':'right','right':'left'}
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    pg = b.new_page(viewport={'width':900,'height':800})
+    pg.on('console', lambda m: errs.append(('console', m.type, m.text)) if m.type in ('error','warning') else None)
+    pg.on('pageerror', lambda e: errs.append(('pageerror', str(e))))
+    pg.goto(url); time.sleep(2)
+    S = lambda: pg.evaluate("({state:__snake.state,score:__snake.score,snake:__snake.snake,food:__snake.food,dir:__snake.game.dir,cause:__snake.game.cause,scrollY:window.scrollY,missing:__snake.assets.missing})")
+    print('title', S()['state'], 'missing', S()['missing'])
+    pg.screenshot(path=f'{out}/1-title.png')
+    pg.keyboard.press('Enter'); time.sleep(0.3)
+    print('after Enter', S()['state'])
+    # steer greedily toward food with real-time arrow presses
+    key = {'up':'ArrowUp','down':'ArrowDown','left':'ArrowLeft','right':'ArrowRight'}
+    lengths = []
+    t0 = time.time()
+    while time.time()-t0 < 60:
+        s = S()
+        if s['state'] != 'playing': break
+        if s['score'] >= 5: break
+        h = s['snake'][0]; f = s['food']; d = s['dir']
+        want = None
+        if f['x'] > h['x']: want = 'right'
+        elif f['x'] < h['x']: want = 'left'
+        elif f['y'] > h['y']: want = 'down'
+        else: want = 'up'
+        if want == OPP[d]:
+            want = 'up' if h['y'] > 0 else 'down'
+        if want != d: pg.keyboard.press(key[want])
+        lengths.append((s['score'], len(s['snake'])))
+        time.sleep(0.03)
+    s = S(); print('after eating', s['score'], len(s['snake']), 'scrollY', s['scrollY'])
+    print('score/len pairs seen', sorted(set(lengths)))
+    pg.screenshot(path=f'{out}/2-play-score.png')
+    # reversal test: press opposite direction
+    d = s['dir']; pg.keyboard.press(key[OPP[d]]); time.sleep(0.3)
+    print('after reverse press', S()['state'], S()['dir'])
+    # drive into nearest wall: go up
+    for _ in range(3):
+        s=S()
+        if s['dir'] in ('left','right'): pg.keyboard.press('ArrowUp')
+        time.sleep(0.2)
+    t0=time.time()
+    while S()['state']=='playing' and time.time()-t0<10: time.sleep(0.05)
+    s=S(); print('wall end', s['state'], s['cause'], 'final', s['score'])
+    time.sleep(0.6); pg.screenshot(path=f'{out}/3-gameover-wall.png')
+    pg.keyboard.press('Enter'); time.sleep(0.3)
+    s=S(); print('replay', s['state'], s['score'], len(s['snake']))
+    # self collision: eat 2 to get length 5, then tight loop
+    t0=time.time()
+    while time.time()-t0<40:
+        s=S()
+        if s['state']!='playing' or s['score']>=3: break
+        h=s['snake'][0]; f=s['food']; d=s['dir']
+        want = 'right' if f['x']>h['x'] else 'left' if f['x']<h['x'] else 'down' if f['y']>h['y'] else 'up'
+        if want==OPP[d]: want='up' if h['y']>0 else 'down'
+        if want!=d: pg.keyboard.press(key[want])
+        time.sleep(0.03)
+    s=S(); print('len before loop', len(s['snake']), s['dir'])
+    d=s['dir']; cw={'right':'down','down':'left','left':'up','up':'right'}
+    for _ in range(4):
+        d=cw[d]; pg.keyboard.press(key[d]); time.sleep(0.14)
+    t0=time.time()
+    while S()['state']=='playing' and time.time()-t0<5: time.sleep(0.05)
+    s=S(); print('self end', s['state'], s['cause'], 'final', s['score'])
+    time.sleep(0.6); pg.screenshot(path=f'{out}/4-gameover-self.png')
+    pg.mouse.click(450,400); time.sleep(0.3); print('click replay', S()['state'], S()['score'])
+    print('errors', errs)
+    b.close()

@@ -1,0 +1,1134 @@
+{
+ "frames": 2195,
+ "trace": [
+  {
+   "f": 1,
+   "st": "play|",
+   "score": 0,
+   "time": 400,
+   "x": 34.07421875,
+   "y": 194,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 1742,
+   "st": "flag|slide",
+   "score": 2100,
+   "time": 328,
+   "x": 3163,
+   "y": 43.6953125,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 1810,
+   "st": "flag|turn",
+   "score": 2100,
+   "time": 328,
+   "x": 3177,
+   "y": 178,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 1834,
+   "st": "flag|walk",
+   "score": 2100,
+   "time": 328,
+   "x": 3177,
+   "y": 178,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 1909,
+   "st": "flag|tally",
+   "score": 2100,
+   "time": 328,
+   "x": 3266.9999999999864,
+   "y": 194,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 2074,
+   "st": "flag|castleflag",
+   "score": 18500,
+   "time": 0,
+   "x": 3266.9999999999864,
+   "y": 194,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 2104,
+   "st": "flag|fireworks",
+   "score": 18500,
+   "time": 0,
+   "x": 3266.9999999999864,
+   "y": 194,
+   "coins": 0,
+   "lives": 3
+  },
+  {
+   "f": 2195,
+   "st": "clearscreen|fireworks",
+   "score": 18500,
+   "time": 0,
+   "x": 3266.9999999999864,
+   "y": 194,
+   "coins": 0,
+   "lives": 3
+  }
+ ],
+ "events": [
+  {
+   "type": "intro",
+   "frame": 1,
+   "level": "1-1",
+   "lives": 3
+  },
+  {
+   "type": "start",
+   "frame": 151,
+   "level": "1-1",
+   "area": "main"
+  },
+  {
+   "type": "bump",
+   "frame": 290,
+   "tx": 20,
+   "ty": 9,
+   "tile": 2
+  },
+  {
+   "type": "goomba",
+   "frame": 430,
+   "res": null
+  },
+  {
+   "type": "flag",
+   "frame": 1895,
+   "pts": 2000,
+   "time": 328
+  },
+  {
+   "type": "allclear",
+   "frame": 2348
+  }
+ ],
+ "sound_calls": [
+  {
+   "f": 1,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 151,
+   "k": "playMusic",
+   "a": [
+    "overworld",
+    "true"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 151,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 283,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 290,
+   "k": "play",
+   "a": [
+    "bump"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 324,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 381,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 430,
+   "k": "play",
+   "a": [
+    "stomp"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 453,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 590,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 636,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 702,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 741,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 809,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 905,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 966,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1006,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1060,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1114,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1167,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1223,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1301,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1352,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1400,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1471,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1516,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1576,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1654,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1699,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1748,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1793,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1846,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1895,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 1895,
+   "k": "play",
+   "a": [
+    "flagpole"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1987,
+   "k": "playMusic",
+   "a": [
+    "course_clear",
+    "false"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1987,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 2065,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2068,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2071,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2074,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2077,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2080,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2083,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2086,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2089,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2092,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2095,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2098,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2101,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2104,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2107,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2110,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2113,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2116,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2119,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2122,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2125,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2128,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2131,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2134,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2137,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2140,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2143,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2146,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2149,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2152,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2155,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2158,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2161,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2164,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2167,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2170,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2173,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2176,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2179,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2182,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2185,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2188,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2191,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2194,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2197,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2200,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2203,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2206,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2209,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2212,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2215,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2218,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2221,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2224,
+   "k": "play",
+   "a": [
+    "beep"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 2348,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  }
+ ],
+ "console": [
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ]
+ ],
+ "errors": [],
+ "failed": [
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/question.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_tl.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_tr.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_l.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_r.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_mouth_t.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_mouth_b.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_body_t.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_body_b.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_join_t.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_join_b.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/treetop_l.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/treetop_m.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/treetop_r.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/trunk.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/bridge.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/chain.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/axe.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/lava_top.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/lava.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/flag_ball.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/underground/flag_pole.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/question.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_tl.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_tr.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_l.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_r.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_mouth_t.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_mouth_b.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_body_t.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_body_b.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_join_t.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_join_b.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/treetop_l.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/treetop_m.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/treetop_r.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/trunk.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/flag_ball.png",
+  "file:///hutian/builds/build-1/game/assets/tiles/castle/flag_pole.png"
+ ]
+}

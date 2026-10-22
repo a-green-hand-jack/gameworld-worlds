@@ -1,0 +1,46 @@
+# QA report: build-6 (first World 2 candidate)
+
+**Build:** `build-6` (producer release, build-6.zip sha256 3fb7eb078b063b8609d60faf2266fa787d8fe178bc201a563382ee8ca3005b2c): game-developer a2884c82ed6e + artist 5565bd38fc50. Run from its own unzipped contents, headless Chromium (Playwright), deterministic `?manual` stepping.
+
+## W2-P0: World 1 gate (run first)
+| Suite | Result |
+|---|---|
+| `smoke.py` | 0 console errors, 0 failed requests, 136 asset requests all 200 |
+| `check_build.py` P1 (1-1) | 83/83 |
+| `check_p2.py` (1-2, 1-3, 1-4, flow) | 43/43 (see note 1) |
+| `bot_playthrough.py` fair 1-1 | flag at frame 1591, 3 lives, no deaths (identical to build-5) |
+| `lift_trials.py` (9 lifts, 30 landings each) | 9/9, 270/270 |
+| `lift_wrap.py` | pass |
+| `edge_check.py` | pass both ends |
+
+World 1 behaves as accepted in build-5; no regression found.
+
+## World 2
+| Suite | Result |
+|---|---|
+| `map_compare.py`: every 2-x area (2-1 main/cloud/coin room, 2-2 intro/main/exit, 2-3, 2-4) vs the decode of the original (`tools/levels_w2.json`) | 0 differences in terrain, pipes, blocks, enemies, platforms, firebars, warps |
+| `check_w2.py` (new), whole run | **111/111** |
+
+`check_w2.py` by area:
+- **Progression:** 1-4 Toad -> 2-1 with score/coins/lives/power carried; 1-2 warp pipe -> 2-1; `#level=2-1..2-4`; 2-4 Toad -> clear screen -> title; game over -> title; death respawn and halfway checkpoint in World 2; flags.
+- **2-1:** first power block, hidden 1-up, springboard (plain / boosted / big Mario, keeps bouncing without input), vine grows from its block and is climbable to the coin heaven (coins collectable, fall returns to 2-1), Piranha Plants, green Paratroopa (stomp removes wings, then walks), coin room pipe.
+- **2-2:** pipe intro, underwater music, swim physics (stroke, gravity, surface limit, animation frames), Blooper cannot be stomped but dies to fire, Cheep Cheeps spawn only inside their frenzy range and stop after it, sideways exit pipe -> overworld, stairs, flag -> 2-3.
+- **2-3:** time 300, flying Cheep Cheeps hurt / shrink, frenzy stops past column 197, no ground enemies.
+- **2-4:** firebars (both directions, hurt small / shrink big), Podoboo jump arc, Bowser spawns and breathes fire, fire reveals the fake Bowser as a Koopa (sprite swap during the death animation), stomp does not kill, axe triggers the ending, bridge collapses, Toad text screenshot.
+- Traversability: the in-page search bot (enemies ignored, god mode) reaches the end of 2-3 (flag) and 2-4 (axe) with run-jumps and lifts only; 2-2 and 2-1 were checked by the scripted checks above rather than by the bot (see "Not covered").
+
+Screenshots and `results.json` are produced by the script (`OUTDIR`); montages of 2-1 coin heaven/springboard, 2-2 Blooper/Cheeps/exit, 2-3 cheeps, 2-4 Podoboo/Bowser/axe, Toad text, clear screen and warp zone were looked at: no visual defect seen (tiles, sprites and text consistent with World 1 style).
+
+## Notes (not defects)
+1. `check_p2.py` `L14.world1-end-screen` expected the World 1 clear screen after the 1-4 Toad; since round 2 the Toad leads to 2-1. I changed the check to `L14.toad-leads-to-2-1` (this is the brief's intended behaviour).
+2. The developer's exclusion of "hard-mode" objects (e.g. 2-3's Koopas/Paratroopas) is faithful: in the disassembly the enemy second-byte bit 6 means hard mode only, which is enabled from 5-3 on.
+3. Swimming has no friction (the code says "NES values"); consistent with the original.
+4. `#level=` is read once at start, so after game over or the clear screen a restart goes back to the hash level. It is a debug feature; no effect without a hash.
+5. 2-1 starts next to a large castle: matches the original map.
+6. Bot leads, not defects: the "fair" bot stalls in 2-1 (dies in the pit at column 107-113 and next to the pipe Piranha at column 115) and 2-3 (pit at x=2020); the search bot ignores enemies and falls in the coin-heaven pit in 2-1 (falling returns you to the level, so its "every macro dies" is its own limit). A human play of those spots is for the playtester.
+
+## Not covered
+Music and sound by ear (only that the right track/sfx is requested), real-keyboard feel, pixel-level fidelity to the original, and a complete real-play (no god mode, no teleport) swim of 2-2 with all enemies; the simple swim bot got stuck at x=1620 and I did not take it further. The playtester's play of 2-2 is the open evidence there.
+
+## Defects
+Open defects from QA on build-6: none reproduced.

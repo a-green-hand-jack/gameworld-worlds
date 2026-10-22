@@ -1,0 +1,43 @@
+# Playtest report — build `playtest-1`
+
+**Build played:** release `playtest-1` in world/producer, `snake-playtest-1.zip` (game-developer a559f2e + artist assets 5340842), unzipped and served with `python3 -m http.server 8000`; also opened once via `file://`.
+**How played:** headless Chromium (Playwright 1.64), 1280x800 (plus 1366x768, 1024x600, 800x500, 1920x1080), real keyboard events at real time (Enter, Space, arrows, P, Esc), a mouse click on "Play again". Game state was *read* via `window.SnakeGame` to check numbers; nothing was set through it except where noted. Scripts: `scripts/`; logs: `evidence/run1-3.log`; recordings: `evidence/run1-scripted.webm`, `evidence/run2-bot.webm`.
+
+## Verdict
+**Playable and completable start to finish; every R1–R11 observed working.** One real defect for this build: **a flood of 404 console errors** (asset paths do not match, see below) — the brief's build standard says "no console errors". Everything else is minor.
+
+## What happened, per requirement
+| Req | Result | Evidence |
+|---|---|---|
+| R1 runs from static index.html | OK over http and `file://`, no JS exceptions | run3.log |
+| R8 title screen | OK: "SNAKE", how-to text, Start button, "or press Enter / Space". Arrow keys on title do nothing, Esc does nothing. | 01-title.png |
+| R2 grid movement | OK: 20x20 grid, head advances exactly one cell per ~120 ms tick on its own | run1.log (head samples) |
+| R3 arrow-key turning | OK. Key press → head moves in new direction within 71–103 ms (≤ one tick); feels prompt | run3.log |
+| R4/R5 food = +1 length, +1 score | OK: bot ate 22 foods in one run and 17 in another; every food gave exactly +1 score and +1 cells, zero deviations | run2.log |
+| R9 score visible in play | OK: "Score" and "Best" above the board, updates live | 06-play-score3.png |
+| R6 wall ends game | OK (cause `wall`) | 05-gameover-wall.png, 07-…-wall.png |
+| R7 self ends game | OK (cause `self`, score 17, length 20) | 07-gameover-run0-self.png |
+| R10 game-over shows final score | OK: "Game Over / Final score: N / Best / Play again". Also "New best score!" | 05, 07 |
+| R11 play again starts fresh | OK via Enter, Space and mouse click: score 0, length 3, HUD 0, new food | 08-play-again-fresh.png |
+
+Playtest-priority items:
+- **180° reversal:** pressing Left while heading Right is ignored; no death. Up then Down inside one tick: Down ignored (reads as reversal of the pending turn), snake survives.
+- **Quick double turn:** Up+Left pressed within one tick are both honoured on consecutive steps (no lost key, no self-reversal). 
+- **Pressing 3 keys inside one tick:** the queue holds 2; the third is silently dropped (Up,Left,Down → Down lost). Acceptable, only noticeable to very fast players.
+- **Speed:** 120 ms/tick, constant. A simple bot with 1-step lookahead, pressing keys at real time, reached scores of 17 and 22 without missing turns, so the speed is controllable (I cannot judge human feel). It never speeds up, so a long run gets easy; not a defect for this brief.
+- **Food on snake:** sampled every ~20 ms across ~80 s of play and 39 foods: never on the snake.
+- **Page scroll:** arrow keys never scrolled the page (scrollY 0, page fits the window at every size tried).
+- **Pause:** P pauses/resumes, snake frozen while paused (04-paused.png); window blur auto-pauses.
+- **Window sizes:** 800x500 to 1920x1080 all fit without scroll; board scales down on small windows and the HUD/footer stay visible (09-viewport-*.png).
+
+## Problems and friction
+1. **[Defect, build] ~30 failed requests / console errors on every load.** The page asks for `assets/theme.css`, `assets/images/{snake-head,snake-body,snake-tail,title-logo,board-tile,food}.png`, `assets/audio/{start,eat,gameover,music}.{ogg,mp3,wav}`, none of which exist; the delivered files are `assets/img/{head_up,…,food,body,bg_a,wall,logo}.png` and `assets/audio/*.wav`. Result: game uses fallback drawing and, as far as I could see, plays with **no sound at all** (not heard: headless; but the audio files requested do not exist). This is the known "sprites not wired" gap, but it also breaks the brief's "no console errors" standard and the sound path. Fix: make `src/assets.js` and the `<link>` in `index.html` use the artist's real filenames (or the artist's `assets/manifest.json`).
+2. **[Minor] Head vs body hard to tell at a glance** in the fallback drawing: head is a slightly lighter green square with two tiny dots. Readable when the snake is moving, weak when it is long (run 0 reached length 20). Sprites should fix this; re-check on the next build.
+3. **[Minor] Death is abrupt:** the screen switches immediately to the Game Over overlay; a player pressing Enter/Space just as they die (rapid key mashing) could restart instantly without seeing the score. I did not hit it by accident, but there is no short delay.
+4. **[Minor] Opening-state food:** the first food can appear directly in the snake's path 2–3 cells away; nothing unfair seen.
+
+## Not covered
+Sound (cannot be heard here; files missing anyway), real human timing feel, touch, board-filled "You Win" path (not reachable by play), art (known not wired).
+
+## Next
+Please send build 2 (sprites/sounds wired). I will replay the same scenarios and check for the 404s, sprite legibility (head vs body vs food) and audio loading.

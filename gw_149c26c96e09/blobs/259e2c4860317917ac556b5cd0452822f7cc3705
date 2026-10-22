@@ -1,0 +1,49 @@
+# Playtest report — build `playtest-3`
+
+**Build played:** release `playtest-3` in world/producer, `snake-playtest-3.zip` (game-developer 531454b + artist 766d875), served from `snake-pt3/` with `python3 -m http.server 8003`; also opened once via `file://`.
+**How played:** headless Chromium (Playwright 1.64), real keyboard events in real time (Enter, Space, arrows, P, Esc, M), mouse click on Play again; 1280x800 plus 1366x768, 1024x600, 800x500, 1920x1080. State was read through `window.SnakeGame` to check numbers. Same scenarios as playtest-1 (see `report-playtest-1.md`). Evidence: `evidence/pt3/` (screenshots, logs, `run1-scripted.webm`, `run2-bot.webm`); scripts in `scripts/` (`pt3.py`, `bot3.py`, `t3b.py`, `long3.py`, `mute3.py`).
+
+## Verdict
+**Playable and completable, R1–R11 all work, and the playtest-1 defect is fixed: zero console errors/warnings, zero failed requests** (checked on a scripted run, on a 60 s bot run reaching score 36, and via `file://`). Art and sound are wired and consistent. Only minor items remain.
+
+## Replay of playtest-1 scenarios (all same result or better)
+| Req / item | Result |
+|---|---|
+| R1 | OK over http and `file://`, no page errors |
+| R8 title | OK: pixel "SNAKE" logo + snake, how-to text, Start, "or press Enter / Space". Arrows/Esc on title do nothing |
+| R2 / R3 | OK: one cell per ~120 ms tick; keypress → head turns within 64–112 ms (≤ one tick) |
+| R4 / R5 | OK: every food +1 length, +1 score; no deviation over 3 long runs (scores 26–36, 32, 12) |
+| R9 | OK: Score and Best above the board, live |
+| R6 / R7 | OK: wall death (`wall`) and self death (`self`, twice: scores 32 and 12) |
+| R10 / R11 | OK: "Game Over / Final score: N / New best score! or Best: N / Play again"; Enter, Space and click restart fresh (score 0, length 3, HUD 0) |
+| 180° reversal | Ignored, no death. Up then Down in one tick: Down ignored |
+| Quick double turn | Up+Left within one tick both honoured on consecutive steps |
+| 3 keys in one tick | Queue holds 2, third dropped (unchanged, minor) |
+| Food on snake | Never (sampled every ~20 ms across all runs) |
+| Page scroll | Arrow keys never scroll; page fits at all five window sizes (new wall ring is included in the canvas, board stays fully visible) |
+| Pause / blur | P/Esc pauses, window blur auto-pauses, snake frozen while paused |
+| Speed | Constant 120 ms/tick; a 1-step-lookahead bot reaches 30+ without missing turns. (I cannot judge human feel.) |
+
+## Legibility and look
+- **Title / play / game over are visually consistent**: same dark blue-grey, same green accent (logo, snake, buttons, score digits), red for Game Over; same wall frame around all three (`01-title.png`, `06-play-score3.png`, `07-gameover-run1-self.png`).
+- **Walls** (new brick ring) read clearly against the dark board; the field edge is unmistakable. Wall death occurs when the head would enter the ring; the head is never drawn inside it.
+- **Food** (red apple with yellow stalk) stands out from board and snake and is not confused with anything.
+- **Head** has eyes and a slightly lighter green; it reads as the head, including when the snake is 29 cells long (`evidence/pt3/10-long-snake-1.png`). **Tail** tip is pointed and visible.
+- **Corners (minor):** at a turn the body segment is drawn as a short stub with a visible seam/notch (screenshot 10-long-snake-1 near x≈770,y≈440); it looks slightly lumpy/disconnected but stays readable and never ambiguous about where the snake goes.
+- **Body vs head colour (minor):** head and body are nearly the same green; the eyes carry the distinction. Fine at this size.
+- Game-over screen dims the snake and food under a dark overlay; the final score and button are easy to read.
+
+## Sound
+- All 4 sounds load (`SnakeAssets.status` lists `.ogg` for start, eat, gameover, music). Observed by hooking `play()`: `start.ogg` at game start, `music.ogg` (looping) right after, `eat.ogg` **exactly once per food** (36 plays for score 36), `gameover.ogg` on death; music pauses on pause, blur and game over, and resumes on resume.
+- **M mutes**: with sound off no `play()` calls fire and music stays paused; unmuting restarts music.
+- **I could not hear the sounds**: headless Chromium has no audio output and the `audio-understanding` resource returned HTTP 429 (daily request limit of 20 reached on the shared key), so no listening verdict from it. Objective analysis of the `.wav` files instead: start 0.32 s (peak 0.80, dominant 784 Hz), eat 0.13 s (992 Hz), gameover 0.85 s (209 Hz), music 4.8 s loop (175 Hz); none clips, none has leading/trailing clicks except one note below; lengths fit `docs/assets.md`. Whether they are *pleasant* and in sync with events is **not verified by listening**: someone with audio output (or the audio resource once its limit resets) should check. In sync by construction: each sound is triggered in the same step that causes it.
+- **Minor, music loop seam:** first sample amplitude 0.125 vs last 0.018, so the 4.8 s loop may click at the repeat; and 4.8 s is short, so the repetition will be noticeable in a long run.
+
+## Problems and friction (all minor)
+1. 3rd key within a single tick is dropped (queue of 2).
+2. Corner segments show a small seam.
+3. Music loop is 4.8 s with a possible click at the seam.
+4. Game-over input guard (game-developer#4) is **not in this build**: Game Over still accepts Enter/Space immediately. Will re-check when it lands.
+
+## Not covered
+Hearing the sound; real human feel of speed/turning; touch; "You Win" (board-full) path.

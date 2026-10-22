@@ -1,0 +1,15 @@
+"""Teleport through a level of the assembled game and screenshot every few screens (art review in play)."""
+import sys, os
+root, level, out = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, root + '/tests')
+from harness import Game
+os.makedirs(out, exist_ok=True)
+g = Game(root, '#level=' + level); g.step(30); g.press('start'); g.step(250)
+g.js("SMB.game.player.invuln = 1e9")
+w = g.js("SMB.game.area.width || (SMB.game.area.cols && SMB.game.area.cols) || 0")
+print('width', w, g.state())
+for i, tx in enumerate(range(0, int(sys.argv[4]) if len(sys.argv) > 4 else 220, 14)):
+    g.js(f"(()=>{{const p=SMB.game.player; p.x={tx*16+40}; p.y=40; p.vy=0; SMB.game.camX={tx*16};}})()")
+    g.step(2); g.shot(f'{out}/{i:02d}.png')
+print([c for c in g.console if 'missing' in c or 'rror' in c], g.errors)
+g.close()

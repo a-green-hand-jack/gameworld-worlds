@@ -1,0 +1,8 @@
+import base64, json, os, subprocess, sys, urllib.request
+url = subprocess.check_output(['ht-resource', 'url', 'audio-understanding'], text=True).strip()
+body = {'model': 'gemini-3.8-flash', 'input': [{'type': 'text', 'text': sys.argv[2]}, {'type': 'audio', 'mime_type': 'audio/'+sys.argv[1].rsplit('.',1)[1]+'', 'data': base64.b64encode(open(sys.argv[1], 'rb').read()).decode()}]}
+r = urllib.request.Request(url + '/v1beta/interactions', json.dumps(body).encode(), {'Content-Type': 'application/json', 'x-goog-api-key': os.environ['HT_RESOURCE_TOKEN']})
+
+try: a = json.load(urllib.request.urlopen(r, timeout=900))
+except urllib.error.HTTPError as e: print(e.code, e.read()[:400]); sys.exit(1)
+print(''.join(p.get('text','') for s in a.get('steps',[]) if s.get('type')=='model_output' for p in s.get('content',[]) if p.get('type')=='text'))

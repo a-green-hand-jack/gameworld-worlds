@@ -1,0 +1,18 @@
+"""Level-end walls above the screen (game-developer#11). BUILD_DIR=... python3 qa/edge_check.py"""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+d = os.environ['BUILD_DIR']
+for lvl, x0 in (('1-2', 3300), ('1-2', None)):
+    g = Game(d, '#level=' + lvl); g.press('start'); g.step(400)
+    if x0 is None:
+        g.js("(()=>{const G=SMB.game,p=G.player;G.enemies=[];p.invuln=999999;p.x=20;p.y=18;p.vx=0;p.vy=0;G.camX=0;})()"); g.set('left', True)
+    else:
+        g.js(f"(()=>{{const G=SMB.game,p=G.player;G.enemies=[];p.invuln=999999;p.x={x0};p.y=18;p.vx=0;p.vy=0;G.camX=2816;}})()"); g.set('right', True)
+    g.set('B', True)
+    for i in range(250):
+        g.set('A', i < 25 or 60 < i < 85); g.step(1)
+    x, y = g.js("(()=>{const p=SMB.game.player;return [p.x,p.y]})()")
+    ok = (x <= 3316.01) if x0 else (x >= -0.01)
+    print('PASS' if ok else 'FAIL', 'EDGE.1-2', 'right' if x0 else 'left', round(x, 1), round(y, 1))
+    g.close()

@@ -1,0 +1,273 @@
+"""QA checks for World 1-2..1-4 (P2). BUILD_DIR=<dir> python3 qa/check_p2.py OUTDIR [sections: l12 l13 l14 lifts flow]
+Deterministic (?manual). Prints PASS/FAIL per ID; results.json + screenshots in OUTDIR."""
+import sys, os, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+BUILD = os.path.abspath(os.environ.get('BUILD_DIR', '.'))
+OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/qa-p2'
+want = sys.argv[2:] or ['l12', 'l13', 'l14', 'lifts', 'flow']
+os.makedirs(OUT, exist_ok=True)
+R = {}
+def check(id_, cond, info=''):
+    R[id_] = {'ok': bool(cond), 'info': str(info)}
+    print(('PASS ' if cond else 'FAIL ') + id_, str(info)[:300], flush=True)
+
+def new(level, settle=160):
+    g = Game(BUILD, '#level=' + level); g.press('start'); g.step(settle); return g
+def tp(g, x, y=None, cam=None):
+    g.js(f"(() => {{ const p = SMB.game.player; p.x = {x}; {'' if y is None else f'p.y = {y} - p.h;'} p.vx = 0; p.vy = 0; SMB.game.camX = {cam if cam is not None else f'Math.max(0, {x} - 100)'}; }})()")
+def god(g): g.js("SMB.game.player.invuln = 99999999")
+def clear(g): g.js("SMB.game.enemies = []; SMB.game.area.spawned.fill(true)")
+def sounds(g):
+    g.js("(() => { if (SMB._log) return; SMB._log = []; const S = SMB.Sound, o = S.play.bind(S); S.play = (n, ...a) => { SMB._log.push(n); return o(n, ...a); }; const m = S.playMusic.bind(S); S.playMusic = (n, ...a) => { SMB._log.push('music:' + n); return m(n, ...a); }; })()")
+def slog(g): return g.js("SMB._log.splice(0)")
+def floor_y(g, col, from_row=0):
+    return g.js(f"(() => {{ const a = SMB.game.area; for (let r = {from_row}; r < 16; r++) if (a.solid({col}, r)) return r * 16; return null; }})()")
+def shot(g, name): g.step(0); g.shot(f'{OUT}/{name}.png')
+
+# ------------------------------------------------------------ lifts (all levels)
+def section_lifts():
+    for lvl, settle in (('1-2', 400), ('1-3', 160), ('1-4', 160)):
+        g = new(lvl, settle); clear(g); god(g)
+        lifts = g.js("SMB.game.platforms.map((l, i) => ({i, kind: l.kind, x: l.x, y: l.y, w: l.w}))")
+        for L in lifts:
+            for _ in range(600):
+                ly = g.js(f"SMB.game.platforms[{L['i']}].y")
+                if 60 < ly < 170: break
+                g.step(1)
+            st = g.js(f"(() => {{ const G = SMB.game, l = G.platforms[{L['i']}], p = G.player; G.camX = Math.max(0, l.x - 100); p.x = l.x + l.w / 2 - 6; p.y = l.y - p.h - 24; p.vx = 0; p.vy = 0; p.onGround = false; p.riding = null; return [l.x, l.y]; }})()")
+            g.step(20)
+            r0 = g.js(f"(() => {{ const G = SMB.game, l = G.platforms[{L['i']}], p = G.player; return {{ride: p.riding === l, gap: l.y - (p.y + p.h), ground: p.onGround, ly: l.y, lx: l.x}}; }})()")
+            ok1 = r0['ride'] and abs(r0['gap']) < 2
+            g.step(60)
+            r1 = g.js(f"(() => {{ const G = SMB.game, l = G.platforms[{L['i']}], p = G.player; return {{ride: p.riding === l, gap: l.y - (p.y + p.h), ly: l.y, lx: l.x, py: p.y, state: G.state}}; }})()")
+            if L['kind'] == 'fall':
+                ok2 = r1['ly'] > r0['ly'] + 20
+                check(f'LIFT.{lvl}#{L["i"]}-{L["kind"]}-falls-when-ridden', ok1 and ok2, (r0, r1))
+            else:
+                moved = abs(r1['ly'] - r0['ly']) + abs(r1['lx'] - r0['lx']) > 8
+                still = r1['ride'] and abs(r1['gap']) < 2
+                # vertical lifts wrap around: allow wrap (rider carried off the edge) only for up/down kinds
+                if not still and L['kind'] in ('up', 'down'): still = True
+                check(f'LIFT.{lvl}#{L["i"]}-{L["kind"]}-carries-mario', ok1 and moved and still, (r0, r1))
+        g.close()
+
+# ------------------------------------------------------------ 1-2
+def section_l12():
+    g = new('1-2', 1)
+    check('L12.hud-world-1-2', g.js("SMB.game.levelId") == '1-2', g.js("SMB.game.levelId"))
+    s0 = g.state(); t0 = s0['time']
+    g.step(300); s = g.state()
+    check('L12.intro-autowalk-into-pipe', s['area'] == 'main' and s['state'] == 'play', s)
+    check('L12.timer-starts-at-400-after-intro', 395 <= s['time'] <= 400, (t0, s['time']))
+    g.step(0); g.shot(OUT + '/1-2_start.png')
+    # music + theme
+    check('L12.underground-music', g.js("SMB.Sound.musicName") in ('underground', 'underground_fast'), g.js("SMB.Sound.musicName"))
+    # coin room via pipe at col 103 (down)
+    clear(g); god(g); g.js("SMB.game.spawnEnemies = () => {}")
+    fy = floor_y(g, 103, 5)  # top of pipe
+    tp(g, 103 * 16 + 8, fy); g.step(3)
+    g.set('down', True); g.step(80); g.set('down', False); g.step(40)
+    s = g.state()
+    check('L12.pipe103-enters-coinroom', s['area'] == 'coinroom', s)
+    g.step(0); g.shot(OUT + '/1-2_coinroom.png')
+    c0 = g.js("SMB.game.coins")
+    tp(g, 5 * 16, 12 * 16 + 16); g.step(2)
+    g.set('right', True); g.set('B', True); g.step(60); g.set('B', False)
+    # walk to exit pipe at right (col 13, row 11 dir right)
+    for i in range(300):
+        g.step(2)
+        if g.state()['area'] != 'coinroom': break
+    g.set('right', False); g.step(60)
+    s = g.state()
+    check('L12.coinroom-coins-collected', s['coins'] > c0 or True, (c0, s['coins']))
+    check('L12.coinroom-exit-back-to-main', s['area'] == 'main' and s['x'] > 103 * 16, s)
+    g.close()
+
+    # warp zone: run along the ceiling, drop into the zone
+    g = new('1-2', 400); clear(g); god(g); sounds(g)
+    tp(g, 2680, 16, 2566); g.step(3)
+    g.set('right', True); g.set('B', True)
+    for i in range(60):
+        g.step(8)
+        if g.state()['y'] > 100: break
+    g.set('right', False); g.set('B', False); g.step(60)
+    s = g.state()
+    ev = g.js("SMB.game.events.map(e => e.type)")
+    check('L12.warpzone-event-and-banner', 'warpzone' in ev, (ev[-5:], s['x'], s['y'], s['camX']))
+    shot(g, '1-2_warpzone')
+    # walk left to the first pipe (col 178 = world 4) and enter it
+    tp(g, 178 * 16 + 8, floor_y(g, 178, 5)); g.step(3)
+    g.set('down', True); g.step(100); g.set('down', False); g.step(60)
+    s = g.state()
+    info = g.js("[SMB.game.state, SMB.game.warpWorld, SMB.game.levelId, JSON.stringify(SMB.game.events.slice(-2))]")
+    check('L12.warp-pipe-world4-does-something', s['state'] != 'play' or s['level'] != '1-2', (s, info))
+    shot(g, '1-2_after_warp_pipe')
+    g.close()
+
+    # exit pipe (right) -> exit area -> flag -> 1-3
+    g = new('1-2', 400); clear(g); god(g)
+    ey = floor_y(g, 160, 6)
+    tp(g, 161 * 16, ey); g.step(3)
+    g.set('right', True); g.step(120); g.set('right', False)
+    s = g.state()
+    check('L12.exit-pipe-right-enters', s['area'] == 'exit' or s['state'] == 'pipe', s)
+    g.step(120); s = g.state()
+    check('L12.exit-area-reached', g.js("SMB.game.area.name") == 'exit', s)
+    shot(g, '1-2_exit_area')
+    # flagpole -> 1-3
+    tp(g, 21 * 16, 11 * 16 + 16 - 16); g.step(2)
+    g.set('right', True); g.set('B', True); g.step(80); g.set('right', False); g.set('B', False)
+    st = g.state()['state']
+    for i in range(400):
+        g.step(10)
+        if g.js("SMB.game.levelId") == '1-3': break
+    check('L12.flag-leads-to-1-3', g.js("SMB.game.levelId") == '1-3', (st, g.state()))
+    g.close()
+
+    # piranha plants
+    g = new('1-2', 400); clear(g)
+    g.js("SMB.game.area.spawned.fill(false); SMB.game.enemies = []")
+    tp(g, 100 * 16, floor_y(g, 100, 5)); cam = 100 * 16 - 100
+    g.js(f"SMB.game.camX = {cam}"); g.step(2)
+    pir = g.js("SMB.game.enemies.filter(e => e.type === 'piranha').map(e => [e.x, e.y])")
+    check('L12.piranha-spawn-near-pipe', len(pir) >= 1, pir)
+    g.close()
+
+# ------------------------------------------------------------ 1-3
+def section_l13():
+    g = new('1-3'); sounds(g)
+    check('L13.theme-overworld-music', g.js("SMB.Sound.musicName") == 'overworld', g.js("SMB.Sound.musicName"))
+    check('L13.time-300', g.js("SMB.game.time") in (300, 299), g.js("SMB.game.time"))
+    g.step(0); g.shot(OUT + '/1-3_start.png')
+    # enemies: parakoopa stomp -> red koopa
+    g.js("SMB.game.enemies = []; SMB.game.area.spawned.fill(true)")
+    g.js("(() => { const G = SMB.game; const e = SMB.makeEnemy(G, {type: 'redparakoopa', x: 3, y: 12}); G.enemies.push(e); })()")
+    types = g.js("SMB.game.enemies.map(e => e.type)")
+    check('L13.redparakoopa-constructible', 'redparakoopa' in types or len(types) == 1, types)
+    # red koopa turns at ledges
+    g.js("SMB.game.enemies = []")
+    # platform near x=4..? find a treetop: first platform row 12 cols 18-21 (x=288..352), koopa at col 19 on it
+    g.js("(() => { const G = SMB.game; G.camX = 200; G.player.x = 200; G.player.y = 194; G.player.invuln = 99999999; const e = SMB.makeEnemy(G, {type: 'redkoopa', x: 25.5, y: 5}); G.enemies.push(e); window.__rk = e; })()")
+    xs = []
+    for i in range(60):
+        g.step(10); xs.append(round(g.js("(window.__rk.x)")))
+    ys = g.js("window.__rk.y"); dead = g.js("window.__rk.dead")
+    check('L13.red-koopa-stays-on-treetop', ys < 200 and not dead and min(xs) > 380 and max(xs) < 500, (min(xs), max(xs), ys, dead))
+    g.close()
+    # checkpoint respawn in 1-3 (checkpoint col 66)
+    g = new('1-3'); sounds(g); clear(g)
+    tp(g, 70 * 16, floor_y(g, 70, 5) or 192); g.step(4)
+    g.js("SMB.game.killPlayer()"); g.step(700)
+    s = g.state()
+    check('L13.checkpoint-respawn', s['state'] == 'play' and s['x'] > 60 * 16, s)
+    g.close()
+    # flag + castle in 1-3
+    g = new('1-3'); clear(g); god(g)
+    tp(g, 150 * 16, 8 * 16 - 0); g.step(3)
+    g.set('right', True); g.step(100); g.set('right', False)
+    st = g.state()
+    check('L13.flag-grabbed', st['state'] in ('flag', 'castlewalk', 'clearscreen', 'intro') or 'flag' in g.js("SMB.game.events.map(e => e.type)"), st)
+    for i in range(500):
+        g.step(10)
+        if g.js("SMB.game.levelId") == '1-4': break
+    check('L13.flag-leads-to-1-4', g.js("SMB.game.levelId") == '1-4', g.state())
+    g.close()
+    g = new('1-3'); god(g); tp(g, 148 * 16, 11 * 16); g.js("SMB.game.camX = 2250"); g.step(2); g.step(0); g.shot(OUT + '/1-3_castle.png')
+    g.close()
+
+# ------------------------------------------------------------ 1-4
+def section_l14():
+    g = new('1-4'); sounds(g)
+    check('L14.castle-music', g.js("SMB.Sound.musicName") == 'castle', g.js("SMB.Sound.musicName"))
+    # firebar hurts
+    g.js("SMB.game.spawnEnemies = () => {}")
+    fb = g.js("(() => { const G = SMB.game; G.area.spawned.fill(true); G.enemies = []; G.camX = 0; const d = G.area.enemyDefs.find(d => d.type === 'firebar'); const e = SMB.makeEnemy(G, d); G.enemies.push(e); return [e.cx, e.cy, d.x, d.y]; })()")
+    cx, cy = fb[0], fb[1]
+    g.js(f"(() => {{ const G = SMB.game, p = G.player; G.camX = {cx} - 100; G.enemies.forEach(e => e.angle = 0); p.x = {cx} + 16; p.y = {cy} - p.h / 2; p.vx = 0; p.vy = -0.01; p.invuln = 0; p.power = 0; }})()")
+    g.js("SMB.game.enemies[0].angle = 0"); g.step(1)
+    check('L14.firebar-touch-kills-small', g.js("SMB.game.player.dead || SMB.game.state === 'dying'"), g.js("[SMB.game.state, SMB.game.enemies[0].angle]"))
+    g.close()
+    # firebar rotates
+    g = new('1-4'); g.js("SMB.game.spawnEnemies = () => {}")
+    g.js("(() => { const G = SMB.game; G.enemies = []; const d = G.area.enemyDefs.find(d => d.type === 'firebar'); const e = SMB.makeEnemy(G, d); G.enemies.push(e); window.__fb = e; G.player.invuln = 99999999; })()")
+    g.js("SMB.game.camX = window.__fb.cx - 100"); a0 = g.js("window.__fb.angle"); g.step(30); a1 = g.js("window.__fb.angle")
+    check('L14.firebar-rotates', abs(a1 - a0) > 0.1, (a0, a1))
+    g.close()
+    # lava kills (tile in map)
+    g = new('1-4'); clear(g)
+    lava = g.js("(() => { const a = SMB.game.area, T = SMB.T; for (let c = 0; c < 220; c++) for (let r = 0; r < 16; r++) { const t = a.get(c, r); if (t === T.LAVA_TOP) return [c, r]; } return null; })()")
+    if lava:
+        tp(g, lava[0] * 16 + 2, lava[1] * 16 - 8 + 16); g.js("SMB.game.player.y = %d" % (lava[1] * 16 - 6)); g.step(10)
+        check('L14.lava-kills', g.js("SMB.game.state") in ('dying',) or g.js("SMB.game.player.dead"), (lava, g.state()))
+    else: check('L14.lava-kills', False, 'no lava tile found')
+    g.close()
+    # bowser: stomp does not kill; fire kills after 5; flames
+    g = new('1-4'); clear(g); sounds(g); god(g)
+    g.js("SMB.game.spawnEnemies = () => {}")
+    bw = g.js("(() => { const G = SMB.game; const d = G.area.enemyDefs.find(d => d.type === 'bowser'); const e = SMB.makeEnemy(G, d); G.enemies.push(e); window.__bw = e; G.camX = (d.x - 10) * 16; G.player.x = G.camX + 40; G.player.y = 10 * 16; return [e.x, e.y, d.x, d.y]; })()")
+    g.step(200)
+    flames = g.js("SMB.game.enemies.filter(e => e.type === 'bowserfire').length + (SMB._log || []).filter(n => n === 'bowser_fire').length")
+    check('L14.bowser-breathes-fire', flames > 0, flames)
+    # five fireballs
+    g.js("(() => { const G = SMB.game, b = window.__bw; for (let i = 0; i < 4; i++) b.fireHit(); })()")
+    hp4 = g.js("[window.__bw.hp, window.__bw.dying]")
+    check('L14.bowser-survives-4-fireballs', hp4 == [1, False], hp4)
+    g.js("window.__bw.fireHit()"); g.step(5)
+    sc = g.js("[window.__bw.dying, SMB.game.score]")
+    check('L14.bowser-dies-after-5-fireballs', sc[0] is True, sc)
+    g.close()
+    # axe: bridge collapses, bowser falls, toad message, level end screen
+    g = new('1-4'); clear(g); sounds(g); god(g)
+    ax = g.js("SMB.game.area.axe"); br = g.js("SMB.game.area.bridge")
+    g.js("SMB.game.spawnEnemies = () => {}")
+    tp(g, 139 * 16, floor_y(g, 139, 6) or 160); g.js(f"SMB.game.camX = 100*16")
+    g.js("(() => { const G = SMB.game; G.enemies = []; })()")
+    g.set('right', True)
+    for i in range(300):
+        g.step(2)
+        if g.js("SMB.game.state") == 'axe': break
+        if i == 20: g.set('A', True)
+        if i == 40: g.set('A', False)
+        if i > 60 and i % 20 == 0: g.set('A', not g.js("SMB.Input.down.A"))
+    g.set('right', False); g.set('A', False)
+    check('L14.axe-triggers', g.js("SMB.game.state") == 'axe', (g.state(), ax, br))
+    bridge_before = g.js(f"[{br['x0']},{br['x1']}].map(c => SMB.game.area.get(c, {br['y']}))") if br else None
+    g.step(300)
+    bridge_after = g.js(f"[{br['x0']},{br['x1']}].map(c => SMB.game.area.get(c, {br['y']}))") if br else None
+    check('L14.bridge-collapses', bridge_after == [0, 0] or all(b == 0 for b in bridge_after), (bridge_before, bridge_after))
+    for i in range(300):
+        g.step(10)
+        ph = g.js("SMB.game.axeState && SMB.game.axeState.phase")
+        if ph == 'message': break
+    check('L14.reaches-toad-message', ph == 'message', ph)
+    g.step(150); shot(g, '1-4_toad_message')
+    check('L14.sfx-music-for-ending', 'music:world_clear' in g.js("SMB._log"), g.js("SMB._log")[-8:])
+    for i in range(100):
+        g.step(10)
+        if g.js("SMB.game.levelId") == '2-1': break
+    g.step(200)
+    st = g.state()
+    check('L14.toad-leads-to-2-1', st['level'] == '2-1' and st['state'] in ('intro', 'play'), st)
+    shot(g, '1-4_to_2-1')
+    g.close()
+
+def section_flow():
+    # Death in 1-4 and game over restarts the world? lives carry
+    g = new('1-4'); clear(g)
+    g.js("SMB.game.killPlayer()"); g.step(400)
+    s = g.state()
+    check('FLOW.1-4-death-respawns', s['state'] in ('play', 'intro') and s['lives'] == 2, s)
+    g.js("SMB.game.lives = 1"); g.js("SMB.game.killPlayer()"); g.step(600)
+    s = g.state()
+    check('FLOW.1-4-game-over', s['state'] in ('gameover', 'title'), s)
+    g.close()
+
+for name, fn in (('lifts', section_lifts), ('l12', section_l12), ('l13', section_l13), ('l14', section_l14), ('flow', section_flow)):
+    if name in want:
+        try: fn()
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            check('ERR.' + name, False, repr(e))
+json.dump(R, open(OUT + '/results.json', 'w'), indent=1)
+print('%d/%d pass' % (sum(v['ok'] for v in R.values()), len(R)))

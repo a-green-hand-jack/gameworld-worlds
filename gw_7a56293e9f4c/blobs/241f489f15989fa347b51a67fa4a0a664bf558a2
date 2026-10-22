@@ -1,0 +1,4 @@
+html, body { margin: 0; height: 100%; background: #10141c; color: #c8d0dc; font-family: system-ui, sans-serif; }
+#app { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+#game { display: block; max-width: 96vw; max-height: 88vh; aspect-ratio: 640 / 688; image-rendering: pixelated; outline: none; box-shadow: 0 0 0 2px #2a3242, 0 8px 30px rgba(0,0,0,.5); }
+#help { margin: 0; font-size: 13px; opacity: .75; text-align: center; }

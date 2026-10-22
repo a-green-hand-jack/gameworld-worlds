@@ -1,0 +1,6 @@
+vert#0 level {'trials': 10, 'landed': 10, 'kept40': 5, 'other_lift': 0}
+vert#0 falling {'trials': 55, 'landed': 55, 'kept40': 48, 'other_lift': 0}
+vert#0 rising {'trials': 55, 'landed': 38, 'kept40': 14, 'other_lift': 0}
+horiz#1 level {'trials': 120, 'landed': 120, 'kept40': 120, 'other_lift': 0}
+horiz#2 level {'trials': 120, 'landed': 120, 'kept40': 120, 'other_lift': 0}
+horiz#3 level {'trials': 120, 'landed': 120, 'kept40': 120, 'other_lift': 0}

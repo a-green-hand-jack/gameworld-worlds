@@ -1,0 +1,281 @@
+{
+ "coinroom": {
+  "enter_sequence": [
+   [
+    0,
+    "play",
+    "main"
+   ],
+   [
+    1,
+    "pipe",
+    "main"
+   ],
+   [
+    33,
+    "play",
+    "coinroom"
+   ]
+  ],
+  "state_in_room": {
+   "state": "play",
+   "area": "coinroom",
+   "x": 18,
+   "y": 181,
+   "coins": 0,
+   "score": 0,
+   "time": 398,
+   "power": 1
+  },
+  "music": "underground",
+  "camX": 0,
+  "sounds": [
+   [
+    6,
+    "stopMusic",
+    []
+   ],
+   [
+    6,
+    "play",
+    [
+     "pipe"
+    ]
+   ],
+   [
+    38,
+    "playMusic",
+    [
+     "underground"
+    ]
+   ],
+   [
+    38,
+    "stopMusic",
+    []
+   ]
+  ],
+  "after_floor_walk": {
+   "coins_gained": 9,
+   "x": 193.93359375,
+   "score_gain": 1800,
+   "frames": 119
+  },
+  "multicoin_brick_12_9": {
+   "coins_gained_in_12_jumps": 8,
+   "coins_total_now": 17,
+   "score_gain": 1600
+  },
+  "exit_sequence": [
+   [
+    0,
+    "play",
+    "coinroom",
+    192
+   ],
+   [
+    14,
+    "pipe",
+    "coinroom",
+    195.9
+   ],
+   [
+    46,
+    "pipe",
+    "main",
+    1850
+   ],
+   [
+    73,
+    "play",
+    "main",
+    1850
+   ]
+  ],
+  "after_exit": {
+   "state": "play",
+   "area": "main",
+   "x": 1850,
+   "y": 149,
+   "camX": 1770,
+   "coins": 17,
+   "score": 3400,
+   "time": 370,
+   "power": 1
+  },
+  "exit_pipe_tile_x": 115
+ },
+ "carryover": {
+  "1-1_to_1-2": {
+   "before_flag": {
+    "level": "1-1",
+    "lives": 5,
+    "coins": 7,
+    "score": 12300,
+    "power": 2,
+    "time": 400
+   },
+   "seq": [
+    [
+     0,
+     "play",
+     "1-1",
+     "main"
+    ],
+    [
+     41,
+     "flag",
+     "1-1",
+     "main"
+    ],
+    [
+     526,
+     "intro",
+     "1-2",
+     "main"
+    ],
+    [
+     676,
+     "play",
+     "1-2",
+     "intro"
+    ]
+   ],
+   "at_next_level_start": {
+    "state": "play",
+    "level": "1-2",
+    "area": "intro",
+    "lives": 5,
+    "coins": 7,
+    "score": 32350,
+    "power": 2,
+    "time": 400
+   }
+  },
+  "1-2_exit_pipe": {
+   "frames_to_exit_area": 75,
+   "state": {
+    "state": "pipe",
+    "area": "exit",
+    "lives": 5,
+    "coins": 7,
+    "score": 32350,
+    "power": 2
+   }
+  },
+  "1-2_to_1-3": {
+   "before_flag": {
+    "level": "1-2",
+    "lives": 5,
+    "coins": 7,
+    "score": 32350,
+    "power": 2,
+    "time": 398
+   },
+   "seq": [
+    [
+     0,
+     "play",
+     "1-2",
+     "exit"
+    ],
+    [
+     41,
+     "flag",
+     "1-2",
+     "exit"
+    ],
+    [
+     525,
+     "intro",
+     "1-3",
+     "exit"
+    ],
+    [
+     675,
+     "play",
+     "1-3",
+     "main"
+    ]
+   ],
+   "at_next_level_start": {
+    "state": "play",
+    "level": "1-3",
+    "area": "main",
+    "lives": 5,
+    "coins": 7,
+    "score": 52300,
+    "power": 2,
+    "time": 300
+   }
+  },
+  "1-3_to_1-4": {
+   "before_flag": {
+    "level": "1-3",
+    "lives": 5,
+    "coins": 7,
+    "score": 52300,
+    "power": 2,
+    "time": 300
+   },
+   "seq": [
+    [
+     0,
+     "play",
+     "1-3",
+     "main"
+    ],
+    [
+     41,
+     "flag",
+     "1-3",
+     "main"
+    ],
+    [
+     488,
+     "intro",
+     "1-4",
+     "main"
+    ],
+    [
+     638,
+     "play",
+     "1-4",
+     "main"
+    ]
+   ],
+   "at_next_level_start": {
+    "state": "play",
+    "level": "1-4",
+    "area": "main",
+    "lives": 5,
+    "coins": 7,
+    "score": 67300,
+    "power": 2,
+    "time": 300
+   }
+  },
+  "1-4_end": {
+   "seq": [
+    [
+     2501,
+     "axe",
+     "1-4"
+    ],
+    [
+     3213,
+     "clearscreen",
+     "1-4"
+    ]
+   ],
+   "state": {
+    "state": "clearscreen",
+    "level": "1-4",
+    "lives": 5,
+    "coins": 7,
+    "score": 82100,
+    "power": 2
+   }
+  }
+ }
+}

@@ -1,0 +1,1176 @@
+#!/usr/bin/env python3
+"""
+gen_audio.py -- procedural NES (Ricoh 2A03 style) audio for the SMB-style remake.
+
+Everything here is synthesised from scratch: oscillators, a tiny tracker /
+sequencer and ORIGINAL compositions (no Nintendo melodies are transcribed or
+paraphrased).  Running this script regenerates every audio asset:
+
+    assets/audio/<name>.ogg|.mp3    sfx, jingles and music loops (one flat folder;
+                                    the game tries .ogg first, then .mp3)
+    assets/audio.json               documentation manifest (events, durations, bpm)
+    tools/audio/check/*.png         waveform/spectrogram contact sheets (QA)
+
+Music files are exactly one loop body (no lead-in, no tail) so they loop
+seamlessly with a plain <audio loop>; the decoded .ogg length is checked to be
+sample-exact.
+
+Usage:  python3 tools/audio/gen_audio.py          (needs numpy, scipy, matplotlib, ffmpeg)
+
+Sound model (per 2A03 channel, all values are 4-bit "DAC levels" 0..15):
+  p1, p2  pulse waves, duty 12.5/25/50/75 %, band-limited with polyBLEP,
+          frequencies quantised to real NES 11-bit timer periods
+  tri     32-step 4-bit triangle (no volume control, only gate), used for bass
+  noise   15-bit LFSR noise (long mode / short "metallic" mode), NES period table
+The four channels are combined with the NES non-linear mixer formula and then
+run through a gentle 40 Hz high-pass (DC block) and 14 kHz low-pass, like the
+analogue output stage of the console.  No reverb.
+"""
+
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+
+import numpy as np
+from scipy.signal import butter, lfilter
+
+# ----------------------------------------------------------------------------
+# constants / paths
+# ----------------------------------------------------------------------------
+SR = 44100
+CPU_HZ = 1789773.0                 # NTSC 2A03 CPU clock
+FRAME = SR / 60.0                  # one NES video frame in samples (envelope tick)
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+ASSETS = os.path.join(ROOT, "assets")
+CHECK_DIR = os.path.join(HERE, "check")
+FFMPEG = os.environ.get("FFMPEG") or (
+    "/hutian/.mamba/bin/ffmpeg" if os.path.exists("/hutian/.mamba/bin/ffmpeg") else shutil.which("ffmpeg"))
+
+SFX_PEAK_DB = -1.0                 # sfx peak target
+MUSIC_PEAK_DB = -1.0               # music peak ceiling
+MUSIC_RMS_DB = -17.0               # music RMS target (peak ceiling wins if lower)
+
+# ----------------------------------------------------------------------------
+# pitch helpers
+# ----------------------------------------------------------------------------
+_PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+
+def note_to_midi(name):
+    """'C#5', 'Bb4', 'E2' -> MIDI number (C4 = 60)."""
+    pc = _PC[name[0].upper()]
+    i = 1
+    while i < len(name) and name[i] in "#b":
+        pc += 1 if name[i] == "#" else -1
+        i += 1
+    return 12 * (int(name[i:]) + 1) + pc
+
+
+def mtof(m):
+    return 440.0 * 2.0 ** ((np.asarray(m, dtype=float) - 69.0) / 12.0)
+
+
+def quantize_pulse(f):
+    """Snap frequencies to what the pulse 11-bit timer can produce."""
+    t = np.clip(np.round(CPU_HZ / (16.0 * np.maximum(f, 1.0)) - 1.0), 8, 2047)
+    return CPU_HZ / (16.0 * (t + 1.0))
+
+
+def quantize_tri(f):
+    t = np.clip(np.round(CPU_HZ / (32.0 * np.maximum(f, 1.0)) - 1.0), 2, 2047)
+    return CPU_HZ / (32.0 * (t + 1.0))
+
+
+# ----------------------------------------------------------------------------
+# oscillators (return DAC-level waveforms in 0..1 or 0..15)
+# ----------------------------------------------------------------------------
+def _blep(t, dt):
+    """polyBLEP residual for a unit step located at phase 0."""
+    out = np.zeros_like(t)
+    m = t < dt
+    x = t[m] / dt[m]
+    out[m] = x + x - x * x - 1.0
+    m = t > 1.0 - dt
+    x = (t[m] - 1.0) / dt[m]
+    out[m] = x * x + x + x + 1.0
+    return out
+
+
+def osc_pulse(freq, duty):
+    """Band-limited unipolar pulse (0..1). freq: per-sample array in Hz."""
+    dt = np.minimum(freq / SR, 0.5)
+    ph = (np.cumsum(dt) - dt) % 1.0
+    y = (ph < duty).astype(float)
+    y += 0.5 * _blep(ph, dt)                    # rising edge at phase 0
+    y -= 0.5 * _blep((ph - duty) % 1.0, dt)     # falling edge at phase = duty
+    return y
+
+
+TRI_TABLE = np.array(list(range(15, -1, -1)) + list(range(0, 16)), dtype=float)
+
+
+def osc_triangle(freq):
+    """NES 32-step triangle, starting at the 0 level (phase 0.5) so notes never click."""
+    dt = freq / SR
+    ph = (0.5 + np.cumsum(dt) - dt) % 1.0
+    return TRI_TABLE[(ph * 32).astype(int) % 32]
+
+
+NOISE_PERIODS = [4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068]
+_LFSR_CACHE = {}
+
+
+def _lfsr_sequence(short):
+    """One full period of the 2A03 noise LFSR output (1 = sound, 0 = silent)."""
+    if short in _LFSR_CACHE:
+        return _LFSR_CACHE[short]
+    tap = 6 if short else 1
+    reg, out = 1, []
+    while True:
+        out.append(1 - (reg & 1))
+        fb = (reg & 1) ^ ((reg >> tap) & 1)
+        reg = (reg >> 1) | (fb << 14)
+        if reg == 1:
+            break
+    seq = np.array(out, dtype=float)
+    cs = np.concatenate([[0.0], np.cumsum(seq)])
+    _LFSR_CACHE[short] = (seq, cs)
+    return seq, cs
+
+
+def osc_noise(rate, short=False):
+    """LFSR noise, box-filtered per output sample (cheap anti-aliasing).
+    rate: per-sample array of LFSR clocks per second."""
+    seq, cs = _lfsr_sequence(short)
+    L, total = len(seq), cs[-1]
+    r = rate / SR                               # LFSR clocks per output sample
+    c1 = np.cumsum(r)
+    c0 = c1 - r
+
+    def integral(x):                            # integral of the step sequence 0..x
+        n = np.floor(x)
+        i = (n % L).astype(int)
+        return (n // L) * total + cs[i] + (x - n) * seq[i]
+
+    return (integral(c1) - integral(c0)) / r
+
+
+# ----------------------------------------------------------------------------
+# envelopes / modulation
+# ----------------------------------------------------------------------------
+def envelope(n, gate, vol=12.0, decay=0.0, sustain=0.0, attack=0, release=0):
+    """NES-like stepped volume envelope, evaluated once per 60 Hz frame.
+    vol: start level 0..15, decay: levels lost per frame, sustain: floor while
+    gated, attack: frames of linear rise, release: frames to fall to 0 after
+    the gate (0 = cut).  Returns per-sample integer levels 0..15."""
+    frames = int(math.ceil(n / FRAME)) + 2
+    k = np.arange(frames, dtype=float)
+    v = np.maximum(vol - decay * np.maximum(k - attack, 0), min(sustain, vol))
+    if attack > 0:
+        v = np.where(k < attack, vol * (k + 1) / (attack + 1), v)
+    gate_f = gate / FRAME
+    gi = min(int(gate_f), frames - 1)
+    if release > 0:
+        rel = v[gi] * (1.0 - (k - gate_f) / release)
+        v = np.where(k >= gate_f, np.maximum(rel, 0.0), v)
+    else:
+        v = np.where(k >= gate_f, 0.0, v)
+    v = np.clip(np.floor(v + 0.5), 0, 15)
+    return v[(np.arange(n) / FRAME).astype(int)]
+
+
+def freq_curve(n, freq, vib=None, slide=None, step_hz=None):
+    """Per-sample frequency array.
+    freq   : Hz scalar or callable f(t_seconds_array) -> Hz
+    vib    : (depth_semitones, rate_hz, delay_s) vibrato
+    slide  : (semitones, seconds) start offset that glides to 0 (pitch 'plink')
+    step_hz: update the pitch only at this rate (NES sweep unit ~120 Hz)."""
+    t = np.arange(n) / SR
+    if step_hz:
+        t = np.floor(t * step_hz) / step_hz
+    f = freq(t) if callable(freq) else np.full(n, float(freq))
+    semis = np.zeros(n)
+    if vib:
+        depth, rate, delay = vib
+        ramp = np.clip((t - delay) / 0.15, 0, 1)
+        semis += depth * ramp * np.sin(2 * np.pi * rate * t)
+    if slide:
+        st, sd = slide
+        semis += st * np.clip(1 - t / sd, 0, 1)
+    return f * 2.0 ** (semis / 12.0)
+
+
+# ----------------------------------------------------------------------------
+# note renderers -> DAC-level segments
+# ----------------------------------------------------------------------------
+def pulse_note(dur, freq, duty=0.5, vol=12, decay=0.0, sustain=0, attack=0, release=0,
+               vib=None, slide=None, step_hz=None, tremolo=None, **_):
+    """One pulse-channel note.  dur = gate time in seconds."""
+    gate = int(round(dur * SR))
+    n = gate + int(release * FRAME) + 1
+    f = quantize_pulse(freq_curve(n, freq, vib, slide, step_hz))
+    env = envelope(n, gate, vol, decay, sustain, attack, release)
+    if tremolo:                                  # (rate_hz, depth 0..1), frame-stepped
+        rate, depth = tremolo
+        tf = np.floor(np.arange(n) / FRAME) / 60.0
+        env = np.floor(env * (1 - depth * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * rate * tf)))) + 0.5)
+    return osc_pulse(f, duty) * env
+
+
+def tri_note(dur, freq, vib=None, slide=None, step_hz=None, **_):
+    """Triangle note: full level while gated, ends on the next zero step (no click)."""
+    gate = int(round(dur * SR))
+    pad = int(SR / 20)                           # up to one period of a 20 Hz note
+    f = quantize_tri(freq_curve(gate + pad, freq, vib, slide, step_hz))
+    y = osc_triangle(f)
+    zeros = np.nonzero(y[gate:] == 0)[0]
+    end = gate + (zeros[0] if len(zeros) else pad)
+    return y[:end + 1] * (np.arange(end + 1) < end)
+
+
+def noise_note(dur, period=8, short=False, vol=12, decay=1.0, sustain=0, attack=0, release=0,
+               stutter=None, **_):
+    """Noise note.  period: NES period index, or a list of indices (one per frame)
+    for pitch-swept drums.  stutter: per-frame volume multipliers (crackle)."""
+    gate = int(round(dur * SR))
+    n = gate + int(release * FRAME) + 1
+    fi = (np.arange(n) / FRAME).astype(int)
+    if np.isscalar(period):
+        rate = np.full(n, CPU_HZ / NOISE_PERIODS[int(period)])
+    else:
+        idx = np.array(period)[np.minimum(fi, len(period) - 1)]
+        rate = CPU_HZ / np.array(NOISE_PERIODS, float)[idx]
+    env = envelope(n, gate, vol, decay, sustain, attack, release)
+    if stutter is not None:
+        st = np.array(stutter, float)
+        env = np.floor(env * st[fi % len(st)] + 0.5)
+    return osc_noise(rate, short) * env
+
+
+# ----------------------------------------------------------------------------
+# channel buffers, NES mixer and output filter
+# ----------------------------------------------------------------------------
+CHANNELS = ("p1", "p2", "tri", "noise")
+
+
+class Mix:
+    """Four monophonic channel buffers.  Writing a note overwrites whatever the
+    channel was doing from that sample on (like the real hardware)."""
+
+    def __init__(self, n=0):
+        self.buf = {c: np.zeros(n) for c in CHANNELS}
+
+    def put(self, ch, start_s, seg, at_sample=None):
+        s = int(round(start_s * SR)) if at_sample is None else int(at_sample)
+        b = self.buf[ch]
+        if s + len(seg) > len(b):
+            grow = s + len(seg) - len(b)
+            for c in CHANNELS:
+                self.buf[c] = np.concatenate([self.buf[c], np.zeros(grow)])
+            b = self.buf[ch]
+        b[s:s + len(seg)] = seg
+
+    def out(self):
+        return nes_mix(*(self.buf[c] for c in CHANNELS))
+
+
+def nes_mix(p1, p2, tri, noi):
+    """2A03 non-linear mixer (nesdev formulas, rewritten to be stable at 0)."""
+    s = p1 + p2
+    pulse = 95.88 * s / (8128.0 + 100.0 * s)
+    x = tri / 8227.0 + noi / 12241.0
+    tnd = 159.79 * x / (1.0 + 100.0 * x)
+    return pulse + tnd
+
+
+_HP = butter(1, 40.0, "highpass", fs=SR)
+_LP = butter(1, 14000.0, "lowpass", fs=SR)
+
+
+def output_stage(y):
+    """Console-like analogue output: DC-blocking high-pass + mild low-pass."""
+    return lfilter(*_LP, lfilter(*_HP, y))
+
+
+# ----------------------------------------------------------------------------
+# tiny tracker / sequencer
+# ----------------------------------------------------------------------------
+def seq(tokens):
+    """Parse 'E5:2 G5:1 r:1 k:1' -> ([(pos, len, note)], total_len).
+    note is a MIDI int, a drum name (str) or None for rests; len in grid steps."""
+    evs, pos = [], 0.0
+    for tok in tokens.split():
+        name, ln = tok.split(":")
+        ln = float(ln)
+        if name != "r":
+            note = name if name in DRUMS else note_to_midi(name)
+            evs.append((pos, ln, note))
+        pos += ln
+    return evs, pos
+
+
+# chord symbol -> (root pitch class, intervals)
+_QUAL = {"": (0, 4, 7), "m": (0, 3, 7), "7": (0, 4, 7, 10), "m7": (0, 3, 7, 10), "maj7": (0, 4, 7, 11)}
+
+
+def parse_chord(sym):
+    root = sym[0]
+    i = 1
+    if len(sym) > 1 and sym[1] in "#b":
+        i = 2
+    pc = (note_to_midi(sym[:i] + "4") - 60) % 12
+    return pc, _QUAL[sym[i:]]
+
+
+def chord_list(tokens):
+    """'C:8 F:4 G7:4' -> [(pos, len, symbol)]."""
+    out, pos = [], 0.0
+    for tok in tokens.split():
+        sym, ln = tok.split(":")
+        out.append((pos, float(ln), sym))
+        pos += float(ln)
+    return out
+
+
+def bass_from_chords(chords, patterns, low=40):
+    """Triangle bass from a chord list.  patterns: {chord_len: [(offset, degree, len)]}
+    degree: 'R' root, '5' fifth above, '3' third, 'R8' octave up.  Roots are placed
+    in [low, low+12)."""
+    evs = []
+    for pos, ln, sym in chords:
+        pc, ivs = parse_chord(sym)
+        root = low + ((pc - low) % 12)
+        deg = {"R": root, "3": root + ivs[1], "5": root + 7, "R8": root + 12, "5-": root - 5}
+        for off, d, l in patterns[int(ln)]:
+            evs.append((pos + off, l, deg[d]))
+    return evs
+
+
+def chord_tones_in(sym, lo, hi):
+    pc, ivs = parse_chord(sym)
+    return [m for m in range(lo, hi) if (m - pc) % 12 in ivs]
+
+
+def stabs_from_chords(chords, offsets, lo=67, hi=78, skip_root=True):
+    """Off-beat 'skank' stabs for one pulse voice: alternates two upper chord tones."""
+    evs = []
+    for pos, ln, sym in chords:
+        pc, ivs = parse_chord(sym)
+        tones = [m for m in chord_tones_in(sym, lo, hi) if not (skip_root and (m - pc) % 12 == 0)]
+        pair = [tones[0], tones[1]] if len(tones) > 1 else tones * 2
+        for j, off in enumerate([o for o in offsets if o < ln]):
+            evs.append((pos + off, 1, pair[j % 2]))
+    return evs
+
+
+def arps_from_chords(chords, shape, lo, hi):
+    """8th-note chord arpeggio: shape indexes into the chord tones within [lo, hi)."""
+    evs = []
+    for pos, ln, sym in chords:
+        tones = chord_tones_in(sym, lo, hi)
+        for k in range(int(ln)):
+            evs.append((pos + k, 1, tones[shape[k % len(shape)] % len(tones)]))
+    return evs
+
+
+def diatonic_shift(evs, scale_pcs, steps):
+    """Move each note `steps` scale degrees (negative = down) for parallel harmony."""
+    scale = [m for m in range(24, 110) if m % 12 in scale_pcs]
+    out = []
+    for p, l, m in evs:
+        if m in scale:
+            out.append((p, l, scale[scale.index(m) + steps]))
+    return out
+
+
+class Song:
+    """A grid-based multi-channel pattern.  Positions are in grid steps;
+    steps_per_beat=2 means 8th-note steps.  swing lengthens the first step of
+    every pair (0.1 -> 55:45)."""
+
+    def __init__(self, bpm, steps_per_beat=2, swing=0.0, total=None):
+        self.bpm, self.spb, self.swing, self.total = bpm, steps_per_beat, swing, total
+        self.events = []                     # (ch, pos, len, note, inst)
+
+    def add(self, ch, evs, inst, at=0.0, transpose=0):
+        for p, l, n in evs:
+            if isinstance(n, (int, np.integer)):
+                n = int(n) + transpose
+            self.events.append((ch, at + p, l, n, inst))
+        return self
+
+    def time_at(self, pos):
+        """Grid position -> seconds (piecewise-linear swing mapping)."""
+        dt = 60.0 / self.bpm / self.spb
+        s = self.swing
+        pair = math.floor(pos / 2.0)
+        f = pos - 2 * pair
+        t = 2 * pair + (f * (1 + s) if f < 1 else (1 + s) + (f - 1) * (1 - s))
+        return t * dt
+
+    def length_s(self):
+        return self.time_at(self.total)
+
+    def write(self, mix, offset_samples=0, copies=1, period_samples=0):
+        """Render all events into `mix`, repeated `copies` times period_samples apart."""
+        evs = sorted(self.events, key=lambda e: e[1])
+        for c in range(copies):
+            base = offset_samples + c * period_samples
+            for ch, pos, ln, note, inst in evs:
+                t0 = self.time_at(pos)
+                span = self.time_at(pos + ln) - t0
+                gate = min(span * inst.get("gate", 1.0), inst.get("gate_max", 1e9))
+                start = base + int(round(t0 * SR))
+                if ch == "noise":
+                    d = dict(DRUMS[note])
+                    d.update({k: v for k, v in inst.items() if k in ("vol_scale",)})
+                    vs = d.pop("vol_scale", 1.0)
+                    d["vol"] = d["vol"] * vs
+                    seg = noise_note(d.pop("dur"), **d)
+                elif ch == "tri":
+                    seg = tri_note(gate, mtof(note + inst.get("transpose", 0)), **inst)
+                else:
+                    seg = pulse_note(gate, float(mtof(note + inst.get("transpose", 0))), **inst)
+                mix.put(ch, 0, seg, at_sample=start)
+
+
+# noise-channel drum kit (period index per frame for pitched drums)
+DRUMS = {
+    "k": dict(dur=0.07, period=[6, 9, 11, 12, 13], vol=13, decay=2.2),       # kick / thump
+    "s": dict(dur=0.12, period=6, vol=11, decay=1.1),                          # snare
+    "h": dict(dur=0.03, period=1, vol=5, decay=2.0),                           # closed hat
+    "o": dict(dur=0.12, period=1, vol=5, decay=0.5),                           # open hat
+    "c": dict(dur=0.9, period=3, vol=10, decay=0.2),                           # crash
+    "t": dict(dur=0.04, period=4, short=True, vol=6, decay=2.0),               # metallic tick
+}
+
+
+def render_loop(song):
+    """Render one seamless loop body.  Three back-to-back copies are rendered and
+    filtered and the middle copy is returned, so note tails and filter state wrap
+    around exactly: played with <audio loop>, end flows into start sample-accurately."""
+    N = int(round(song.length_s() * SR))
+    mix = Mix(3 * N)
+    song.write(mix, copies=3, period_samples=N)
+    y = output_stage(mix.out())
+    return y[N:2 * N].copy()
+
+
+def finish_oneshot(y, fade_ms=8.0, floor_db=-60.0):
+    """Trim leading/trailing near-silence and add a tiny fade-out."""
+    thr = np.max(np.abs(y)) * 10 ** (floor_db / 20)
+    idx = np.nonzero(np.abs(y) > thr)[0]
+    y = y[idx[0]:idx[-1] + 1].copy()
+    nf = min(len(y), int(fade_ms * SR / 1000))
+    y[-nf:] *= np.linspace(1, 0, nf)
+    return y
+
+
+def render_oneshot(build):
+    """build(mix) writes notes into a Mix; returns filtered, trimmed audio."""
+    mix = Mix(0)
+    build(mix)
+    y = output_stage(np.concatenate([mix.out(), np.zeros(int(0.05 * SR))]))
+    return finish_oneshot(y)
+
+
+# ----------------------------------------------------------------------------
+# SOUND EFFECTS (generic synth effects, own parameters)
+# ----------------------------------------------------------------------------
+def exp_glide(f0, f1, dur):
+    """Exponential frequency glide f0 -> f1 over dur seconds, then hold."""
+    return lambda t: f0 * (f1 / f0) ** np.clip(t / dur, 0, 1)
+
+
+def sfx_jump_small(m):
+    m.put("p1", 0, pulse_note(0.19, exp_glide(320, 980, 0.19), duty=0.25, vol=12, decay=0.55, step_hz=120))
+
+
+def sfx_jump_big(m):
+    # lower start, 50 % duty, plus a slightly detuned 25 % voice for a fuller tone
+    m.put("p1", 0, pulse_note(0.24, exp_glide(190, 560, 0.24), duty=0.5, vol=13, decay=0.5, step_hz=120))
+    m.put("p2", 0, pulse_note(0.22, exp_glide(191.5, 566, 0.22), duty=0.25, vol=6, decay=0.3, step_hz=120))
+
+
+def sfx_coin(m):
+    # two-note chime: C6 -> A6 (a major sixth up), bright 25 % duty, ringing tail
+    m.put("p1", 0.0, pulse_note(0.055, mtof(84), duty=0.25, vol=12))
+    m.put("p1", 0.055, pulse_note(0.40, mtof(93), duty=0.25, vol=12, decay=0.42))
+
+
+def sfx_stomp(m):
+    m.put("p1", 0.0, pulse_note(0.085, exp_glide(720, 170, 0.085), duty=0.5, vol=14, decay=1.0))
+    m.put("p1", 0.09, pulse_note(0.05, exp_glide(480, 260, 0.05), duty=0.5, vol=9, decay=1.5))
+    m.put("noise", 0.0, noise_note(0.06, period=9, vol=8, decay=1.6))
+
+
+def sfx_bump(m):
+    m.put("p1", 0.0, pulse_note(0.10, exp_glide(190, 105, 0.10), duty=0.5, vol=12, decay=1.4))
+    m.put("tri", 0.0, tri_note(0.11, exp_glide(98, 70, 0.11)))
+    m.put("noise", 0.0, noise_note(0.08, period=[10, 12, 13], vol=10, decay=1.6))
+
+
+def sfx_break(m):
+    crackle = [1, 1, 0.4, 1, 0.7, 0.2, 1, 0.5]
+    m.put("noise", 0.0, noise_note(0.48, period=[7, 8, 9, 9, 10, 10, 11, 11, 12], vol=15,
+                                   decay=0.5, stutter=crackle))
+    m.put("tri", 0.0, tri_note(0.07, exp_glide(110, 60, 0.07)))
+    m.put("p1", 0.0, pulse_note(0.045, exp_glide(900, 300, 0.045), duty=0.125, vol=10, decay=2))
+
+
+def sfx_powerup_appear(m):
+    # bubbling sprout: semitone-stepped rise G4 -> G5 with fast wobble, echoed on p2
+    rise = lambda t: mtof(67 + np.floor(np.clip(t / 0.5, 0, 1) * 12))
+    m.put("p1", 0.0, pulse_note(0.55, rise, duty=0.5, vol=11, decay=0.12, vib=(0.6, 14.0, 0.0)))
+    m.put("p2", 0.06, pulse_note(0.50, rise, duty=0.25, vol=4, decay=0.06, vib=(0.6, 14.0, 0.0)))
+
+
+def sfx_powerup(m):
+    # rising arpeggio in interleaved 1-5-3-8 groups climbing by whole tones
+    t, step = 0.0, 0.046
+    for base in (60, 62, 64, 66):
+        for iv in (0, 7, 4, 12):
+            m.put("p1", t, pulse_note(step, mtof(base + iv + 12), duty=0.5, vol=11, decay=0.1))
+            m.put("p2", t + step / 2, pulse_note(step, mtof(base + iv + 12), duty=0.25, vol=4))
+            t += step
+    m.put("p1", t, pulse_note(0.12, mtof(66 + 24), duty=0.5, vol=11, decay=0.9))
+
+
+def sfx_oneup(m):
+    # two pickup notes then a sparkling A6/C#7 trill over a sustained E6
+    m.put("p1", 0.0, pulse_note(0.07, mtof(81), duty=0.5, vol=12))
+    m.put("p1", 0.07, pulse_note(0.07, mtof(88), duty=0.5, vol=12))
+    trill = lambda t: mtof(np.where(np.floor(t / 0.035) % 2 == 0, 93, 97))
+    m.put("p1", 0.14, pulse_note(0.42, trill, duty=0.5, vol=12, decay=0.35))
+    m.put("p2", 0.0, pulse_note(0.07, mtof(76), duty=0.25, vol=7))
+    m.put("p2", 0.07, pulse_note(0.07, mtof(85), duty=0.25, vol=7))
+    m.put("p2", 0.14, pulse_note(0.42, mtof(88), duty=0.125, vol=7, decay=0.3))
+
+
+def sfx_pipe(m):
+    # three descending "wobbles", each a bit lower (pipe travel / power-down)
+    for i in range(3):
+        f0 = 330 * 0.9 ** i
+        m.put("p1", i * 0.2, pulse_note(0.17, exp_glide(f0, f0 / 2, 0.17), duty=0.5, vol=12,
+                                        decay=0.5, step_hz=120))
+        m.put("tri", i * 0.2, tri_note(0.12, exp_glide(f0 / 2, f0 / 4, 0.12)))
+
+
+def sfx_fireball(m):
+    m.put("p1", 0.0, pulse_note(0.05, exp_glide(1400, 340, 0.05), duty=0.125, vol=10, decay=1.5))
+    m.put("noise", 0.0, noise_note(0.06, period=[2, 3, 4, 5], vol=9, decay=2.2))
+
+
+def sfx_kick(m):
+    m.put("p1", 0.0, pulse_note(0.035, exp_glide(1250, 560, 0.035), duty=0.25, vol=14, decay=2.5))
+    m.put("noise", 0.0, noise_note(0.07, period=[4, 5, 7], vol=12, decay=2.0))
+
+
+def sfx_flagpole(m):
+    # ratcheting two-octave slide down, C6 -> C4, one retriggered pulse per semitone
+    n, dur = 24, 1.0
+    for i in range(n + 1):
+        t = i * dur / n
+        m.put("p1", t, pulse_note(dur / n, mtof(84 - i), duty=0.25, vol=11 - i * 0.15, decay=1.2))
+        m.put("p2", t, pulse_note(dur / n, mtof(72 - i), duty=0.5, vol=4, decay=0.6))
+
+
+def sfx_pause(m):
+    for i, (note, d) in enumerate([(88, 0.06), (81, 0.06), (88, 0.06), (93, 0.13)]):
+        m.put("p1", 0.06 * i, pulse_note(d, mtof(note), duty=0.5, vol=11, decay=0.6 if d > 0.1 else 0))
+
+
+def sfx_beep(m):
+    m.put("p1", 0.0, pulse_note(0.03, mtof(95), duty=0.5, vol=10, decay=2.0))
+
+
+def sfx_fireworks(m):
+    m.put("noise", 0.0, noise_note(0.03, period=2, vol=15))
+    m.put("noise", 0.03, noise_note(0.75, period=[11, 12, 13, 13, 14, 14, 15], vol=15, decay=0.3))
+    m.put("tri", 0.0, tri_note(0.25, exp_glide(110, 38, 0.25)))
+
+
+def jingle_hurry(m):
+    # three urgent rising siren bursts (C6/G5, D6/A5, E6/B5) then a repeated F6 alarm
+    s16 = 0.055
+    t = 0.0
+    for k, base in enumerate((84, 86, 88)):
+        for i in range(8):
+            note = base if i % 2 == 0 else base - 5
+            m.put("p1", t + i * s16, pulse_note(s16, mtof(note), duty=0.25, vol=12, decay=0.4))
+            m.put("p2", t + i * s16, pulse_note(s16, mtof(note - 12), duty=0.125, vol=6))
+        m.put("tri", t, tri_note(0.09, mtof(48 + 2 * k)))
+        m.put("tri", t + 0.22, tri_note(0.09, mtof(48 + 2 * k)))
+        m.put("noise", t, noise_note(**DRUMS["s"]))
+        t += 8 * s16 + 0.11
+    for i in range(3):
+        m.put("p1", t + i * 0.1, pulse_note(0.07, mtof(89), duty=0.25, vol=13, decay=0.5))
+        m.put("p2", t + i * 0.1, pulse_note(0.07, mtof(84), duty=0.5, vol=7, decay=0.5))
+    t += 0.3
+    m.put("p1", t, pulse_note(0.32, mtof(89), duty=0.25, vol=13, decay=0.25, vib=(0.5, 9, 0)))
+    m.put("p2", t, pulse_note(0.32, mtof(84), duty=0.5, vol=7, decay=0.15))
+    m.put("tri", t, tri_note(0.3, mtof(41)))
+    m.put("noise", t, noise_note(**DRUMS["c"]))
+
+
+# --- jingles: original short compositions rendered with the sequencer ------------
+def jingle_death(m):
+    """C minor.  A falling 2-octave 'bwoop', then a small iv - V - i cadence:
+    melody G4 C5 Eb5 D5 B4 | C5 (held), harmony Ab4 F4 Eb4, bass F2 G2 C2."""
+    m.put("p1", 0.0, pulse_note(0.36, exp_glide(1046.5, 261.6, 0.36), duty=0.5, vol=13,
+                                decay=0.25, vib=(0.7, 18, 0.0), step_hz=120))
+    s = Song(bpm=200)
+    lead = dict(duty=0.5, vol=12, decay=0.15, sustain=7, gate=0.92, release=6, vib=(0.3, 5.5, 0.25))
+    s.add("p1", seq("G4:1 C5:1 Eb5:2 D5:1 B4:2 C5:6")[0], dict(lead, decay=0.12))
+    s.add("p2", seq("Ab4:4 F4:3 Eb4:6")[0], dict(duty=0.25, vol=7, decay=0.1, sustain=4, gate=0.95, release=6))
+    s.add("tri", seq("F2:4 G2:3 C2:6")[0], dict(gate=0.96))
+    s.write(m, offset_samples=int(0.44 * SR))
+
+
+def jingle_course_clear(m):
+    """G major march fanfare, 168 bpm, 3.5 bars (G | C Am D | G/D D7 | G)."""
+    s = Song(bpm=168)
+    lead = dict(duty=0.5, vol=13, decay=0.12, sustain=8, gate=0.88, release=8, vib=(0.3, 6, 0.3))
+    s.add("p1", seq("D5:1 G5:1 B5:1 D6:2 B5:1 C6:1 D6:1  E6:3 D6:1 C6:2 A5:2  "
+                    "B5:2 G5:1 A5:1 F#5:2 D5:2  G5:4")[0], lead)
+    s.add("p2", seq("B4:1 D5:1 G5:1 B5:2 G5:1 A5:1 B5:1  C6:3 B5:1 A5:2 F#5:2  "
+                    "G5:2 D5:1 F#5:1 C5:2 A4:2  B4:4")[0],
+          dict(duty=0.25, vol=8, decay=0.12, sustain=5, gate=0.88, release=8))
+    s.add("tri", seq("G2:2 D3:2 B2:2 D3:2  C3:2 G2:2 A2:2 D3:2  D3:2 B2:2 D2:2 F#2:2  G2:4")[0],
+          dict(gate=0.75))
+    bar = "k:1 h:1 s:1 h:1 k:1 h:1 s:1 s:1 "
+    s.add("noise", seq(bar * 3 + "c:4")[0], {})
+    s.write(m)
+
+
+def jingle_game_over(m):
+    """D minor lament, 143 bpm: A4 D5 F5 E5 D5 | C#5 E5 A4 | D5 (held);
+    bass D3 G2 A2 D2 (i - iv6 - V - i)."""
+    s = Song(bpm=143)
+    s.add("p1", seq("A4:1 D5:1 F5:2 E5:1 D5:1 C#5:2 E5:1 A4:1 D5:6")[0],
+          dict(duty=0.5, vol=11, decay=0.1, sustain=6, gate=0.92, release=10, vib=(0.35, 5, 0.2)))
+    s.add("p2", seq("F4:4 Bb4:2 E4:4 F4:6")[0],
+          dict(duty=0.25, vol=6, decay=0.08, sustain=4, gate=0.95, release=10))
+    s.add("tri", seq("D3:4 G2:2 A2:4 D2:6")[0], dict(gate=0.96))
+    s.write(m)
+
+
+def sfx_bowser_fire(m):
+    # flame breath: a noise whoosh that swells and darkens, over a wobbling low growl
+    m.put("noise", 0.0, noise_note(0.85, period=[3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11],
+                                   vol=14, decay=0.22, attack=5, release=8))
+    m.put("p1", 0.0, pulse_note(0.7, exp_glide(110, 70, 0.7), duty=0.125, vol=7, decay=0.12,
+                                attack=4, release=6, vib=(2.0, 23.0, 0.0)))
+
+
+def sfx_bowser_fall(m):
+    # long wobbling fall A5 -> ~A1 (four octaves), then a low lava splash
+    fall = exp_glide(880, 55, 1.6)
+    m.put("p1", 0.0, pulse_note(1.6, fall, duty=0.5, vol=12, decay=0.05, sustain=6,
+                                vib=(0.8, 7.0, 0.0), step_hz=120))
+    m.put("p2", 0.0, pulse_note(1.5, lambda t: fall(t) * 1.5, duty=0.125, vol=4, decay=0.03,
+                                vib=(0.8, 7.0, 0.0), step_hz=120))
+    m.put("noise", 1.6, noise_note(0.45, period=[9, 10, 11, 12, 12, 13], vol=12, decay=0.45))
+    m.put("tri", 1.6, tri_note(0.2, exp_glide(80, 40, 0.2)))
+
+
+def jingle_world_clear(m):
+    """F major victory fanfare, 150 bpm, 4 bars (F | Bb | Gm7 C7 | F):
+    melody A5 A5 Bb5 C6 . A5 | D6 C6 Bb5 F5 . Bb5 | A5 G5 F5 E5 G5 | F5 C6 F6 (held),
+    pulse 2 a third/sixth below, triangle march bass, snare drive and a final crash."""
+    s = Song(bpm=150)
+    lead = dict(duty=0.5, vol=13, decay=0.1, sustain=8, gate=0.88, release=10, vib=(0.3, 6, 0.3))
+    s.add("p1", seq("A5:2 A5:1 Bb5:1 C6:3 A5:1  D6:2 C6:1 Bb5:1 F5:3 Bb5:1  "
+                    "A5:2 G5:1 F5:1 E5:2 G5:2  F5:2 C6:2 F6:8")[0], lead)
+    s.add("p2", seq("F5:2 F5:1 G5:1 A5:3 F5:1  Bb5:2 A5:1 G5:1 D5:3 F5:1  "
+                    "F5:2 E5:1 D5:1 C5:2 E5:2  C5:2 A5:2 C6:8")[0],
+          dict(duty=0.25, vol=8, decay=0.1, sustain=5, gate=0.88, release=10))
+    s.add("tri", seq("F2:2 C3:2 A2:2 C3:2  Bb2:2 F2:2 D3:2 F2:2  G2:2 D3:2 C3:2 G2:2  "
+                     "F2:2 C3:2 F2:8")[0], dict(gate=0.75))
+    bar = "k:1 s:1 s:1 h:1 k:1 s:1 s:1 s:1 "
+    s.add("noise", seq(bar * 3 + "s:1 s:1 s:1 s:1 c:8")[0], {})
+    s.write(m)
+
+
+def sfx_vine(m):
+    # beanstalk sprouting: short blips climbing a pentatonic ladder, each with a tiny upward chirp
+    ladder = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86]
+    t = 0.0
+    for i, n in enumerate(ladder):
+        f = mtof(n)
+        m.put("p1", t, pulse_note(0.07, exp_glide(f * 0.94, f, 0.07), duty=0.25, vol=10, decay=0.9))
+        if i % 2 == 0:
+            m.put("p2", t + 0.035, pulse_note(0.05, mtof(n + 12), duty=0.125, vol=4, decay=1.2))
+        t += 0.085
+
+
+def sfx_swim(m):
+    # one swim stroke: a soft rising bubble with a short noise puff
+    m.put("p1", 0.0, pulse_note(0.075, exp_glide(240, 520, 0.075), duty=0.25, vol=10, decay=1.2))
+    m.put("noise", 0.0, noise_note(0.04, period=8, vol=4, decay=2.0))
+
+
+SFX = {
+    # name: (builder, event description)  -- short one-shots
+    "jump_small": (sfx_jump_small, "Small Mario jumps"),
+    "jump_big": (sfx_jump_big, "Big/Fire Mario jumps"),
+    "coin": (sfx_coin, "Coin collected (block coin or floating coin)"),
+    "stomp": (sfx_stomp, "Mario stomps an enemy"),
+    "kick": (sfx_kick, "Shell kicked, or enemy killed by fireball/shell"),
+    "bump": (sfx_bump, "Mario's head hits a solid/used block (or small Mario hits a brick)"),
+    "break": (sfx_break, "Big Mario breaks a brick"),
+    "powerup_appear": (sfx_powerup_appear, "Mushroom/flower/star/1-up sprouts out of a ? block"),
+    "powerup": (sfx_powerup, "Mario collects a mushroom or fire flower (grow / upgrade)"),
+    "oneup": (sfx_oneup, "Extra life gained"),
+    "pipe": (sfx_pipe, "Pipe travel, and damage / shrink (power-down)"),
+    "fireball": (sfx_fireball, "Fire Mario throws a fireball"),
+    "flagpole": (sfx_flagpole, "Mario grabs the flagpole and slides down"),
+    "fireworks": (sfx_fireworks, "Each firework explosion over the castle"),
+    "bowser_fire": (sfx_bowser_fire, "Bowser breathes a flame"),
+    "bowser_fall": (sfx_bowser_fall, "Bowser falls into the lava (bridge collapses)"),
+    "beep": (sfx_beep, "One tick of the remaining-time -> score count"),
+    "pause": (sfx_pause, "Game paused / unpaused"),
+    "vine": (sfx_vine, "A beanstalk sprouts out of a block (2-1)"),
+    "swim": (sfx_swim, "Mario takes a swim stroke underwater (2-2)"),
+}
+
+JINGLES = {
+    # name: (builder, event description)  -- one-shot musical cues (stop the music first)
+    "hurry": (jingle_hurry, "Timer reaches 100: play once, then restart level music as the _fast variant"),
+    "death": (jingle_death, "Mario dies"),
+    "game_over": (jingle_game_over, "Game over screen (lives exhausted)"),
+    "course_clear": (jingle_course_clear, "After the flagpole slide, while Mario walks into the castle"),
+    "world_clear": (jingle_world_clear, "Bowser defeated (axe touched) in castle levels like 1-4"),
+}
+
+
+# ----------------------------------------------------------------------------
+# MUSIC (original compositions)
+# ----------------------------------------------------------------------------
+def song_overworld(bpm):
+    """OVERWORLD - C major, 4/4, 8th-note grid with light swing (55:45), calypso feel.
+    Form: A (8 bars) A' (8) B (8) = 24 bars, loops straight back to A.
+    Hook: a pentatonic 'E G A G E' bounce on the clave-like onsets 0,2,3,5,7,
+    sequenced up to the IV chord.  Bass is a tumbao-ish R..R5..8 pattern on the
+    triangle, pulse 2 plays off-beat chord stabs, noise plays kick/snare/hat."""
+    s = Song(bpm=bpm, swing=0.1, total=192)
+    melody = (
+        # A
+        "E5:2 G5:1 A5:2 G5:2 E5:1  D5:2 E5:1 C5:3 r:2  A5:2 C6:1 D6:2 C6:2 A5:1  G5:2 A5:1 F5:3 r:2 "
+        "E5:2 G5:1 A5:2 G5:2 E5:1  C6:2 B5:1 A5:2 E5:2 C5:1  D5:1 F#5:1 A5:1 C6:2 B5:1 A5:1 F#5:1 "
+        "G5:3 F5:1 r:1 D5:1 B4:1 D5:1 "
+        # A'
+        "E5:2 G5:1 A5:2 G5:2 E5:1  D5:2 E5:1 C5:3 r:2  A5:2 C6:1 D6:2 C6:2 A5:1  G5:2 A5:1 F5:3 r:2 "
+        "E5:2 G5:1 A5:2 G5:2 E5:1  C#6:2 B5:1 A5:2 E5:2 C#5:1  D5:1 F5:1 A5:1 C6:1 B5:2 G5:1 F5:1 "
+        "E5:2 C5:1 G4:1 C5:2 r:2 "
+        # B (call and response; pulse 2 answers in the gaps)
+        "C6:1 r:1 C6:1 A5:1 r:1 F5:2 G5:1  A5:2 G5:1 F5:1 r:4  B5:1 r:1 B5:1 G5:1 r:1 E5:2 F5:1 "
+        "G5:2 F5:1 E5:1 r:4  A5:1 r:1 A5:1 F5:1 r:1 D5:2 E5:1  F5:2 E5:1 D5:1 B4:1 D5:1 G5:2 "
+        "E5:1 G5:1 C6:2 A5:1 F5:1 A5:2  F5:1 r:1 F5:1 G5:1 r:1 B4:1 C5:1 D5:1"
+    )
+    chords = chord_list(
+        "C:8 C:8 F:8 F:8 C:8 Am:8 D7:8 G7:8 "
+        "C:8 C:8 F:8 F:8 C:8 A7:8 Dm7:4 G7:4 C:8 "
+        "F:8 F:8 Em:8 Am:8 Dm:8 G:8 C:4 F:4 G7:8")
+    lead = dict(duty=0.5, vol=11, decay=0.2, sustain=6, gate=0.88, release=3, vib=(0.25, 5.5, 0.22))
+    s.add("p1", seq(melody)[0], lead)
+
+    # pulse 2: off-beat stabs, replaced by answer licks in bars 18 and 20
+    stab = dict(duty=0.25, vol=6, decay=0.7, gate=0.55, release=1)
+    answer = dict(duty=0.25, vol=8, decay=0.25, sustain=3, gate=0.8, release=2)
+    lick_pos = {17 * 8: "A4:1 C5:1 D5:1 F5:1", 19 * 8: "C5:1 B4:1 A4:1 B4:1"}
+    stabs = stabs_from_chords(chords, offsets=(1, 3, 5, 7))
+    stabs = [e for e in stabs if not any(b + 4 <= e[0] < b + 8 for b in lick_pos)]
+    s.add("p2", stabs, stab)
+    for b, lick in lick_pos.items():
+        s.add("p2", seq(lick)[0], answer, at=b + 4)
+
+    bass_pat = {8: [(0, "R", 3), (3, "R", 1), (4, "5", 3), (7, "R8", 1)],
+                4: [(0, "R", 3), (3, "5", 1)]}
+    s.add("tri", bass_from_chords(chords, bass_pat, low=41), dict(gate=0.6, gate_max=0.32))
+
+    groove = "k:1 h:1 s:1 k:1 h:1 h:1 s:1 h:1 "
+    fill = "k:1 h:1 s:1 k:1 s:1 s:1 s:1 s:1 "
+    s.add("noise", seq((groove * 7 + fill) * 3)[0], {})
+    return s
+
+
+def song_underground(bpm):
+    """UNDERGROUND - A minor, 150 bpm, 8th grid, straight.  Form: A (8 bars) A' (8).
+    A low staccato pulse riff (triad climb + chromatic lower neighbour, lots of
+    rests) doubled an octave down on the triangle.  In A, pulse 2 is a quiet
+    one-8th 'cave echo' an octave up; in A' it becomes high water-drip plinks.
+    The last bar walks E7 back to the A minor start."""
+    s = Song(bpm=bpm, total=128)
+    m1 = "A3:1 r:2 A3:1 C4:1 r:1 E4:1 r:1  D#4:1 r:1 E4:1 r:5 "
+    m2 = "G3:1 r:2 G3:1 B3:1 r:1 D4:1 r:1  C#4:1 r:1 D4:1 r:5 "
+    m3 = "F3:1 r:2 F3:1 A3:1 r:1 C4:1 r:1  B3:1 r:1 C4:1 r:1 B3:1 r:1 A3:1 r:1 "
+    m4 = "E3:1 r:1 E4:1 r:1 G#3:1 r:1 B3:1 r:1  D4:1 r:1 C4:1 r:1 B3:1 r:1 G#3:1 r:1 "
+    m4b = "E3:1 r:1 E4:1 r:1 G#3:1 r:1 B3:1 r:1  D4:1 r:1 F4:1 r:1 E4:1 r:1 E3:1 r:1 "
+    riff_a, _ = seq(m1 + m2 + m3 + m4)
+    riff_b, _ = seq(m1 + m2 + m3 + m4b)
+    bass = dict(duty=0.5, vol=12, decay=0.9, gate=0.5, release=2)
+    s.add("p1", riff_a, bass)
+    s.add("p1", riff_b, dict(bass, duty=0.25), at=64)
+    s.add("tri", riff_a, dict(gate=0.45, transpose=-12))
+    s.add("tri", riff_b, dict(gate=0.45, transpose=-12), at=64)
+
+    # A: echo of the riff, one step late, an octave up, very quiet
+    s.add("p2", riff_a, dict(duty=0.125, vol=3, decay=0.4, gate=0.5, release=1), at=1, transpose=12)
+    # A': drips (own sparse counter-line), with a small downward 'plink' slide
+    drips = ("r:4 E6:4  r:8  r:2 D6:3 B5:3  r:8  r:4 C6:4  A5:2 r:6  r:2 G#5:2 B5:2 D6:2  E6:4 r:4")
+    s.add("p2", seq(drips)[0], dict(duty=0.25, vol=6, decay=0.35, gate=0.7, release=3,
+                                   slide=(1.5, 0.035), vib=(0.2, 6, 0.15)), at=64)
+    tick_a = "r:6 t:2 " * 8
+    tick_b = "r:2 t:4 t:2 " * 7 + "r:2 t:2 t:2 k:2"
+    s.add("noise", seq(tick_a + tick_b)[0], {})
+    return s
+
+
+def song_star(bpm):
+    """STAR - D major, 210 bpm, straight 8ths, driving.  Form: A (8) B (8) A' (8).
+    Lead: bright arpeggio runs (A), a repeated-shape climb through G A F#m Bm
+    (B), A' repeats A with pulse 2 harmonising a diatonic third below.  Triangle
+    pumps octaves on every 8th, noise plays a busy kick/snare/hat beat."""
+    s = Song(bpm=bpm, total=192)
+    a_mel = ("D5:1 F#5:1 A5:1 D6:2 C#6:1 B5:1 A5:1  B5:2 A5:1 F#5:2 E5:1 F#5:2 "
+             "G5:1 B5:1 D6:1 G6:2 F#6:1 E6:1 D6:1  E6:2 C#6:1 A5:2 B5:1 C#6:2 "
+             "D6:1 r:1 A5:1 F#5:1 D6:1 r:1 A5:1 F#5:1  B5:1 F#5:1 D5:1 F#5:1 B5:2 A5:2 "
+             "E5:1 G5:1 B5:1 E6:1 C#6:1 B5:1 A5:1 G5:1 ")
+    a_end1 = "F#5:2 A5:1 D6:3 r:2 "
+    a_end2 = "F#5:2 A5:1 D6:2 A5:1 E5:1 C#5:1 "
+    b_mel = ("D6:1 r:1 D6:1 B5:1 r:1 G5:1 B5:1 D6:1  C#6:1 r:1 C#6:1 A5:1 r:1 E5:1 A5:1 C#6:1 "
+             "A5:1 r:1 A5:1 F#5:1 r:1 C#5:1 F#5:1 A5:1  B5:2 D6:2 F#6:2 E6:1 D6:1 "
+             "B5:1 G5:1 B5:1 D6:1 G6:2 F#6:1 E6:1  C#6:1 A5:1 C#6:1 E6:1 A6:2 G6:1 E6:1 "
+             "G6:1 E6:1 B5:1 G5:1 A5:1 C#6:1 E6:1 G6:1  F#6:2 D6:1 A5:1 D6:2 r:2")
+    a_chords = "D:8 D:8 G:8 A:8 D:8 Bm:8 Em:4 A:4 D:8 "
+    b_chords = "G:8 A:8 F#m:8 Bm:8 G:8 A:8 Em:4 A7:4 D:8 "
+    chords = chord_list(a_chords + b_chords + a_chords)
+
+    lead = dict(duty=0.25, vol=12, decay=0.15, sustain=7, gate=0.85, release=2, vib=(0.2, 6, 0.2))
+    s.add("p1", seq(a_mel + a_end1 + b_mel)[0], lead)
+    a2, _ = seq(a_mel + a_end2)
+    s.add("p1", a2, dict(lead, duty=0.5), at=128)
+
+    arp = dict(duty=0.125, vol=6, decay=0.6, gate=0.5, release=1)
+    arps = arps_from_chords(chords, shape=(0, 1, 2, 1, 3, 2, 1, 2), lo=62, hi=76)
+    s.add("p2", [e for e in arps if e[0] < 128], arp)
+    harm = diatonic_shift(a2, scale_pcs={2, 4, 6, 7, 9, 11, 1}, steps=-2)
+    s.add("p2", harm, dict(duty=0.5, vol=6, decay=0.15, sustain=4, gate=0.85, release=2), at=128)
+
+    pump = {8: [(k, "R" if k % 2 == 0 else "R8", 1) for k in range(8)],
+            4: [(k, "R" if k % 2 == 0 else "R8", 1) for k in range(4)]}
+    s.add("tri", bass_from_chords(chords, pump, low=38), dict(gate=0.6))
+
+    beat = "k:1 h:1 s:1 h:1 k:1 k:1 s:1 h:1 "
+    fill = "k:1 h:1 s:1 s:1 k:1 s:1 s:1 s:1 "
+    s.add("noise", seq((beat * 7 + fill) * 3)[0], {})
+    return s
+
+
+def song_castle(bpm):
+    """CASTLE - E minor / Phrygian colour, 160 bpm, straight 8ths, 16 bars.
+    Chords: Em | Em | F | F | Em | Em | B7 | B7 | Am | Am | F | F | Em F | B7 | B7.
+    Triangle gallops on the root (R R 8 R R R 8 5); pulse 2 shudders between each
+    chord's fifth and the semitone above it; pulse 1 sings a slow, chromatic,
+    vibrato-heavy line.  Bar 16 (B7, ending D#5) resolves back to the opening B4/Em."""
+    s = Song(bpm=bpm, total=128)
+    melody = ("B4:4 E5:4 G5:6 F#5:2  F5:8 E5:4 C5:4  B4:4 E5:4 G5:4 B5:4  A5:6 G5:2 F#5:4 D#5:4 "
+              "C6:6 B5:2 A5:4 E5:4  F5:6 G5:2 A5:4 C6:4  B5:4 G5:4 A5:4 F5:4  "
+              "D#5:4 F#5:4 A5:2 F#5:2 D#5:4")
+    chords = chord_list("Em:16 F:16 Em:16 B7:16 Am:16 F:16 Em:8 F:8 B7:16")
+    s.add("p1", seq(melody)[0], dict(duty=0.5, vol=11, decay=0.06, sustain=7, gate=0.93, release=4,
+                                     vib=(0.35, 5.0, 0.3)))
+    shudder = []
+    for pos, ln, sym in chords:
+        pc, _ = parse_chord(sym)
+        fifth = 64 + ((pc + 7 - 64) % 12)               # chord fifth in E4..D#5
+        for k in range(int(ln)):
+            shudder.append((pos + k, 1, fifth + (k % 2)))
+    s.add("p2", shudder, dict(duty=0.125, vol=5, decay=0.5, gate=0.6, release=1))
+    gallop = [(0, "R", 1), (1, "R", 1), (2, "R8", 1), (3, "R", 1), (4, "R", 1), (5, "R", 1),
+              (6, "R8", 1), (7, "5", 1)]
+    pat = {8: gallop, 16: gallop + [(o + 8, d, l) for o, d, l in gallop]}
+    s.add("tri", bass_from_chords(chords, pat, low=40), dict(gate=0.55))
+    bar = "k:2 t:2 k:2 t:1 t:1 "
+    s.add("noise", seq(bar * 15 + "s:1 s:1 s:1 s:1 s:1 s:1 s:1 s:1")[0], {})
+    return s
+
+
+def song_underwater(bpm):
+    """UNDERWATER - F major waltz, 3/4, 8th grid (6 steps a bar), straight, 16 bars.
+    A slow, floating pulse-1 melody over an oom-pah-pah triangle (root on 1, fifth on 2
+    and 3); pulse 2 rocks between chord tones on beats 2 and 3, like a music box.
+    Bar 12 borrows B-flat minor for a wistful turn; bars 15-16 cadence back to the top."""
+    s = Song(bpm=bpm, total=96)
+    melody = ("C5:4 F5:2  A5:3 G5:1 F5:2  D5:4 F5:2  A5:6  D6:4 C6:2  Bb5:2 A5:2 G5:2  A5:4 F5:2  G5:6 "
+              "C5:4 F5:2  A5:3 Bb5:1 C6:2  D6:4 Bb5:2  Db6:4 Bb5:2  A5:2 C6:2 F5:2  F#5:4 A5:2  "
+              "G5:3 E5:3  F5:4 C5:2")
+    chords = chord_list("F:6 F:6 Dm:6 Dm:6 Bb:6 C7:6 F:6 C7:6 F:6 F7:6 Bb:6 Bbm:6 F:6 D7:6 Gm7:3 C7:3 F:6")
+    s.add("p1", seq(melody)[0], dict(duty=0.5, vol=10, decay=0.05, sustain=7, gate=0.92, release=5,
+                                     vib=(0.3, 4.5, 0.25)))
+    rock = []
+    for pos, ln, sym in chords:
+        tones = chord_tones_in(sym, 65, 78)
+        offs = (2, 4) if ln == 6 else (2,)
+        for k, o in enumerate(offs):
+            rock.append((pos + o, 2 if ln == 6 else 1, tones[(1 + k) % len(tones)]))
+    s.add("p2", rock, dict(duty=0.25, vol=5, decay=0.5, gate=0.7, release=2))
+    oompah = {6: [(0, "R", 2), (2, "5", 2), (4, "5", 2)], 3: [(0, "R", 2), (2, "5", 1)]}
+    s.add("tri", bass_from_chords(chords, oompah, low=41), dict(gate=0.55))
+    s.add("noise", seq("h:2 r:4 " * 16)[0], {"vol_scale": 0.6})
+    return s
+
+
+MUSIC = {
+    # name: (song factory, bpm, event)
+    "overworld": (song_overworld, 200, "Above-ground levels (World 1-1 etc.)"),
+    "overworld_fast": (song_overworld, 300, "Above-ground levels after the hurry jingle (timer < 100)"),
+    "underground": (song_underground, 150, "Underground levels / bonus rooms"),
+    "underground_fast": (song_underground, 225, "Underground after the hurry jingle (timer < 100)"),
+    "castle": (song_castle, 160, "Castle levels (1-4)"),
+    "castle_fast": (song_castle, 240, "Castle after the hurry jingle (timer < 100)"),
+    "underwater": (song_underwater, 132, "Underwater levels (2-2)"),
+    "underwater_fast": (song_underwater, 198, "Underwater after the hurry jingle (timer < 100)"),
+    "starman": (song_star, 210, "Starman invincibility active (overrides level music)"),
+}
+
+
+# ----------------------------------------------------------------------------
+# loudness, encoding, verification
+# ----------------------------------------------------------------------------
+def db(x):
+    return 20 * math.log10(max(x, 1e-12))
+
+
+def peak_rms(y):
+    return float(np.max(np.abs(y))), float(np.sqrt(np.mean(y ** 2)))
+
+
+def encode(y, base):
+    """Write <base>.ogg (libvorbis q4) and <base>.mp3 (LAME 96 kbit/s CBR), 44.1 kHz mono."""
+    raw = np.clip(y, -1, 1).astype("<f4").tobytes()
+    common = [FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
+              "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "pipe:0", "-map_metadata", "-1",
+              "-ar", str(SR), "-ac", "1"]
+    subprocess.run(common + ["-c:a", "libvorbis", "-q:a", "4", base + ".ogg"], input=raw, check=True)
+    subprocess.run(common + ["-c:a", "libmp3lame", "-b:a", "96k", base + ".mp3"], input=raw, check=True)
+
+
+def encode_checked(y, base, ceiling_db=-0.5):
+    """Encode, then make sure lossy-codec overshoot did not push the decoded peak
+    above ceiling_db (noisy sounds can gain ~1.5 dB in Vorbis); if it did, lower
+    the gain by the excess and re-encode.  Returns the (possibly rescaled) signal."""
+    for _ in range(4):
+        encode(y, base)
+        worst = max(db(peak_rms(decode(base + ext))[0]) for ext in (".ogg", ".mp3"))
+        if worst <= ceiling_db:
+            break
+        y = y * 10 ** ((ceiling_db - 0.3 - worst) / 20)
+    return y
+
+
+def decode(path, extra=()):
+    p = subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", *extra, "-i", path,
+                        "-f", "f32le", "-ac", "1", "-ar", str(SR), "pipe:1"],
+                       stdout=subprocess.PIPE, check=True)
+    return np.frombuffer(p.stdout, dtype="<f4").astype(float)
+
+
+def mp3_raw_offset(path, ref):
+    """Samples of encoder+decoder delay a decoder that ignores the LAME gapless
+    header would see (measured by decoding without skipping and aligning)."""
+    try:
+        raw = decode(path, extra=("-flags2", "+skip_manual"))
+    except subprocess.CalledProcessError:
+        return None
+    n = min(len(ref), SR)
+    best, best_err = None, 1e9
+    for off in range(0, 3000):
+        seg = raw[off:off + n]
+        if len(seg) < n:
+            break
+        err = float(np.mean((seg - ref[:n]) ** 2))
+        if err < best_err:
+            best, best_err = off, err
+    return best
+
+
+def contact_sheet(items, path, title, cols, max_s=None):
+    """Waveform + spectrogram per item, small multiples (QA only)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    rows = int(math.ceil(len(items) / cols))
+    fig = plt.figure(figsize=(5.2 * cols, 2.9 * rows), facecolor="white")
+    gs = fig.add_gridspec(rows * 2, cols, height_ratios=[1, 2.2] * rows, hspace=0.55, wspace=0.18)
+    ink, muted = "#1f2328", "#6e7781"
+    for i, (name, y, info) in enumerate(items):
+        r, c = divmod(i, cols)
+        if max_s:
+            y = y[:int(max_s * SR)]
+        t = np.arange(len(y)) / SR
+        aw = fig.add_subplot(gs[2 * r, c])
+        aw.plot(t, y, color=ink, linewidth=0.6)
+        aw.set_xlim(0, t[-1] if len(t) else 1)
+        aw.set_ylim(-1, 1)
+        aw.set_title(f"{name}   {info}", fontsize=8, color=ink, loc="left")
+        aw.axhline(10 ** (-1 / 20), color=muted, linewidth=0.5, linestyle=":")
+        aw.axhline(-10 ** (-1 / 20), color=muted, linewidth=0.5, linestyle=":")
+        aw.tick_params(labelsize=6, colors=muted)
+        aw.set_xticklabels([])
+        for sp in aw.spines.values():
+            sp.set_color("#d0d7de")
+        asg = fig.add_subplot(gs[2 * r + 1, c])
+        pxx, _, _, im = asg.specgram(y, NFFT=1024, Fs=SR, noverlap=768, cmap="Blues")
+        top = 10 * np.log10(pxx.max() + 1e-20)
+        im.set_clim(top - 75, top)                 # 75 dB window below each item's max
+        asg.set_ylim(0, 8000)
+        asg.tick_params(labelsize=6, colors=muted)
+        asg.set_ylabel("Hz  (x: seconds)", fontsize=6, color=muted)
+        for sp in asg.spines.values():
+            sp.set_color("#d0d7de")
+    fig.subplots_adjust(top=1 - 0.7 / fig.get_figheight())
+    fig.suptitle(title, fontsize=11, color=ink, x=0.01, y=1 - 0.1 / fig.get_figheight(), ha="left")
+    fig.savefig(path, dpi=90, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ----------------------------------------------------------------------------
+# main
+# ----------------------------------------------------------------------------
+def verify_row(path, ref, kind):
+    """Decode an encoded file and measure it.  Returns (cells, problems, decoded)."""
+    y = decode(path)
+    pk, rms = peak_rms(y)
+    above = np.nonzero(np.abs(y) > 10 ** (-50 / 20))[0]
+    lead_ms = 1000 * above[0] / SR if len(above) else float("inf")
+    probs = []
+    if not np.all(np.isfinite(y)):
+        probs.append("NaN")
+    if pk >= 1.0:
+        probs.append("CLIP")
+    # music .ogg must be sample-exact (seamless <audio loop>).  One-shots may differ
+    # by up to one Vorbis block: ffmpeg's demuxer trims 128 samples of a
+    # single-page stream, while libvorbisfile decodes them exactly.
+    if path.endswith(".ogg"):
+        tol = 0 if kind == "music" else 1100
+        if abs(len(y) - len(ref)) > tol:
+            probs.append(f"LEN({len(y) - len(ref):+d})")
+    if kind != "music" and lead_ms > 5:
+        probs.append("LEAD")
+    seam = ""
+    if kind == "music":
+        # seam check: jump from last to first sample vs. typical sample-to-sample step
+        d = np.abs(np.diff(y))
+        seam = f"{abs(y[0] - y[-1]) / (np.percentile(d, 99.9) + 1e-12):.2f}"
+        if path.endswith(".ogg") and float(seam) > 1.0:
+            probs.append("SEAM")
+    cells = (len(y) / SR, len(ref) / SR, db(pk), db(rms), lead_ms, seam)
+    return cells, probs, y
+
+
+def main():
+    if not FFMPEG:
+        sys.exit("ffmpeg not found (set FFMPEG=/path/to/ffmpeg)")
+    out_dir = os.path.join(ASSETS, "audio")
+    for d in (out_dir, CHECK_DIR):
+        os.makedirs(d, exist_ok=True)
+    known = set(SFX) | set(JINGLES) | set(MUSIC)
+    for f in os.listdir(out_dir):                  # drop stale renders of renamed sounds
+        if f.rsplit(".", 1)[0] not in known and f.endswith((".ogg", ".mp3")):
+            os.remove(os.path.join(out_dir, f))
+
+    manifest = {"format_note": "", "sfx": {}, "jingles": {}, "music": {}}
+    rendered = {}                                  # name -> (reference audio, kind)
+
+    # ---- sound effects and jingles (peak-normalised one-shots) ------------------
+    for group, table in (("sfx", SFX), ("jingles", JINGLES)):
+        for name, (build, event) in table.items():
+            y = render_oneshot(build)
+            y *= 10 ** (SFX_PEAK_DB / 20) / peak_rms(y)[0]
+            y = encode_checked(y, os.path.join(out_dir, name))
+            manifest[group][name] = {"files": [f"audio/{name}.ogg", f"audio/{name}.mp3"],
+                                     "event": event, "duration": round(len(y) / SR, 4)}
+            rendered[name] = (y, group)
+            print(f"rendered {group:7s} {name:18s} {len(y) / SR:6.3f} s")
+
+    # ---- music loops (RMS-normalised, peak-limited by gain only) ----------------
+    for name, (factory, bpm, event) in MUSIC.items():
+        song = factory(bpm)
+        y = render_loop(song)
+        pk, rms = peak_rms(y)
+        y *= min(10 ** (MUSIC_PEAK_DB / 20) / pk, 10 ** (MUSIC_RMS_DB / 20) / rms)
+        y = encode_checked(y, os.path.join(out_dir, name))
+        manifest["music"][name] = {"files": [f"audio/{name}.ogg", f"audio/{name}.mp3"], "event": event,
+                                   "loopStart": 0.0, "loopEnd": round(len(y) / SR, 6),
+                                   "loopEndSamples": len(y), "bpm": bpm, "bars": int(song.total // 8)}
+        rendered[name] = (y, "music")
+        print(f"rendered music   {name:18s} {len(y) / SR:7.3f} s  ({song.total // 8} bars @ {bpm} bpm)")
+
+    # ---- verification -------------------------------------------------------------
+    print()
+    hdr = (f"{'file':26s} {'kind':7s} {'dur s':>7s} {'expect':>7s} {'peak dBFS':>9s} {'RMS dBFS':>8s} "
+           f"{'lead ms':>7s} {'seam':>5s} {'kB':>6s}  status")
+    print(hdr)
+    print("-" * len(hdr))
+    total_bytes, problems, mp3_offsets = 0, [], []
+    sheets = {"sfx": [], "jingles": [], "music": []}
+    for name, (ref, kind) in rendered.items():
+        for ext in ("ogg", "mp3"):
+            path = os.path.join(out_dir, f"{name}.{ext}")
+            size = os.path.getsize(path)
+            total_bytes += size
+            (dur, exp, pk_db, rms_db, lead_ms, seam), probs, y = verify_row(path, ref, kind)
+            st = "ok" if not probs else ",".join(probs)
+            if probs:
+                problems.append((path, st))
+            print(f"{name + '.' + ext:26s} {kind:7s} {dur:7.3f} {exp:7.3f} {pk_db:9.2f} {rms_db:8.2f} "
+                  f"{lead_ms:7.2f} {seam:>5s} {size / 1024:6.1f}  {st}")
+            if ext == "ogg":
+                sheets[kind].append((name, y, f"{dur:.2f}s  pk {pk_db:.1f}  rms {rms_db:.1f} dBFS"))
+            elif kind == "music":
+                off = mp3_raw_offset(path, ref)
+                if off is not None:
+                    mp3_offsets.append(off)
+    print(f"\nTotal assets/audio size: {total_bytes / 1024 / 1024:.2f} MB")
+    mp3_off = int(np.median(mp3_offsets)) if mp3_offsets else 1105
+    print(f"MP3 raw (untrimmed) decoder offset: {mp3_off} samples = {mp3_off / SR * 1000:.2f} ms")
+
+    manifest["format_note"] = (
+        "Documentation only (the game does not read this file). All sounds live in assets/audio/ as "
+        "<name>.ogg (Ogg Vorbis q4) and <name>.mp3 (MP3 96 kbit/s CBR), 44.1 kHz mono, synthesised by "
+        "tools/audio/gen_audio.py with an NES 2A03-style model; all melodies are original. The game "
+        "tries .ogg first, then .mp3. SFX and jingles are one-shots with no leading silence, peak "
+        "-1 dBFS. Music files are exactly one loop body (loopStart 0, loopEnd = file length; the "
+        "decoded .ogg is sample-exact) for <audio loop>; the last beat flows into the first. MP3 "
+        f"fallback: the encoder adds ~{mp3_off} samples ({mp3_off / SR * 1000:.0f} ms) of delay and "
+        "frame padding, so an MP3 loop may have a tiny gap; prefer .ogg. '_fast' variants are the same "
+        "pieces re-rendered at 1.5x tempo (same pitch) for after the hurry jingle. Music RMS is about "
+        "-17 dBFS, below the SFX.")
+    with open(os.path.join(ASSETS, "audio.json"), "w") as f:
+        json.dump(manifest, f, indent=2)
+        f.write("\n")
+
+    contact_sheet(sheets["sfx"], os.path.join(CHECK_DIR, "sfx_contact_sheet.png"),
+                  "SFX (decoded .ogg): waveform (dotted = -1 dBFS) and spectrogram 0-8 kHz", cols=3)
+    contact_sheet(sheets["jingles"], os.path.join(CHECK_DIR, "jingles_contact_sheet.png"),
+                  "Jingles (decoded .ogg): waveform and spectrogram 0-8 kHz", cols=2)
+    contact_sheet(sheets["music"], os.path.join(CHECK_DIR, "music_contact_sheet.png"),
+                  "Music loops (decoded .ogg, first 20 s)", cols=2, max_s=20)
+
+    if problems:
+        print("\nPROBLEMS:")
+        for p in problems:
+            print("  ", *p)
+        sys.exit(1)
+    print("\nAll checks passed.")
+
+
+if __name__ == "__main__":
+    main()

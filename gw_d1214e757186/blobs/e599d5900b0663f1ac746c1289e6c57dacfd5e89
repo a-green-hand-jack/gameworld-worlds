@@ -1,0 +1,225 @@
+{
+ "fireworks_run": {
+  "set_time": 337,
+  "time_at_flag": 336,
+  "flagState.fireworks": 6,
+  "flag_pts": 2000,
+  "phases": [
+   [
+    0,
+    "slide"
+   ],
+   [
+    67,
+    "turn"
+   ],
+   [
+    91,
+    "walk"
+   ],
+   [
+    166,
+    "tally"
+   ],
+   [
+    335,
+    "castleflag"
+   ],
+   [
+    365,
+    "fireworks"
+   ]
+  ],
+  "score_after": 21900,
+  "score_before_tally": 2100,
+  "sound_calls": {
+   "stopMusic:": 5,
+   "playMusic:overworld": 1,
+   "play:jump_small": 27,
+   "play:bump": 1,
+   "play:stomp": 1,
+   "play:flagpole": 1,
+   "playMusic:course_clear": 1,
+   "play:beep": 56,
+   "play:fireworks": 6
+  },
+  "state_after": "clearscreen"
+ },
+ "no_scroll_back": {
+  "x": 520,
+  "camX": 520,
+  "camX_start": 520
+ },
+ "mushroom_path_every_20f": [
+  [
+   0,
+   null
+  ],
+  [
+   20,
+   [
+    "mushroom",
+    337,
+    136,
+    0
+   ]
+  ],
+  [
+   40,
+   [
+    "mushroom",
+    341,
+    128,
+    1
+   ]
+  ],
+  [
+   60,
+   [
+    "mushroom",
+    361,
+    128,
+    1
+   ]
+  ],
+  [
+   80,
+   [
+    "mushroom",
+    381,
+    128,
+    1
+   ]
+  ],
+  [
+   100,
+   [
+    "mushroom",
+    401,
+    129.1,
+    1
+   ]
+  ],
+  [
+   120,
+   [
+    "mushroom",
+    421,
+    192,
+    1
+   ]
+  ],
+  [
+   140,
+   [
+    "mushroom",
+    428,
+    192,
+    -1
+   ]
+  ],
+  [
+   160,
+   [
+    "mushroom",
+    408,
+    192,
+    -1
+   ]
+  ],
+  [
+   180,
+   [
+    "mushroom",
+    388,
+    192,
+    -1
+   ]
+  ],
+  [
+   200,
+   [
+    "mushroom",
+    368,
+    192,
+    -1
+   ]
+  ],
+  [
+   220,
+   [
+    "mushroom",
+    348,
+    192,
+    -1
+   ]
+  ],
+  [
+   240,
+   [
+    "mushroom",
+    328,
+    192,
+    -1
+   ]
+  ],
+  [
+   260,
+   [
+    "mushroom",
+    308,
+    192,
+    -1
+   ]
+  ],
+  [
+   280,
+   [
+    "mushroom",
+    288,
+    192,
+    -1
+   ]
+  ],
+  [
+   300,
+   [
+    "mushroom",
+    268,
+    192,
+    -1
+   ]
+  ],
+  [
+   320,
+   [
+    "mushroom",
+    248,
+    192,
+    -1
+   ]
+  ],
+  [
+   340,
+   null
+  ],
+  [
+   360,
+   null
+  ],
+  [
+   380,
+   null
+  ],
+  [
+   400,
+   null
+  ]
+ ],
+ "top_score": {
+  "top_in_game": 5000,
+  "localStorage": "5000",
+  "frames_to_title": 500,
+  "after_reload_top": 5000
+ }
+}

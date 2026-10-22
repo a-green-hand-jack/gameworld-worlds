@@ -1,0 +1,115 @@
+"""Generates all Snake assets (PNG sprites, WAV sounds, manifest). Run: python3 tools/make_assets.py"""
+import json, os, wave, struct, math
+import numpy as np
+from PIL import Image, ImageDraw
+
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets")
+IMG, AUD = os.path.join(ROOT, "images"), os.path.join(ROOT, "audio")
+C = 32
+PAL = dict(bg1="#14202b", bg2="#182733", wall="#3a4a5c", wall_hi="#5d7288",
+           body="#3fbf6a", body_dk="#2a8a4c", body_hi="#7ee09a", head="#58e07f",
+           eye="#ffffff", pupil="#101820", food="#ff4d5a", food_hi="#ffb3b9", leaf="#4ac26b", stem="#7a4b2a")
+
+def save(im, name): im.save(os.path.join(IMG, name))
+
+# board tile: opaque, dark, one faint inset so the grid reads when tiled
+t = Image.new("RGBA", (C, C), PAL["bg1"]); d = ImageDraw.Draw(t)
+d.rectangle([0, 0, C-1, C-1], outline=PAL["bg2"])
+for p in ((8, 8), (22, 20), (14, 25)): d.point(p, fill="#1d3040")
+save(t, "board-tile.png")
+
+def body_img():
+    im = Image.new("RGBA", (C, C), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle([-6, 2, C+5, C-3], 4, fill=PAL["body_dk"])
+    d.rounded_rectangle([-6, 2, C+5, C-5], 4, fill=PAL["body"])
+    d.rounded_rectangle([-2, 5, C+1, 10], 2, fill=PAL["body_hi"]); return im
+save(body_img(), "snake-body.png")
+
+def tail_img():
+    im = Image.new("RGBA", (C, C), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.polygon([(2, 16), (14, 5), (C, 5), (C, C-5), (14, C-5)], fill=PAL["body_dk"])
+    d.polygon([(4, 16), (14, 6), (C, 6), (C, C-7), (14, C-7)], fill=PAL["body"])
+    d.rectangle([14, 7, C, 10], fill=PAL["body_hi"]); return im
+save(tail_img(), "snake-tail.png")
+
+def head_right():
+    im = Image.new("RGBA", (C, C), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle([-6, 2, C-2, C-3], 10, fill=PAL["body_dk"])
+    d.rounded_rectangle([-6, 3, C-3, C-5], 10, fill=PAL["head"])
+    for y in (7, 19):
+        d.ellipse([17, y, 27, y+9], fill=PAL["eye"]); d.ellipse([21, y+2, 27, y+8], fill=PAL["pupil"])
+    return im
+save(head_right(), "snake-head.png")
+
+f = Image.new("RGBA", (C, C), (0, 0, 0, 0)); d = ImageDraw.Draw(f)
+d.ellipse([5, 7, 27, 29], fill="#a8202c"); d.ellipse([5, 7, 26, 27], fill=PAL["food"]); d.ellipse([9, 11, 15, 17], fill=PAL["food_hi"])
+d.line([16, 8, 17, 2], fill=PAL["stem"], width=2); d.ellipse([17, 2, 25, 8], fill="#ffd84a")
+save(f, "food.png")
+
+# title logo 400x140, artwork centred horizontally
+LW, LH = 400, 140
+L = Image.new("RGBA", (LW, LH), (0, 0, 0, 0)); d = ImageDraw.Draw(L)
+def letter(ch, x, y, s):
+    G = {"S": ["01110","10000","01110","00001","11110"], "N": ["10001","11001","10101","10011","10001"],
+         "A": ["01110","10001","11111","10001","10001"], "K": ["10010","10100","11000","10100","10010"],
+         "E": ["11111","10000","11110","10000","11111"]}[ch]
+    for r, row in enumerate(G):
+        for c, v in enumerate(row):
+            if v == "1": d.rectangle([x+c*s, y+r*s, x+c*s+s-1, y+r*s+s-1], fill=PAL["head"], outline=PAL["body_dk"])
+S, PITCH = 11, 72
+x0 = (LW - (4*PITCH + 5*S))//2
+for i, ch in enumerate("SNAKE"): letter(ch, x0+i*PITCH, 6, S)
+N, SEG = 9, 22
+wx = (LW - ((N-1)*SEG + 20))//2
+for i in range(N):
+    x = wx + i*SEG; y = 82 + int(14*math.sin(i*0.8))
+    d.rounded_rectangle([x, y, x+20, y+20], 6, fill=PAL["body"] if i < N-1 else PAL["head"], outline=PAL["body_dk"], width=2)
+hy = 82 + int(14*math.sin((N-1)*0.8)); hx = wx + (N-1)*SEG
+d.ellipse([hx+11, hy+4, hx+17, hy+10], fill=PAL["eye"])
+save(L, "title-logo.png")
+
+# ---- audio ----
+SR = 22050
+def write(name, sig):
+    sig = np.asarray(sig, float); sig *= 0.8/ max(1e-9, np.abs(sig).max())
+    n = len(sig); fade = int(SR*0.008); env = np.ones(n); env[:fade] = np.linspace(0, 1, fade); env[-fade:] = np.linspace(1, 0, fade)
+    pcm = (sig*env*32767).astype("<i2")
+    with wave.open(os.path.join(AUD, name), "wb") as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(SR); wf.writeframes(pcm.tobytes())
+    return n/SR
+def tone(freqs, dur, kind="square", decay=6):
+    t = np.arange(int(SR*dur))/SR; f = np.interp(t, np.linspace(0, dur, len(freqs)), freqs)
+    ph = 2*np.pi*np.cumsum(f)/SR
+    w = np.sign(np.sin(ph))*0.6 if kind == "square" else np.sin(ph)
+    return w*np.exp(-decay*t/dur)
+dur = {}
+dur["eat.wav"] = write("eat.wav", np.concatenate([tone([660]*2, .05, "sine"), tone([990]*2, .08, "sine")])*0.6)
+dur["gameover.wav"] = write("gameover.wav", np.concatenate([tone([440, 330], .2, decay=3), tone([330, 220], .2, decay=3), tone([220, 110], .45, decay=3)]))
+dur["start.wav"] = write("start.wav", np.concatenate([tone([392]*2, .08), tone([523]*2, .08), tone([784]*2, .16)]))
+
+
+# music: 8-bar calm loop, quiet and short notes so it never masks the effects
+notes = [262, 330, 392, 330, 294, 349, 440, 349, 262, 330, 392, 523, 392, 330, 294, 247]
+mus = np.concatenate([tone([f, f], .3, "sine", decay=3)*0.5 + tone([f/2, f/2], .3, "sine", decay=2)*0.4 for f in notes])
+dur["music.wav"] = write("music.wav", mus)
+
+import subprocess  # .ogg is tried first by the game (no 404 noise); .wav stays as the fallback
+for f_ in list(dur):
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", os.path.join(AUD, f_), "-c:a", "libvorbis", "-q:a", "4",
+                    os.path.join(AUD, f_[:-4] + ".ogg")], check=True)
+
+open(os.path.join(ROOT, "theme.css"), "w").write(""":root {
+  --bg: #0d1620;
+  --board: #14202b;
+  --grid: #182733;
+  --text: #e6f2ea;
+  --muted: #8fa5b3;
+  --accent: #58e07f;
+  --danger: #ff4d5a;
+}
+""")
+manifest = {"cell": C, "images": {}, "audio": {}}
+for f_ in sorted(os.listdir(IMG)):
+    im = Image.open(os.path.join(IMG, f_)); manifest["images"][f_] = {"size": list(im.size)}
+for f_, sec in sorted(dur.items()): manifest["audio"][f_] = {"seconds": round(sec, 2)}
+json.dump(manifest, open(os.path.join(ROOT, "manifest.json"), "w"), indent=2)

@@ -1,0 +1,65 @@
+import json, time
+from playwright.sync_api import sync_playwright
+EV='/hutian/repo/playtest/evidence/'
+URL='http://localhost:8000/'
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+S="()=>{const g=SnakeGame.game;return {state:g.state,snake:g.snake.map(c=>[c.x,c.y]),food:g.food&&[g.food.x,g.food.y],score:g.score,dir:[g.dir.x,g.dir.y],cause:g.deathCause,best:g.best}}"
+KEY={(1,0):'ArrowRight',(-1,0):'ArrowLeft',(0,1):'ArrowDown',(0,-1):'ArrowUp'}
+def choose(s):
+    # greedy toward food avoiding walls/body (1-step lookahead)
+    hx,hy=s['snake'][0]; body=set(map(tuple,s['snake'][:-1])); fx,fy=s['food']
+    best=None
+    for d in KEY:
+        if d==(-s['dir'][0],-s['dir'][1]): continue
+        nx,ny=hx+d[0],hy+d[1]
+        if not(0<=nx<20 and 0<=ny<20) or (nx,ny) in body: continue
+        dist=abs(nx-fx)+abs(ny-fy)
+        if best is None or dist<best[0]: best=(dist,d)
+    return best[1] if best else None
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    ctx=b.new_context(viewport={'width':1280,'height':800},record_video_dir=EV+'video2',record_video_size={'width':640,'height':400})
+    pg=ctx.new_page()
+    pg.goto(URL); pg.wait_for_timeout(500)
+    results=[]
+    for run in range(4):
+        pg.keyboard.press('Enter' if run%2==0 else 'Space'); pg.wait_for_timeout(50)
+        s=pg.evaluate(S)
+        L(f'--- run {run}: start state={s["state"]} score={s["score"]} len={len(s["snake"])}')
+        lastscore=0; lastlen=3; foodOnSnake=0; violations=[]
+        t0=time.time(); shot=False
+        while time.time()-t0<40:
+            s=pg.evaluate(S)
+            if s['state']!='playing': break
+            if s['food'] in [list(c) for c in s['snake']]: foodOnSnake+=1
+            if s['score']!=lastscore or len(s['snake'])!=lastlen:
+                if s['score']-lastscore!=1 or len(s['snake'])-lastlen!=1:
+                    violations.append((lastscore,lastlen,s['score'],len(s['snake'])))
+                lastscore,lastlen=s['score'],len(s['snake'])
+                if lastscore==3 and not shot: pg.screenshot(path=EV+'06-play-score3.png'); shot=True
+            # run 3: deliberately do not steer after score 5 so it eats itself? keep simple
+            d=choose(s)
+            if run<3 and d and d!=tuple(s['dir']): pg.keyboard.press(KEY[d])
+            if run==3:
+                # forced self-collision: spiral in a tight loop once length>=5 (U-turn via 3 quick turns)
+                if len(s['snake'])>=5 and not getattr(pg,'_loop',False):
+                    pg._loop=True
+                    for k in ['ArrowDown','ArrowLeft','ArrowUp']:
+                        pg.keyboard.press(k); pg.wait_for_timeout(125)
+                elif d and d!=tuple(s['dir']) and not getattr(pg,'_loop',False): pg.keyboard.press(KEY[d])
+            pg.wait_for_timeout(20)
+        s=pg.evaluate(S)
+        L(f'run {run} ended state={s["state"]} cause={s["cause"]} score={s["score"]} len={len(s["snake"])} foodOnSnake={foodOnSnake} growth/score violations={violations}')
+        if s['state']=='over':
+            L('  final-score shown:',pg.inner_text('#final-score'),'|',pg.inner_text('#best-line'))
+            pg.screenshot(path=EV+f'07-gameover-run{run}-{s["cause"]}.png')
+        results.append(s)
+    # play again freshness check via click
+    if pg.evaluate(S)['state']=='over':
+        pg.click('#restart-button'); pg.wait_for_timeout(100); s=pg.evaluate(S)
+        L('play again via click: state',s['state'],'score',s['score'],'len',len(s['snake']),'hud score',pg.inner_text('#score'))
+        pg.screenshot(path=EV+'08-play-again-fresh.png')
+    ctx.close(); b.close()
+open(EV+'run2.log','w').write('\n'.join(log))

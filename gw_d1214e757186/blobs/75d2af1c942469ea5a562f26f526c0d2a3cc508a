@@ -1,0 +1,17 @@
+"""Screenshot the assembled game (game-developer build + these assets) to review the art in play."""
+import sys, os
+sys.path.insert(0, sys.argv[1] + '/tests')
+from harness import Game
+root, out = sys.argv[1], sys.argv[2]
+hash_ = sys.argv[3] if len(sys.argv) > 3 else ''
+os.makedirs(out, exist_ok=True)
+g = Game(root, hash_)
+g.step(30); g.shot(f'{out}/00_title.png')
+g.press('start'); g.step(200); g.shot(f'{out}/01_start.png')
+g.set('right', True)
+for i in range(2, 16):
+    g.set('a', i % 2 == 0); g.step(60); g.set('a', False); g.step(20)
+    g.shot(f'{out}/{i:02d}.png'); print(i, g.state())
+print('ERRORS', g.errors)
+print('\n'.join(c for c in g.console if 'assets' in c or 'error' in c.lower()))
+g.close()

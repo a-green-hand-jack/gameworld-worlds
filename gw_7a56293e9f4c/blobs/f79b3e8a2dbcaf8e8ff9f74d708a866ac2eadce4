@@ -1,0 +1,5 @@
+{"assignment_schema": 1,
+ "items": [
+  {"owner": "game-developer", "work": "Snake game code and behavior; browser entry point", "paths": ["index.html"]},
+  {"owner": "artist", "work": "visual (and any audio) assets the game loads", "paths": ["assets/"]}
+ ]}

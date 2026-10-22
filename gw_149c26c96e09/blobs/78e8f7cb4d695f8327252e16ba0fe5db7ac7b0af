@@ -1,0 +1,18 @@
+import time
+from playwright.sync_api import sync_playwright
+exec(open('bot3.py').read().split('with sync_playwright')[0])
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1280,'height':800})
+    pg.add_init_script("window.__plays=[];const _p=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.__plays.push(this.src.split('/').pop());return _p.apply(this,arguments)}")
+    errs=[]; pg.on('console',lambda m: errs.append(m.text) if m.type in('error','warning') else None); pg.on('requestfailed',lambda r: errs.append(r.url))
+    pg.goto(URL); pg.wait_for_timeout(500); pg.keyboard.press('Enter'); t0=time.time(); n=0
+    while time.time()-t0<60:
+        s=pg.evaluate(S)
+        if s['state']!='playing': break
+        d=choose(s)
+        if d and d!=tuple(s['dir']): pg.keyboard.press(KEY[d])
+        if len(s['snake'])>=18 and n<2 and abs(len(s['snake'])-18)<4:
+            pg.screenshot(path=EV+f'10-long-snake-{n}.png'); n+=1; pg.wait_for_timeout(400)
+        pg.wait_for_timeout(20)
+    s=pg.evaluate(S); print(s['state'],s['score'],'errs',errs); pl=pg.evaluate('window.__plays'); print('eat plays',pl.count('eat.ogg'),'score',s['score'],pl[:6])
+    b.close()

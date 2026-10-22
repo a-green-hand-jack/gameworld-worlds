@@ -1,0 +1,186 @@
+{
+ "#level=9-9": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=abc": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=1-5": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=2-1": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=1-4": {
+  "before": {
+   "state": "title",
+   "level": "1-4",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-4",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-4",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=__proto__": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ },
+ "#level=constructor": {
+  "before": {
+   "state": "title",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "after_enter": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "frames_to_play": 150,
+  "after_120f": {
+   "state": "play",
+   "level": "1-1",
+   "area": "main",
+   "lives": 3
+  },
+  "page_errors": [],
+  "failed_requests": 0
+ }
+}

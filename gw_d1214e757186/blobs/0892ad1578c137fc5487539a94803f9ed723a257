@@ -1,0 +1,2787 @@
+{
+ "source": "smbdis.asm (doppelganger SMB disassembly); layout reference only",
+ "coords": "x = 16px columns from the area/slice start (x0 = absolute column in the source area), y = 16px rows, row 0 = top of screen; area-object row 0 = our row 2; ground top = row 13. Enemy y = the row the enemy body (lowest 16px) occupies; lift/firebar y = pixel y / 16.",
+ "legend": {
+  ".": "empty / background scenery (hills, bushes, clouds, castle wall art, fence, bg trees)",
+  "#": "ground / floor block (terrain metatile; castle floor & castle solid blocks)",
+  "B": "brick (see contents for item bricks)",
+  "?": "question block (see contents)",
+  "U": "used/empty block (also firebar pivot block)",
+  "X": "hard stair block",
+  "F": "flagpole base block (same metatile as X)",
+  "[": "vertical pipe top left",
+  "]": "vertical pipe top right",
+  "{": "vertical pipe body left",
+  "}": "vertical pipe body right",
+  "m": "sideways pipe mouth top",
+  "n": "sideways pipe mouth bottom",
+  "s": "sideways pipe body top",
+  "t": "sideways pipe body bottom",
+  "j": "sideways pipe joint top",
+  "k": "sideways pipe joint bottom",
+  "o": "coin",
+  "h": "hidden block (invisible until hit; see contents)",
+  "P": "flagpole ball",
+  "|": "flagpole shaft",
+  "<": "treetop/mushroom top left",
+  "=": "treetop/mushroom top middle",
+  ">": "treetop/mushroom top right",
+  "T": "tree trunk / mushroom stem (non-solid)",
+  "b": "bridge (Bowser bridge in castles)",
+  "c": "chain",
+  "a": "axe",
+  "L": "lava surface",
+  "l": "lava",
+  "W": "water",
+  "*": "EXTRA: invisible solid stop block in the castle doorway (game uses a brick metatile there)",
+  "g": "EXTRA: bridge guard rail (decorative)",
+  "r": "EXTRA: rope (vertical)",
+  "(": "EXTRA: pulley left",
+  ")": "EXTRA: pulley right",
+  "-": "EXTRA: pulley rope (horizontal)",
+  "K": "EXTRA: bullet bill cannon top",
+  "Q": "EXTRA: bullet bill cannon body",
+  "J": "EXTRA: jumpspring",
+  "@": "EXTRA: cloud block",
+  "C": "EXTRA: sea plant"
+ },
+ "levels": {
+  "1-1": {
+   "areas": [
+    "1-1/main",
+    "1-1/coinroom"
+   ],
+   "start": "1-1/main",
+   "main": "1-1/main",
+   "time": 400,
+   "halfwayPage": 5,
+   "halfwayStart": {
+    "area": "1-1/main",
+    "x": 82.5,
+    "y": 12
+   },
+   "next": "1-2",
+   "entries": [
+    {
+     "area": "1-1/coinroom",
+     "from": "1-1/main",
+     "pointer": [
+      "$1e",
+      "$c2",
+      "$00"
+     ],
+     "entryPage": 0
+    }
+   ]
+  },
+  "1-2": {
+   "areas": [
+    "1-2/intro",
+    "1-2/main",
+    "1-2/coinroom",
+    "1-2/exit"
+   ],
+   "start": "1-2/intro",
+   "main": "1-2/main",
+   "time": 400,
+   "halfwayPage": 6,
+   "halfwayStart": {
+    "area": "1-2/main",
+    "x": 98.5,
+    "y": 12
+   },
+   "next": "1-3",
+   "entries": [
+    {
+     "area": "1-2/coinroom",
+     "from": "1-2/main",
+     "pointer": [
+      "$de",
+      "$c2",
+      "$02"
+     ],
+     "entryPage": 2
+    },
+    {
+     "area": "1-2/exit",
+     "from": "1-2/main",
+     "pointer": [
+      "$ee",
+      "$25",
+      "$0b"
+     ],
+     "entryPage": 11
+    }
+   ]
+  },
+  "1-3": {
+   "areas": [
+    "1-3/main"
+   ],
+   "start": "1-3/main",
+   "main": "1-3/main",
+   "time": 300,
+   "halfwayPage": 4,
+   "halfwayStart": {
+    "area": "1-3/main",
+    "x": 66.5,
+    "y": 12
+   },
+   "next": "1-4",
+   "entries": []
+  },
+  "1-4": {
+   "areas": [
+    "1-4/main"
+   ],
+   "start": "1-4/main",
+   "main": "1-4/main",
+   "time": 300,
+   "halfwayPage": 0,
+   "halfwayStart": null,
+   "next": "2-1",
+   "entries": []
+  }
+ },
+ "areas": {
+  "1-1/main": {
+   "id": "1-1/main",
+   "theme": "overworld",
+   "bg": "sky",
+   "scenery": "hills",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 1,
+    "solidRows": [
+     13,
+     14
+    ],
+    "changes": []
+   },
+   "width": 208,
+   "x0": 0,
+   "scrollLock": false,
+   "rows": [
+    "................................................................................................................................................................................................................",
+    "................................................................................................................................................................................................................",
+    "......................................................................................................................................................................................................P.........",
+    "......................................................................................................................................................................................................|.........",
+    "......................................................................................................................................................................................................|.........",
+    "......................?.........................................................BBBBBBBB...BBB?..............?...........BBB....B??B........................................................XX........|.........",
+    "...........................................................................................................................................................................................XXX........|.........",
+    "..........................................................................................................................................................................................XXXX........|.........",
+    "................................................................h........................................................................................................................XXXXX........|.........",
+    "................?...B?B?B.....................[].........[]..................B?B..............B.....BB....?..?..?.....B..........BB......X..X..........XX..X............BB?B............XXXXXX........|.........",
+    "......................................[]......{}.........{}.............................................................................XX..XX........XXX..XX..........................XXXXXXX........|.........",
+    "............................[]........{}......{}.........{}............................................................................XXX..XXX......XXXX..XXX.....[]..............[].XXXXXXXX........|.........",
+    "............................{}........{}......{}.........{}...........................................................................XXXX..XXXX....XXXXX..XXXX....{}..............{}XXXXXXXXX........F......*..",
+    "#####################################################################..###############...################################################################..#####################################################",
+    "#####################################################################..###############...################################################################..#####################################################"
+   ],
+   "contents": [
+    {
+     "x": 16,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 21,
+     "y": 9,
+     "kind": "power"
+    },
+    {
+     "x": 22,
+     "y": 5,
+     "kind": "coin"
+    },
+    {
+     "x": 23,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 64,
+     "y": 8,
+     "kind": "1up"
+    },
+    {
+     "x": 78,
+     "y": 9,
+     "kind": "power"
+    },
+    {
+     "x": 94,
+     "y": 5,
+     "kind": "coin"
+    },
+    {
+     "x": 94,
+     "y": 9,
+     "kind": "multicoin"
+    },
+    {
+     "x": 101,
+     "y": 9,
+     "kind": "star"
+    },
+    {
+     "x": 106,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 109,
+     "y": 5,
+     "kind": "power"
+    },
+    {
+     "x": 109,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 112,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 129,
+     "y": 5,
+     "kind": "coin"
+    },
+    {
+     "x": 130,
+     "y": 5,
+     "kind": "coin"
+    },
+    {
+     "x": 170,
+     "y": 9,
+     "kind": "coin"
+    }
+   ],
+   "pipes": [
+    {
+     "x": 57,
+     "y": 9,
+     "dir": "down",
+     "to": "1-1/coinroom",
+     "entryPage": 0,
+     "entry": {
+      "x": 1.5,
+      "y": 3,
+      "mode": "fall"
+     }
+    }
+   ],
+   "objects": [
+    {
+     "type": "hidden_1up",
+     "x": 64,
+     "y": 8,
+     "rendered": true,
+     "note": "only exists while Hidden1UpFlag is set (game start / after a warp / enough coins in the previous x-3); consumed once rendered"
+    },
+    {
+     "type": "flagpole",
+     "x": 198,
+     "flagX": 197.5
+    },
+    {
+     "type": "castle",
+     "x": 202,
+     "y": 8,
+     "size": "small",
+     "doorX": 204,
+     "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"
+    },
+    {
+     "type": "castle_star_flag",
+     "x": 204,
+     "y": 9
+    }
+   ],
+   "enemies": [
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 22.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 40.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 51.0,
+     "y": 12,
+     "group": true,
+     "dataX": 54.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 52.5,
+     "y": 12,
+     "group": true,
+     "dataX": 54.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 80.0,
+     "y": 4,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 82.0,
+     "y": 4,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 97.0,
+     "y": 12,
+     "group": true,
+     "dataX": 100.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 98.5,
+     "y": 12,
+     "group": true,
+     "dataX": 100.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "koopa",
+     "x": 107.0,
+     "y": 12
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 114.0,
+     "y": 12,
+     "group": true,
+     "dataX": 117.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 115.5,
+     "y": 12,
+     "group": true,
+     "dataX": 117.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 124.0,
+     "y": 12,
+     "group": true,
+     "dataX": 127.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 125.5,
+     "y": 12,
+     "group": true,
+     "dataX": 127.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 128.0,
+     "y": 12,
+     "group": true,
+     "dataX": 131.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 129.5,
+     "y": 12,
+     "group": true,
+     "dataX": 131.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 174.0,
+     "y": 12,
+     "group": true,
+     "dataX": 177.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 175.5,
+     "y": 12,
+     "group": true,
+     "dataX": 177.0,
+     "hardModeType": "buzzy"
+    }
+   ],
+   "time": 400,
+   "start": {
+    "x": 2.5,
+    "y": 12,
+    "py": 176,
+    "entranceCtrl": 2,
+    "altEntrance": 0,
+    "mode": "normal"
+   },
+   "header": {
+    "raw": [
+     "$50",
+     "$21"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 2,
+    "timerSetting": 1,
+    "terrainCtrl": 1,
+    "bgScenery": 2,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_GroundArea6",
+    "enemyData": "E_GroundArea6",
+    "areaPointer": "$25"
+   },
+   "meta": {
+    "enemyAreaPointers": [
+     {
+      "kind": "area_pointer",
+      "x": 17.0,
+      "ptr": "$c2",
+      "world": 1,
+      "entryPage": 0,
+      "usedInWorld1": true,
+      "raw": [
+       "$1e",
+       "$c2",
+       "$00"
+      ]
+     }
+    ],
+    "areaNumber": 0,
+    "entryPage": 0,
+    "loopCommand": 0
+   }
+  },
+  "1-2/intro": {
+   "id": "1-2/intro",
+   "theme": "overworld",
+   "bg": "sky",
+   "scenery": "clouds",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 1,
+    "solidRows": [
+     13,
+     14
+    ],
+    "changes": []
+   },
+   "width": 32,
+   "x0": 0,
+   "scrollLock": false,
+   "rows": [
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "............[]..................",
+    "............{}..................",
+    "..........msj}..................",
+    "..........ntk}..................",
+    "################################",
+    "################################"
+   ],
+   "contents": [],
+   "pipes": [
+    {
+     "x": 10,
+     "y": 11,
+     "dir": "right",
+     "intro": true,
+     "to": "1-2/main",
+     "how": "intro auto-walk; NextArea (AreaNumber+1)",
+     "entryPage": 0
+    }
+   ],
+   "objects": [
+    {
+     "type": "castle",
+     "x": 0,
+     "y": 8,
+     "size": "small",
+     "doorX": 2,
+     "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"
+    },
+    {
+     "type": "scroll_lock_toggle",
+     "x": 19,
+     "warp": false
+    }
+   ],
+   "enemies": [],
+   "time": null,
+   "start": {
+    "x": 2.5,
+    "y": 12,
+    "py": 176,
+    "entranceCtrl": 7,
+    "altEntrance": 0,
+    "mode": "autowalk_into_pipe",
+    "note": "walks right into the intro pipe, then NextArea"
+   },
+   "header": {
+    "raw": [
+     "$38",
+     "$11"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 7,
+    "timerSetting": 0,
+    "terrainCtrl": 1,
+    "bgScenery": 1,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_GroundArea10",
+    "enemyData": "E_GroundArea10",
+    "areaPointer": "$29"
+   },
+   "meta": {
+    "enemyAreaPointers": [],
+    "areaNumber": 1,
+    "entryPage": 0,
+    "loopCommand": 0
+   }
+  },
+  "1-2/main": {
+   "id": "1-2/main",
+   "theme": "underground",
+   "bg": "black",
+   "scenery": "none",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 15,
+    "solidRows": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ],
+    "changes": [
+     {
+      "x": 0,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 5,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 51,
+      "terrain": 13,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       5,
+       6,
+       7,
+       8,
+       9,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 53,
+      "terrain": 3,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 55,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 57,
+      "terrain": 3,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 61,
+      "terrain": 5,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 63,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 65,
+      "terrain": 3,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 69,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 75,
+      "terrain": 3,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 79,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 137,
+      "terrain": 0,
+      "bgScenery": 0,
+      "solidRows": []
+     },
+     {
+      "x": 144,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 152,
+      "terrain": 0,
+      "bgScenery": 0,
+      "solidRows": []
+     },
+     {
+      "x": 159,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 160,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 169,
+      "terrain": 15,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 176,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 186,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 189,
+      "terrain": 15,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     }
+    ]
+   },
+   "width": 208,
+   "x0": 0,
+   "scrollLock": false,
+   "rows": [
+    "................................................................................................................................................................................................................",
+    "................................................................................................................................................................................................................",
+    "B.....BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.......................BBBBBBB{}BBBBBBBBBBBBBBBBB...BBBBBBBBBBBBBBBBBB",
+    "B.....................................................BB..BBBBBB..BBBB......BBBB........................................................................................{}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B.....................................................BB..BBBBBB..BBBB......BBBB........................................................................................{}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B........................................oooo.......BB........BB...B....BB..........oooooo..............................................................................{}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B...................................................BB........BB...B....BB..............................................................................................{}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B......................................B.BBBB.B.....BB........BB...B....BB..........BBBBBB..............................................................................{}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B............................B.........BoB..BoB.....BB....ooooBB...BoB..BB..........BBBBBB.......................................................BBBBBB...............msj}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B.........?????........X.X.............BBB..BBB.....BBBB..BBBBBB...BBB..BB..BBBB.............................[].........................XX............................ntk}BBBBBBB.............BBBBBBBBBBBBBBBBBB",
+    "B....................X.X.X.X...X......................BB...............................................[]....{}...........BB...........XXX......................BBBBBBBBBBBBBBBBB.[]..[]..[]..BBBBBBBBBBBBBBBBBB",
+    "B..................X.X.X.X.X...X.X....................BB...............................................{}....{}....[].....BB..........XXXX......................BBBBBBBBBBBBBBBBB.{}..{}..{}..BBBBBBBBBBBBBBBBBB",
+    "B................X.X.X.X.X.X...X.X.....................................................................{}....{}....{}.....BB.........XXXXX......................BBBBBBBBBBBBBBBBB.{}..{}..{}..BBBBBBBBBBBBBBBBBB",
+    "################################################################################...#####################################..##..############.......########.......################################################",
+    "################################################################################...#####################################..##..############.......########.......################################################"
+   ],
+   "contents": [
+    {
+     "x": 10,
+     "y": 9,
+     "kind": "power"
+    },
+    {
+     "x": 11,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 12,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 13,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 14,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 29,
+     "y": 8,
+     "kind": "multicoin"
+    },
+    {
+     "x": 46,
+     "y": 7,
+     "kind": "star"
+    },
+    {
+     "x": 69,
+     "y": 8,
+     "kind": "power"
+    },
+    {
+     "x": 73,
+     "y": 8,
+     "kind": "multicoin"
+    },
+    {
+     "x": 89,
+     "y": 2,
+     "kind": "1up"
+    },
+    {
+     "x": 150,
+     "y": 8,
+     "kind": "power"
+    }
+   ],
+   "pipes": [
+    {
+     "x": 103,
+     "y": 10,
+     "dir": "down",
+     "to": "1-2/coinroom",
+     "entryPage": 2,
+     "entry": {
+      "x": 1.5,
+      "y": 3,
+      "mode": "fall"
+     }
+    },
+    {
+     "x": 166,
+     "y": 8,
+     "dir": "right",
+     "intro": false,
+     "to": "1-2/exit",
+     "entryPage": 11,
+     "entry": {
+      "x": 3.5,
+      "y": 10,
+      "mode": "rise_from_pipe"
+     }
+    },
+    {
+     "x": 178,
+     "y": 10,
+     "dir": "down",
+     "to": "world 4",
+     "warpWorld": 4,
+     "entryPage": 0
+    },
+    {
+     "x": 182,
+     "y": 10,
+     "dir": "down",
+     "to": "world 3",
+     "warpWorld": 3,
+     "entryPage": 0
+    },
+    {
+     "x": 186,
+     "y": 10,
+     "dir": "down",
+     "to": "world 2",
+     "warpWorld": 2,
+     "entryPage": 0
+    }
+   ],
+   "objects": [
+    {
+     "type": "pipe_piranha",
+     "x": 103.5,
+     "y": 10,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "pipe_piranha",
+     "x": 109.5,
+     "y": 9,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "pipe_piranha",
+     "x": 115.5,
+     "y": 11,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "scroll_lock_toggle",
+     "x": 178,
+     "warp": false
+    },
+    {
+     "type": "pipe_piranha",
+     "x": 178.5,
+     "y": 10,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "pipe_piranha",
+     "x": 182.5,
+     "y": 10,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "pipe_piranha",
+     "x": 186.5,
+     "y": 10,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "warp_zone",
+     "x": 198,
+     "worlds": [
+      4,
+      3,
+      2
+     ],
+     "note": "ScrollLockObject_Warp: shows WELCOME TO WARP ZONE, kills piranhas, toggles scroll lock",
+     "pipesFromX": 178,
+     "screenX0": 176
+    },
+    {
+     "type": "scroll_lock_toggle",
+     "x": 198,
+     "warp": true
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "large_down",
+     "x": 139.75,
+     "y": 7.0,
+     "width": 3,
+     "movement": "moves down continuously, wraps bottom->top"
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "large_down",
+     "x": 139.75,
+     "y": 13.0,
+     "width": 3,
+     "movement": "moves down continuously, wraps bottom->top"
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "large_up",
+     "x": 154.75,
+     "y": 1.0,
+     "width": 3,
+     "movement": "moves up continuously, wraps top->bottom"
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "large_up",
+     "x": 154.75,
+     "y": 9.0,
+     "width": 3,
+     "movement": "moves up continuously, wraps top->bottom"
+    },
+    {
+     "hard": false,
+     "type": "warp_zone_trigger",
+     "x": 162.0,
+     "note": "unlocks scroll when Mario is above the screen (on the ceiling) and bumps WarpZoneControl"
+    }
+   ],
+   "enemies": [
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 16.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 17.0,
+     "y": 11,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 29.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "koopa",
+     "x": 44.0,
+     "y": 12,
+     "group": true,
+     "dataX": 47.0
+    },
+    {
+     "hard": false,
+     "type": "koopa",
+     "x": 45.5,
+     "y": 12,
+     "group": true,
+     "dataX": 47.0
+    },
+    {
+     "hard": false,
+     "type": "koopa",
+     "x": 59.0,
+     "y": 12
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 62.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 64.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 73.0,
+     "y": 4,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 76.0,
+     "y": 8,
+     "group": true,
+     "dataX": 79.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 77.5,
+     "y": 8,
+     "group": true,
+     "dataX": 79.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 99.0,
+     "y": 12,
+     "group": true,
+     "dataX": 102.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 100.5,
+     "y": 12,
+     "group": true,
+     "dataX": 102.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 102.0,
+     "y": 12,
+     "group": true,
+     "dataX": 102.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 113.0,
+     "y": 12,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 135.0,
+     "y": 8,
+     "group": true,
+     "dataX": 138.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 136.5,
+     "y": 8,
+     "group": true,
+     "dataX": 138.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "koopa_red",
+     "x": 146.0,
+     "y": 12
+    }
+   ],
+   "time": 400,
+   "start": {
+    "x": 2.5,
+    "y": 3,
+    "py": 32,
+    "entranceCtrl": 1,
+    "altEntrance": 0,
+    "mode": "fall",
+    "note": "drops in from the top without control until Y >= $30"
+   },
+   "header": {
+    "raw": [
+     "$48",
+     "$0f"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 1,
+    "timerSetting": 1,
+    "terrainCtrl": 15,
+    "bgScenery": 0,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_UndergroundArea1",
+    "enemyData": "E_UndergroundArea1",
+    "areaPointer": "$c0"
+   },
+   "meta": {
+    "enemyAreaPointers": [
+     {
+      "kind": "area_pointer",
+      "x": 45.0,
+      "ptr": "$c2",
+      "world": 1,
+      "entryPage": 2,
+      "usedInWorld1": true,
+      "raw": [
+       "$de",
+       "$c2",
+       "$02"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 158.0,
+      "ptr": "$25",
+      "world": 1,
+      "entryPage": 11,
+      "usedInWorld1": true,
+      "raw": [
+       "$ee",
+       "$25",
+       "$0b"
+      ]
+     }
+    ],
+    "areaNumber": 2,
+    "entryPage": 0,
+    "loopCommand": 0
+   }
+  },
+  "1-3/main": {
+   "id": "1-3/main",
+   "theme": "overworld",
+   "bg": "sky",
+   "scenery": "clouds",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 1,
+    "solidRows": [
+     13,
+     14
+    ],
+    "changes": [
+     {
+      "x": 15,
+      "terrain": 0,
+      "bgScenery": 1,
+      "solidRows": []
+     },
+     {
+      "x": 128,
+      "terrain": 1,
+      "bgScenery": 1,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 154,
+      "fg": 2,
+      "bgColorCtrl": 0
+     }
+    ]
+   },
+   "width": 176,
+   "x0": 0,
+   "scrollLock": false,
+   "rows": [
+    "................................................................................................................................................................................",
+    "................................................................................................................................................................................",
+    ".....................................oo.................................................................................................................P.......................",
+    "........................................................................................................................................................|.......................",
+    "...........................ooo..........<=====>.............oooo.............................oo..oo.....................................................|.......................",
+    "..........................<===>..........TTTTT..............<==>.....................oo.................................oo....................XX........|.......................",
+    "...........................TTT...........TTTTT....oo.........TT.............<====>............................................................XX........|.......................",
+    "...........................TTT...........TTTTT...............TT..............TTTT.......................<======>............................XXXX........|.......................",
+    "...........................TTT.....<===>.TTTTT...............TT..............TTTT........................TTTTTT.............................XXXX........|.......................",
+    "........................<======>....TTT..TTTTT...............TT.......<=>....TTTT........................TTTTTT.....<==>..<==>............XXXXXX........|.......................",
+    ".........................TTTTTT.....TTT..TTTTT.............?.TT........T.....TTTT........................TTTTTT......TT....TT.............XXXXXX........|.......................",
+    ".........................TTTTTT..o..TTT..TTTTT...............TT........T.....TTTT.................<==>...TTTTTT......TT....TT.............XXXXXX........|.......................",
+    "..................<==>...TTTTTT.<=>.TTT..TTTTT...............TT........T.....TTTT..................TT....TTTTTT..ooo.TT....TT.............XXXXXX........F.....*.*...............",
+    "################...TT....TTTTTT..T..TTT..TTTTT....<==>.....<===>.<===>.T.....TTTT..................TT....TTTTTT..<=>.TT....TT....###############################################",
+    "################...TT....TTTTTT..T..TTT..TTTTT.....TT.......TTT...TTT..T.....TTTT..................TT....TTTTTT...T..TT....TT....###############################################"
+   ],
+   "contents": [
+    {
+     "x": 59,
+     "y": 10,
+     "kind": "power"
+    }
+   ],
+   "pipes": [],
+   "objects": [
+    {
+     "type": "castle",
+     "x": 0,
+     "y": 8,
+     "size": "small",
+     "doorX": 2,
+     "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"
+    },
+    {
+     "type": "frenzy",
+     "x": 141,
+     "frenzy": "stop"
+    },
+    {
+     "type": "flagpole",
+     "x": 152,
+     "flagX": 151.5
+    },
+    {
+     "type": "castle",
+     "x": 157,
+     "y": 2,
+     "size": "big",
+     "doorX": 159,
+     "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"
+    },
+    {
+     "type": "castle_star_flag",
+     "x": 159,
+     "y": 9
+    },
+    {
+     "hard": true,
+     "type": "frenzy",
+     "frenzy": "frenzy_bullet_bill_or_cheep",
+     "x": 18.0
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "vertical",
+     "x": 55.0,
+     "y": 6.0,
+     "width": 3,
+     "movement": "oscillates up/down around top+64px (YMovingPlatform)",
+     "rangeY_approx": [
+      6.0,
+      14.0
+     ]
+    },
+    {
+     "hard": true,
+     "type": "frenzy",
+     "frenzy": "frenzy_bullet_bill_or_cheep",
+     "x": 82.0
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "horizontal",
+     "x": 86.0,
+     "y": 8.0,
+     "width": 3,
+     "movement": "oscillates left/right (XMovingPlatform)",
+     "rangeX": [
+      82.72,
+      86.0
+     ]
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "horizontal",
+     "x": 94.0,
+     "y": 9.0,
+     "width": 3,
+     "movement": "oscillates left/right (XMovingPlatform)",
+     "rangeX": [
+      90.72,
+      94.0
+     ]
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "horizontal",
+     "x": 131.0,
+     "y": 6.0,
+     "width": 3,
+     "movement": "oscillates left/right (XMovingPlatform)",
+     "rangeX": [
+      127.72,
+      131.0
+     ]
+    }
+   ],
+   "enemies": [
+    {
+     "hard": false,
+     "type": "koopa_red",
+     "x": 30.0,
+     "y": 4
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 44.0,
+     "y": 3,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 46.0,
+     "y": 3,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "paratroopa_red_fly",
+     "x": 74.0,
+     "y": 4
+    },
+    {
+     "hard": false,
+     "type": "goomba",
+     "x": 80.0,
+     "y": 4,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "type": "koopa_red",
+     "x": 110.0,
+     "y": 6
+    },
+    {
+     "hard": false,
+     "type": "paratroopa_red_fly",
+     "x": 114.0,
+     "y": 5
+    },
+    {
+     "hard": false,
+     "type": "koopa_red",
+     "x": 133.0,
+     "y": 12
+    }
+   ],
+   "time": 300,
+   "start": {
+    "x": 2.5,
+    "y": 12,
+    "py": 176,
+    "entranceCtrl": 2,
+    "altEntrance": 0,
+    "mode": "normal"
+   },
+   "header": {
+    "raw": [
+     "$90",
+     "$11"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 2,
+    "timerSetting": 2,
+    "terrainCtrl": 1,
+    "bgScenery": 1,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_GroundArea7",
+    "enemyData": "E_GroundArea7",
+    "areaPointer": "$26"
+   },
+   "meta": {
+    "enemyAreaPointers": [],
+    "areaNumber": 3,
+    "entryPage": 0,
+    "loopCommand": 0
+   }
+  },
+  "1-4/main": {
+   "id": "1-4/main",
+   "theme": "castle",
+   "bg": "black",
+   "scenery": "none",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 7,
+    "solidRows": [
+     2,
+     3,
+     4,
+     10,
+     11,
+     12,
+     13,
+     14
+    ],
+    "changes": [
+     {
+      "x": 12,
+      "terrain": 3,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 14,
+      "terrain": 7,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 23,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 25,
+      "terrain": 10,
+      "bgScenery": 0,
+      "solidRows": [
+       2
+      ]
+     },
+     {
+      "x": 28,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 31,
+      "terrain": 10,
+      "bgScenery": 0,
+      "solidRows": [
+       2
+      ]
+     },
+     {
+      "x": 34,
+      "terrain": 9,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 36,
+      "terrain": 11,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 71,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 96,
+      "terrain": 7,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 103,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 115,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 119,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 122,
+      "terrain": 7,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 127,
+      "terrain": 10,
+      "bgScenery": 0,
+      "solidRows": [
+       2
+      ]
+     },
+     {
+      "x": 140,
+      "terrain": 9,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 141,
+      "terrain": 11,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 143,
+      "terrain": 2,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       13,
+       14
+      ]
+     }
+    ]
+   },
+   "width": 160,
+   "x0": 0,
+   "scrollLock": false,
+   "rows": [
+    "................................................................................................................................................................",
+    "................................................................................................................................................................",
+    "################################################################################################################################################################",
+    "########################.............###################################........#.......#........#######...................#####..............##................",
+    "########################.............###################################........U.......U........#######...................#####..............##................",
+    ".......................#.............###################################...................................h..h..h............................##................",
+    ".......................U......?......U...........U..........U......U............................................................................................",
+    "###.............................................................................................................................................................",
+    "####.........................................................................................................................................a..................",
+    "#####..............................#####################################....U.......U.......U.............h..h..h...........................c###................",
+    "#############..###########...#U#...#####################################################################............####...#####bbbbbbbbbbbbb###................",
+    "#############..###########...###...#####################################################################............####...#####.............###................",
+    "#############LL###########...###...#####################################################################............####...#####.............###................",
+    "#############ll###########LLL###LLL#############################################################################################LLLLLLLLLLLLL###################",
+    "#############ll###########lll###lll#############################################################################################lllllllllllll###################"
+   ],
+   "contents": [
+    {
+     "x": 30,
+     "y": 6,
+     "kind": "power"
+    },
+    {
+     "x": 106,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 107,
+     "y": 5,
+     "kind": "coin"
+    },
+    {
+     "x": 109,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 110,
+     "y": 5,
+     "kind": "coin"
+    },
+    {
+     "x": 112,
+     "y": 9,
+     "kind": "coin"
+    },
+    {
+     "x": 113,
+     "y": 5,
+     "kind": "coin"
+    }
+   ],
+   "pipes": [],
+   "objects": [
+    {
+     "type": "bowser_bridge",
+     "x0": 128,
+     "x1": 140,
+     "y": 10
+    },
+    {
+     "type": "axe",
+     "x": 141,
+     "y": 8
+    },
+    {
+     "type": "scroll_lock_toggle",
+     "x": 149,
+     "warp": false
+    },
+    {
+     "hard": true,
+     "type": "firebar",
+     "x": 23.0,
+     "y": 6,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 30.0,
+     "y": 10,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": true,
+     "type": "firebar",
+     "x": 37.0,
+     "y": 6,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 49.0,
+     "y": 6,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 60.0,
+     "y": 6,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 67.0,
+     "y": 6,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 76.0,
+     "y": 9,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": true,
+     "type": "firebar",
+     "x": 80.0,
+     "y": 4,
+     "length": "short",
+     "balls": 6,
+     "dir": "cw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 84.0,
+     "y": 9,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "firebar",
+     "x": 88.0,
+     "y": 4,
+     "length": "short",
+     "balls": 6,
+     "dir": "cw",
+     "speed": 40
+    },
+    {
+     "hard": true,
+     "type": "firebar",
+     "x": 92.0,
+     "y": 9,
+     "length": "short",
+     "balls": 6,
+     "dir": "ccw",
+     "speed": 40
+    },
+    {
+     "hard": false,
+     "type": "lift",
+     "kind": "horizontal",
+     "x": 138.0,
+     "y": 6.0,
+     "width": 2,
+     "movement": "oscillates left/right (XMovingPlatform)",
+     "rangeX": [
+      134.72,
+      138.0
+     ]
+    },
+    {
+     "hard": false,
+     "type": "toad",
+     "x": 153.0,
+     "y": 12,
+     "py": 184
+    }
+   ],
+   "enemies": [
+    {
+     "hard": true,
+     "type": "podoboo",
+     "x": 27.0,
+     "y": 12
+    },
+    {
+     "hard": true,
+     "type": "podoboo",
+     "x": 33.0,
+     "y": 12
+    },
+    {
+     "hard": false,
+     "type": "bowser_flame",
+     "x": 104.0,
+     "y": 8
+    },
+    {
+     "hard": true,
+     "type": "podoboo",
+     "x": 131.0,
+     "y": 1
+    },
+    {
+     "hard": false,
+     "type": "bowser",
+     "x": 135.0,
+     "y": 9,
+     "py": 128,
+     "hardModeNote": "throws hammers from 6-4 on (not in W1)"
+    }
+   ],
+   "time": 300,
+   "start": {
+    "x": 2.5,
+    "y": 6,
+    "py": 80,
+    "entranceCtrl": 3,
+    "altEntrance": 0,
+    "mode": "normal"
+   },
+   "header": {
+    "raw": [
+     "$9b",
+     "$07"
+    ],
+    "foregroundScenery": 3,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 3,
+    "timerSetting": 2,
+    "terrainCtrl": 7,
+    "bgScenery": 0,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_CastleArea1",
+    "enemyData": "E_CastleArea1",
+    "areaPointer": "$60"
+   },
+   "meta": {
+    "enemyAreaPointers": [],
+    "areaNumber": 4,
+    "entryPage": 0,
+    "loopCommand": 0
+   }
+  },
+  "1-1/coinroom": {
+   "id": "1-1/coinroom",
+   "theme": "underground",
+   "bg": "black",
+   "scenery": "none",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 1,
+    "solidRows": [
+     13,
+     14
+    ],
+    "changes": [
+     {
+      "x": 0,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 3,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 10,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     }
+    ]
+   },
+   "width": 16,
+   "x0": 0,
+   "scrollLock": true,
+   "rows": [
+    "................",
+    "................",
+    "B...BBBBBBB....{",
+    "B..............{",
+    "B..............{",
+    "B....ooooo.....{",
+    "B..............{",
+    "B...ooooooo....{",
+    "B..............{",
+    "B...ooooooo....{",
+    "B...BBBBBBB....{",
+    "B...BBBBBBB..msj",
+    "B...BBBBBBB..ntk",
+    "################",
+    "################"
+   ],
+   "contents": [],
+   "pipes": [
+    {
+     "x": 13,
+     "y": 11,
+     "dir": "right",
+     "intro": false,
+     "to": "1-1/main",
+     "entryPage": 10,
+     "entry": {
+      "x": 163.5,
+      "y": 10,
+      "mode": "rise_from_pipe"
+     }
+    }
+   ],
+   "objects": [],
+   "enemies": [],
+   "time": 400,
+   "start": {
+    "x": 1.5,
+    "y": 3,
+    "py": 32,
+    "entranceCtrl": 1,
+    "altEntrance": 1,
+    "mode": "fall",
+    "note": "drops in from the top without control until Y >= $30"
+   },
+   "header": {
+    "raw": [
+     "$48",
+     "$01"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 1,
+    "timerSetting": 1,
+    "terrainCtrl": 1,
+    "bgScenery": 0,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_UndergroundArea3",
+    "enemyData": "E_UndergroundArea3",
+    "areaPointer": "$c2"
+   },
+   "meta": {
+    "enemyAreaPointers": [
+     {
+      "kind": "area_pointer",
+      "x": 17.0,
+      "ptr": "$a5",
+      "world": 1,
+      "entryPage": 10,
+      "usedInWorld1": true,
+      "raw": [
+       "$1e",
+       "$a5",
+       "$0a"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 18.0,
+      "ptr": "$28",
+      "world": 2,
+      "entryPage": 7,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$28",
+       "$27"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 18.0,
+      "ptr": "$33",
+      "world": 7,
+      "entryPage": 7,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$33",
+       "$c7"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 49.0,
+      "ptr": "$40",
+      "world": 1,
+      "entryPage": 7,
+      "usedInWorld1": true,
+      "raw": [
+       "$1e",
+       "$40",
+       "$07"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 50.0,
+      "ptr": "$30",
+      "world": 8,
+      "entryPage": 7,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$30",
+       "$e7"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 81.0,
+      "ptr": "$24",
+      "world": 3,
+      "entryPage": 4,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$24",
+       "$44"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 113.0,
+      "ptr": "$22",
+      "world": 4,
+      "entryPage": 10,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$22",
+       "$6a"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 114.0,
+      "ptr": "$23",
+      "world": 6,
+      "entryPage": 11,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$23",
+       "$ab"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 145.0,
+      "ptr": "$41",
+      "world": 4,
+      "entryPage": 8,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$41",
+       "$68"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 145.0,
+      "ptr": "$2a",
+      "world": 5,
+      "entryPage": 10,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$2a",
+       "$8a"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 146.0,
+      "ptr": "$23",
+      "world": 6,
+      "entryPage": 2,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$23",
+       "$a2"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 146.0,
+      "ptr": "$32",
+      "world": 8,
+      "entryPage": 10,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$32",
+       "$ea"
+      ]
+     }
+    ],
+    "areaNumber": 0,
+    "entryPage": 0,
+    "loopCommand": 0
+   }
+  },
+  "1-2/coinroom": {
+   "id": "1-2/coinroom",
+   "theme": "underground",
+   "bg": "black",
+   "scenery": "none",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 1,
+    "solidRows": [
+     13,
+     14
+    ],
+    "changes": [
+     {
+      "x": 0,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 0,
+      "terrain": 6,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 0,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 0,
+      "terrain": 1,
+      "bgScenery": 0,
+      "solidRows": [
+       13,
+       14
+      ]
+     },
+     {
+      "x": 2,
+      "terrain": 4,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       13,
+       14
+      ]
+     },
+     {
+      "x": 12,
+      "terrain": 15,
+      "bgScenery": 0,
+      "solidRows": [
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14
+      ]
+     }
+    ]
+   },
+   "width": 16,
+   "x0": 32,
+   "scrollLock": true,
+   "rows": [
+    "................",
+    "................",
+    "B..BBBBBBBBBBBB{",
+    "B..BBBBBBBBBBBB{",
+    "B..BBBBBBBBBBBB{",
+    "B..BBBBBBBBBBBB{",
+    "B............BB{",
+    "B............BB{",
+    "B...oooooooo.BB{",
+    "B..BBBBBBBBBBBB{",
+    "B............BB{",
+    "B............msj",
+    "B..ooooooooo.ntk",
+    "################",
+    "################"
+   ],
+   "contents": [
+    {
+     "x": 12,
+     "y": 9,
+     "kind": "multicoin"
+    }
+   ],
+   "pipes": [
+    {
+     "x": 13,
+     "y": 11,
+     "dir": "right",
+     "intro": false,
+     "to": "1-2/main",
+     "entryPage": 7,
+     "entry": {
+      "x": 115.5,
+      "y": 10,
+      "mode": "rise_from_pipe"
+     }
+    }
+   ],
+   "objects": [],
+   "enemies": [],
+   "time": 400,
+   "start": {
+    "x": 1.5,
+    "y": 3,
+    "py": 32,
+    "entranceCtrl": 1,
+    "altEntrance": 1,
+    "mode": "fall",
+    "note": "drops in from the top without control until Y >= $30"
+   },
+   "header": {
+    "raw": [
+     "$48",
+     "$01"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 1,
+    "timerSetting": 1,
+    "terrainCtrl": 1,
+    "bgScenery": 0,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_UndergroundArea3",
+    "enemyData": "E_UndergroundArea3",
+    "areaPointer": "$c2"
+   },
+   "meta": {
+    "enemyAreaPointers": [
+     {
+      "kind": "area_pointer",
+      "x": -15.0,
+      "ptr": "$a5",
+      "world": 1,
+      "entryPage": 10,
+      "usedInWorld1": true,
+      "raw": [
+       "$1e",
+       "$a5",
+       "$0a"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": -14.0,
+      "ptr": "$28",
+      "world": 2,
+      "entryPage": 7,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$28",
+       "$27"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": -14.0,
+      "ptr": "$33",
+      "world": 7,
+      "entryPage": 7,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$33",
+       "$c7"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 17.0,
+      "ptr": "$40",
+      "world": 1,
+      "entryPage": 7,
+      "usedInWorld1": true,
+      "raw": [
+       "$1e",
+       "$40",
+       "$07"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 18.0,
+      "ptr": "$30",
+      "world": 8,
+      "entryPage": 7,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$30",
+       "$e7"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 49.0,
+      "ptr": "$24",
+      "world": 3,
+      "entryPage": 4,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$24",
+       "$44"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 81.0,
+      "ptr": "$22",
+      "world": 4,
+      "entryPage": 10,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$22",
+       "$6a"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 82.0,
+      "ptr": "$23",
+      "world": 6,
+      "entryPage": 11,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$23",
+       "$ab"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 113.0,
+      "ptr": "$41",
+      "world": 4,
+      "entryPage": 8,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$41",
+       "$68"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 113.0,
+      "ptr": "$2a",
+      "world": 5,
+      "entryPage": 10,
+      "usedInWorld1": false,
+      "raw": [
+       "$1e",
+       "$2a",
+       "$8a"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 114.0,
+      "ptr": "$23",
+      "world": 6,
+      "entryPage": 2,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$23",
+       "$a2"
+      ]
+     },
+     {
+      "kind": "area_pointer",
+      "x": 114.0,
+      "ptr": "$32",
+      "world": 8,
+      "entryPage": 10,
+      "usedInWorld1": false,
+      "raw": [
+       "$2e",
+       "$32",
+       "$ea"
+      ]
+     }
+    ],
+    "areaNumber": 2,
+    "entryPage": 2,
+    "loopCommand": 0
+   }
+  },
+  "1-2/exit": {
+   "id": "1-2/exit",
+   "theme": "overworld",
+   "bg": "sky",
+   "scenery": "hills",
+   "style": "tree",
+   "floor": {
+    "terrainCtrl": 1,
+    "solidRows": [
+     13,
+     14
+    ],
+    "changes": []
+   },
+   "width": 32,
+   "x0": 176,
+   "scrollLock": false,
+   "rows": [
+    "................................",
+    "................................",
+    "......................P.........",
+    "......................|.........",
+    "......................|.........",
+    "............XX........|.........",
+    "...........XXX........|.........",
+    "..........XXXX........|.........",
+    ".........XXXXX........|.........",
+    "........XXXXXX........|.........",
+    ".......XXXXXXX........|.........",
+    "...[].XXXXXXXX........|.........",
+    "...{}XXXXXXXXX........F......*..",
+    "################################",
+    "################################"
+   ],
+   "contents": [],
+   "pipes": [],
+   "objects": [
+    {
+     "type": "pipe_piranha",
+     "x": 3.5,
+     "y": 11,
+     "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"
+    },
+    {
+     "type": "flagpole",
+     "x": 22,
+     "flagX": 21.5
+    },
+    {
+     "type": "castle",
+     "x": 26,
+     "y": 8,
+     "size": "small",
+     "doorX": 28,
+     "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"
+    },
+    {
+     "type": "castle_star_flag",
+     "x": 28,
+     "y": 9
+    }
+   ],
+   "enemies": [
+    {
+     "hard": false,
+     "neverSpawns": true,
+     "type": "goomba",
+     "x": -2.0,
+     "y": 12,
+     "group": true,
+     "dataX": 1.0,
+     "hardModeType": "buzzy"
+    },
+    {
+     "hard": false,
+     "neverSpawns": true,
+     "type": "goomba",
+     "x": -0.5,
+     "y": 12,
+     "group": true,
+     "dataX": 1.0,
+     "hardModeType": "buzzy"
+    }
+   ],
+   "time": 400,
+   "start": {
+    "x": 3.5,
+    "y": 10,
+    "py": 240,
+    "entranceCtrl": 2,
+    "altEntrance": 2,
+    "mode": "rise_from_pipe",
+    "note": "rises from below the screen until Y < $91"
+   },
+   "header": {
+    "raw": [
+     "$50",
+     "$21"
+    ],
+    "foregroundScenery": 0,
+    "bgColorCtrl": 0,
+    "entranceCtrl": 2,
+    "timerSetting": 1,
+    "terrainCtrl": 1,
+    "bgScenery": 2,
+    "areaStyle": 0,
+    "cloudOverride": false,
+    "areaData": "L_GroundArea6",
+    "enemyData": "E_GroundArea6",
+    "areaPointer": "$25"
+   },
+   "meta": {
+    "enemyAreaPointers": [
+     {
+      "kind": "area_pointer",
+      "x": -159.0,
+      "ptr": "$c2",
+      "world": 1,
+      "entryPage": 0,
+      "usedInWorld1": true,
+      "raw": [
+       "$1e",
+       "$c2",
+       "$00"
+      ]
+     }
+    ],
+    "areaNumber": 2,
+    "entryPage": 11,
+    "loopCommand": 0
+   }
+  }
+ }
+}

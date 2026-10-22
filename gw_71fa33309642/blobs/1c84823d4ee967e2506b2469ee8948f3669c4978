@@ -1,0 +1,291 @@
+{
+ "build": "/hutian/builds/build-4/game/w1",
+ "mode": "manual",
+ "browser": "chromium",
+ "frames_in_log": 794,
+ "seconds": 16.2,
+ "final": {
+  "fr": 1245,
+  "st": "play",
+  "lv": "1-3",
+  "ar": "main",
+  "x": 34,
+  "y": 194,
+  "sc": 300,
+  "co": 1,
+  "li": 2,
+  "t": 298,
+  "pw": 0,
+  "dead": false,
+  "i": 300
+ },
+ "trace": [
+  {
+   "fr": 152,
+   "st": "play",
+   "lv": "1-3",
+   "ar": "main",
+   "x": 34,
+   "y": 194,
+   "sc": 0,
+   "co": 0,
+   "li": 3,
+   "t": 300,
+   "pw": 0,
+   "dead": false,
+   "i": 1
+  },
+  {
+   "fr": 835,
+   "st": "dying",
+   "lv": "1-3",
+   "ar": "main",
+   "x": 905,
+   "y": 241,
+   "sc": 300,
+   "co": 1,
+   "li": 3,
+   "t": 272,
+   "pw": 0,
+   "dead": true,
+   "i": 684
+  },
+  {
+   "fr": 1035,
+   "st": "intro",
+   "lv": "1-3",
+   "ar": "main",
+   "x": 905,
+   "y": 241,
+   "sc": 300,
+   "co": 1,
+   "li": 2,
+   "t": 272,
+   "pw": 0,
+   "dead": true,
+   "i": 90
+  },
+  {
+   "fr": 1185,
+   "st": "play",
+   "lv": "1-3",
+   "ar": "main",
+   "x": 34,
+   "y": 194,
+   "sc": 300,
+   "co": 1,
+   "li": 2,
+   "t": 300,
+   "pw": 0,
+   "dead": false,
+   "i": 240
+  }
+ ],
+ "events": [
+  {
+   "type": "intro",
+   "frame": 1,
+   "level": "1-3",
+   "lives": 3
+  },
+  {
+   "type": "start",
+   "frame": 151,
+   "level": "1-3",
+   "area": "main"
+  },
+  {
+   "type": "goomba",
+   "frame": 422,
+   "res": null
+  },
+  {
+   "type": "death",
+   "frame": 835,
+   "x": 905,
+   "fell": true,
+   "time": 272
+  },
+  {
+   "type": "intro",
+   "frame": 1035,
+   "level": "1-3",
+   "lives": 2
+  },
+  {
+   "type": "start",
+   "frame": 1185,
+   "level": "1-3",
+   "area": "main"
+  }
+ ],
+ "sound_calls": [
+  {
+   "f": 1,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 151,
+   "k": "playMusic",
+   "a": [
+    "overworld",
+    "true"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 151,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 260,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 290,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 356,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 386,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 403,
+   "k": "play",
+   "a": [
+    "coin"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 422,
+   "k": "play",
+   "a": [
+    "stomp"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 500,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 530,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 578,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 698,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 746,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 835,
+   "k": "playMusic",
+   "a": [
+    "death",
+    "false"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 835,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 1035,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 1185,
+   "k": "playMusic",
+   "a": [
+    "overworld",
+    "true"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 1185,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  }
+ ],
+ "console": [],
+ "errors": [],
+ "failed": []
+}

@@ -1,0 +1,153 @@
+{
+ "coin_block_16_9": {
+  "coins": [
+   0,
+   1
+  ],
+  "score": [
+   0,
+   200
+  ],
+  "bump_events": [
+   {
+    "type": "bump",
+    "frame": 166,
+    "tx": 16,
+    "ty": 9,
+    "tile": 3
+   }
+  ]
+ },
+ "used_block_rehit": {
+  "coins": 1,
+  "score": 200
+ },
+ "mushroom_block_21_9": {
+  "items_after_12f": [
+   {
+    "t": "mushroom",
+    "x": 337,
+    "y": 140
+   }
+  ],
+  "items_after_32f": [
+   {
+    "t": "mushroom",
+    "x": 337,
+    "y": 130
+   }
+  ]
+ },
+ "note_mushroom": "mushroom spawned from used block cleared by tp; collection tested on block 78",
+ "mushroom_collect_78_9": {
+  "items_seen": [
+   {
+    "t": "mushroom",
+    "x": 1249,
+    "y": 131
+   }
+  ],
+  "power_after": 1,
+  "state_during": "transform",
+  "transform_frames": 48,
+  "score": 1200,
+  "events": [
+   {
+    "type": "power",
+    "frame": 422,
+    "power": 1
+   }
+  ]
+ },
+ "big_breaks_brick_77_9": {
+  "tile_now": 0,
+  "score_gain": 150,
+  "EMPTY": 0
+ },
+ "power_block_109_5_big": {
+  "items": [
+   {
+    "t": "flower",
+    "x": 1745,
+    "y": 64
+   }
+  ],
+  "power": 1
+ },
+ "flower_collected": {
+  "power": 2,
+  "transform_frames": 19
+ },
+ "fireball": {
+  "after_first_tap": [
+   [
+    1916,
+    188.79999999999998,
+    4,
+    -0.4000000000000006
+   ]
+  ],
+  "count_after_3_taps_quick": 2,
+  "later": []
+ },
+ "hidden_before_is_visible_tile": {
+  "tile": 17,
+  "HIDDEN": 17
+ },
+ "hidden_1up_64_8": {
+  "item": [
+   {
+    "t": "1up",
+    "x": 1028,
+    "y": 112
+   }
+  ],
+  "lives": [
+   3,
+   4
+  ],
+  "events": [
+   {
+    "type": "1up",
+    "frame": 951,
+    "lives": 4
+   }
+  ]
+ },
+ "multi_coin_brick_94_9": {
+  "coins_gained": 6,
+  "tile_after": 4,
+  "USED": 4,
+  "BRICK": 2,
+  "frames": 700
+ },
+ "star_brick_101_9": {
+  "item": [
+   {
+    "t": "star",
+    "x": 1620,
+    "y": 123.2
+   }
+  ],
+  "star_frames_left": 685,
+  "music": null
+ },
+ "star_duration_frames_total_est": null,
+ "star_actual_frames_after_pickup_plus36": 696,
+ "sound_calls": {
+  "stopMusic:": 4,
+  "playMusic:overworld": 2,
+  "play:jump_small": 20,
+  "play:coin": 8,
+  "play:bump": 22,
+  "play:powerup_appear": 5,
+  "play:powerup": 2,
+  "play:jump_big": 3,
+  "play:break": 1,
+  "play:kick": 3,
+  "play:fireball": 2,
+  "play:oneup": 1,
+  "playMusic:starman": 1
+ },
+ "console_errors": []
+}

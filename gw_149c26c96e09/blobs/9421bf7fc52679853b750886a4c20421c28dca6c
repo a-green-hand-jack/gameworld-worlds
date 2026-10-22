@@ -1,0 +1,60 @@
+import json, time, sys
+from playwright.sync_api import sync_playwright
+EV='/hutian/repo/playtest/evidence/pt3/'
+URL='http://localhost:8003/'
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+S="()=>{const g=SnakeGame.game;return {state:g.state,snake:g.snake.map(c=>[c.x,c.y]),food:g.food&&[g.food.x,g.food.y],score:g.score,dir:[g.dir.x,g.dir.y],cause:g.deathCause}}"
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    ctx=b.new_context(viewport={'width':1280,'height':800},record_video_dir=EV+'video',record_video_size={'width':640,'height':400})
+    pg=ctx.new_page()
+    pg.add_init_script("window.__plays=[];const _p=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.__plays.push(this.src.split('/').pop()+(this.loop?'(loop)':''));return _p.apply(this,arguments)}")
+    errs=[]
+    pg.on('console',lambda m: errs.append(('console',m.type,m.text)) if m.type in('error','warning') else None)
+    pg.on('pageerror',lambda e: errs.append(('pageerror',str(e))))
+    pg.on('requestfailed',lambda r: errs.append(('reqfailed',r.url)))
+    pg.on('response',lambda r: errs.append(('http',r.status,r.url)) if r.status>=400 else None)
+    pg.goto(URL); pg.wait_for_timeout(800)
+    pg.screenshot(path=EV+'01-title.png')
+    L('title text:',pg.inner_text('#title-screen').replace('\n',' | '))
+    L('hud hidden on title:',pg.evaluate("document.getElementById('hud').hidden"))
+    # scroll check
+    L('scrollY before arrows', pg.evaluate('scrollY'), 'doc h', pg.evaluate('document.documentElement.scrollHeight'), 'win h', 800)
+    pg.keyboard.press('ArrowDown'); 
+    L('state after ArrowDown on title:', pg.evaluate(S)['state'])
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(50)
+    s0=pg.evaluate(S); L('start',s0)
+    pg.screenshot(path=EV+'02-play-start.png')
+    # grid movement: sample head over 1s
+    t=time.time(); heads=[]
+    for i in range(10):
+        heads.append(pg.evaluate(S)['snake'][0]); pg.wait_for_timeout(60)
+    L('heads sampled (60ms apart):',heads)
+    # reversal test: moving right, press Left
+    pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(300)
+    s=pg.evaluate(S); L('after Left while going Right: dir',s['dir'],'state',s['state'])
+    # quick double turn: Up then Left within one tick
+    pg.keyboard.press('ArrowUp'); pg.keyboard.press('ArrowLeft'); 
+    pg.wait_for_timeout(40); 
+    trail=[]
+    for i in range(8):
+        trail.append(pg.evaluate(S)['snake'][0]); pg.wait_for_timeout(60)
+    s=pg.evaluate(S); L('double turn Up+Left trail',trail,'dir',s['dir'],'state',s['state'])
+    pg.screenshot(path=EV+'03-after-double-turn.png')
+    # pause
+    pg.keyboard.press('p'); pg.wait_for_timeout(100); a=pg.evaluate(S)['snake'][0]; pg.wait_for_timeout(500); b2=pg.evaluate(S)['snake'][0]
+    pg.screenshot(path=EV+'04-paused.png'); L('paused head unchanged:',a==b2, pg.evaluate(S)['state'])
+    pg.keyboard.press('p'); pg.wait_for_timeout(100)
+    # run until death by wall (whatever way)
+    for i in range(60):
+        if pg.evaluate(S)['state']=='over': break
+        pg.wait_for_timeout(100)
+    s=pg.evaluate(S); L('died',s['state'],s['cause'],'score',s['score'])
+    pg.screenshot(path=EV+'05-gameover-wall.png')
+    L('gameover text:',pg.inner_text('#gameover-screen').replace('\n',' | '))
+    L('errors:',errs); L('audio plays:',pg.evaluate('window.__plays')); L('asset status:',pg.evaluate('SnakeAssets.status'))
+    json.dump(errs,open('errs.json','w'))
+    ctx.close(); b.close()
+open(EV+'run1.log','w').write('\n'.join(log))

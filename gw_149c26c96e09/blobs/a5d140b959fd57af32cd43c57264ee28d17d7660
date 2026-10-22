@@ -1,0 +1,30 @@
+# QA report 1
+
+Covers: game-developer `25c0c9a416ed62d83763ddab68a7d689268f2685` + artist `aba47b954bd9086339e6aada5f30f1746618075e` (assembled `ht-role delivery`), served over http, headless Chromium (Playwright 1.64).
+Method: `qa/check.py DELIVERY OUT` — real key presses; deterministic stepping through the game's `SnakeGame` test hooks for rule checks, plus a real-time run (Enter, wait 2.5 s: snake hits the wall; Enter restarts). Raw results: `qa/evidence-1/results.json`, screenshots alongside.
+
+| Req | Result |
+|---|---|
+| R1 static index.html runs | PASS (http) |
+| R2 moves on grid by itself | PASS (head x 7→13 in 0.7 s, 120 ms/step) |
+| R3 arrows turn | PASS, all four |
+| R4 +1 cell | PASS |
+| R5 +1 point (model and HUD) | PASS |
+| R6 wall ends game | PASS, all four walls, also in real time |
+| R7 self collision | PASS; moving into the tail cell as it vacates is correctly not death |
+| R8 title screen, says how to start | PASS |
+| R9 score visible in play | PASS |
+| R10 game over with final score | PASS |
+| R11 play again, fresh state | PASS (button click and Enter/Space; score 0, length 3, HUD 0) |
+| P3 180° ignored | PASS |
+| P3 two quick turns in one tick | PASS (up+left applied in order; up+down not a self-reversal) |
+| P3 food never on snake | PASS (300 eats with a 60-cell snake) |
+| P3 arrows don't scroll | PASS |
+| P3 speed | 120 ms/step, playable |
+| P4 fits 1024x640 … 1920x1080 | PASS |
+| no console errors | **FAIL** — 11x 404 (game-developer#3) |
+
+Observation, not a defect: the turn queue holds 2 pending turns, so a third key within one 120 ms tick is dropped.
+Not covered: audio quality (no listening done), touch (out of scope).
+
+Open defects: game-developer#3 (404s, art never displayed; art is therefore unverified in the game).
