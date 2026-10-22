@@ -1,0 +1,108 @@
+{
+  "cell": 32,
+  "format": 1,
+  "images": {
+    "bg_a": {
+      "path": "assets/img/bg_a.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "checker tile A"
+    },
+    "bg_b": {
+      "path": "assets/img/bg_b.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "checker tile B (alternate with A)"
+    },
+    "wall": {
+      "path": "assets/img/wall.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "border cell"
+    },
+    "body": {
+      "path": "assets/img/body.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "snake body segment"
+    },
+    "head_up": {
+      "path": "assets/img/head_up.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "head facing up"
+    },
+    "head_down": {
+      "path": "assets/img/head_down.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "head facing down"
+    },
+    "head_left": {
+      "path": "assets/img/head_left.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "head facing left"
+    },
+    "head_right": {
+      "path": "assets/img/head_right.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "head facing right"
+    },
+    "food": {
+      "path": "assets/img/food.png",
+      "size": [
+        32,
+        32
+      ],
+      "use": "food"
+    },
+    "logo": {
+      "path": "assets/img/logo.png",
+      "size": [
+        480,
+        120
+      ],
+      "use": "title screen logo"
+    }
+  },
+  "audio": {
+    "eat": {
+      "path": "assets/audio/eat.wav",
+      "seconds": 0.15,
+      "use": "food eaten"
+    },
+    "gameover": {
+      "path": "assets/audio/gameover.wav",
+      "seconds": 0.85,
+      "use": "snake died"
+    },
+    "start": {
+      "path": "assets/audio/start.wav",
+      "seconds": 0.32,
+      "use": "game starts"
+    },
+    "turn": {
+      "path": "assets/audio/turn.wav",
+      "seconds": 0.04,
+      "use": "direction change (optional, quiet)"
+    }
+  }
+}

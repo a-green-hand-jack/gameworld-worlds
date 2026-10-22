@@ -1,0 +1,55 @@
+{
+  "cell": 32,
+  "images": {
+    "board-tile.png": {
+      "size": [
+        32,
+        32
+      ]
+    },
+    "food.png": {
+      "size": [
+        32,
+        32
+      ]
+    },
+    "snake-body.png": {
+      "size": [
+        32,
+        32
+      ]
+    },
+    "snake-head.png": {
+      "size": [
+        32,
+        32
+      ]
+    },
+    "snake-tail.png": {
+      "size": [
+        32,
+        32
+      ]
+    },
+    "title-logo.png": {
+      "size": [
+        400,
+        140
+      ]
+    }
+  },
+  "audio": {
+    "eat.wav": {
+      "seconds": 0.13
+    },
+    "gameover.wav": {
+      "seconds": 0.85
+    },
+    "music.wav": {
+      "seconds": 4.8
+    },
+    "start.wav": {
+      "seconds": 0.32
+    }
+  }
+}
