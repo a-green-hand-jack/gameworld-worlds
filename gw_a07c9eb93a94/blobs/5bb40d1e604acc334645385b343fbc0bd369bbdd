@@ -1,0 +1,20 @@
+# Brief
+
+## What the input asks (quoted)
+> 做一个单屏网页小游戏：空格键让小方块跳过迎面而来的障碍，碰到就结束，屏幕上显示分数和最高分，打开 index.html 就能玩。能玩的 build 打成 zip（解压后 index.html 在根目录）作为 release 文件发布。
+
+## Requirements
+1. Single-screen web game; opens by double-clicking `index.html` (no server, no build step, no network dependency at runtime).
+2. Space key makes a small square jump; obstacles approach from the right; jumping over them is the core play.
+3. Touching an obstacle ends the game (game-over state, with a way to restart, e.g. Space).
+4. Score and high score are always visible on screen. High score persists at least within the session (localStorage if available, with graceful fallback when blocked under file://).
+5. A playable build is packaged as a zip with `index.html` at the zip root, published as a release file in the game-developer repository.
+
+## Focus and priorities (this round)
+1. Correct, fun-feeling core loop: reliable jump, fair obstacle spacing, gradually rising speed, no unwinnable gaps.
+2. Score/high score clearly visible; game-over and restart clear.
+3. Self-contained deliverable: all art is drawn in code (canvas/CSS) so no asset files are needed; zip contains everything.
+4. Playtest the released zip (unzipped, opened as file://) before acceptance.
+
+## Not established
+Language of on-screen text (input is Chinese; use Chinese or bilingual labels), exact visuals and difficulty curve are left to game-developer.

@@ -1,0 +1,5 @@
+# game-developer
+
+GameWorld role: game-developer
+## Run
+Serve this directory (`python3 -m http.server 8000`) and open http://localhost:8000/ . Click the button: it plays `sound/beep.wav` and shows the click count.

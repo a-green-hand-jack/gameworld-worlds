@@ -1,0 +1,25 @@
+PASS [http] R6 title shown on load, no play yet
+PASS [http] R6 non-start keys do not start the game
+PASS [http] R6 Space starts play
+PASS [http] R4 ArrowUp moves paddle up and clamps at top  [210->102->0]
+PASS [http] R4 ArrowDown moves paddle down and clamps at bottom (420)  [420]
+PASS [http] R4 W moves up  [420->291]
+PASS [http] R4 S moves down  [291->420]
+PASS [http] edge: Up+Down together -> paddle stays  [420->420]
+PASS [http] edge: paddle stops on key release
+PASS [http] R1 no console/page errors, no failed/404 requests
+PASS [file] R6 title shown on load, no play yet
+PASS [file] R6 non-start keys do not start the game
+PASS [file] R6 Space starts play
+PASS [file] R4 ArrowUp moves paddle up and clamps at top  [210->102->0]
+PASS [file] R4 ArrowDown moves paddle down and clamps at bottom (420)  [420]
+PASS [file] R4 W moves up  [420->291]
+PASS [file] R4 S moves down  [291->413]
+PASS [file] edge: Up+Down together -> paddle stays  [420->420]
+PASS [file] edge: paddle stops on key release
+PASS [file] R1 no console/page errors, no failed/404 requests
+PASS mouse click on canvas starts game (extra)
+PASS layout 1920x1080: canvas fits viewport  [[1600, 1000, 160, 40]]
+PASS layout 640x400: canvas fits viewport  [[640, 400, 0, 0]]
+PASS layout 420x800: canvas fits viewport  [[420, 263, 0, 268.5]]
+DONE basic fail= 0

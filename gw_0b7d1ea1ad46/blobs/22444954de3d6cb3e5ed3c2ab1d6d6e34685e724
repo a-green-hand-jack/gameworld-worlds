@@ -1,0 +1,13 @@
+# Asset integration check
+
+Assembled build: artist `0ba1b5acc21c63811bf7accb9b0ba59c4e7980c3` + game-developer `3759012acd556ff063ab146fee37739a49205d21` + producer assignment `c2693e428ba55d21e05be08478220bccd6a36057`. Captured with Playwright 1.64.0, Chromium 156.0.8078.4, loading `index.html` using `file://`, viewport 1280 × 720.
+
+- `title.png`: ship and starfield render on the opening screen.
+- `play.png`: moving ship, three warm amber meteor variants, starfield and HUD visible during play (~1.8 seconds after starting).
+- Explicit `new Image()` local load check returned dimensions `background=800×600`, `ship=64×64`, and each `meteor=72×72`; zero page errors.
+- Developer's `tests/smoke.py` passes on assembled build (`OK high=20`), including keyboard movement, pause, collision, reload high score.
+- Headless test container has no Chinese-capable fonts; Chinese UI glyphs appear as missing-glyph rectangles in the screenshots. This is outside the SVG artwork and should be addressed by the game-developer if the game must display Chinese on font-free machines.
+
+## Recheck after UI fallback
+
+Assembled build: artist `098d50db5e464089912997def23c6b5c7544445b` + game-developer `b0d8f801917ea3f6a05645ad57a3cb7097bfa14c`, using `file://` in Chromium 156.0.8078.4. `v03-title.png` and `v03-play.png` show the now-English-only HUD/title/instructions in this font-free environment: no missing glyphs, and the SVG ship, meteor and starfield remain legible. Browser reported `__game.hasCJK === false`, no page errors; developer smoke test passed (`OK high=20`). Older screenshots above preserve the original defect evidence.

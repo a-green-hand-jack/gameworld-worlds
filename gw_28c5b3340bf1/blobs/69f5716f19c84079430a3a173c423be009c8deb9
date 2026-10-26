@@ -1,0 +1,68 @@
+// Loads the artist's assets (see docs/assets.md). A missing file is logged
+// as a warning and the renderer falls back to plain shapes, so the game
+// stays playable while art is in progress.
+(function (global) {
+  'use strict';
+
+  var IMAGES = {
+    head: 'assets/img/snake_head.png',
+    body: 'assets/img/snake_body.png',
+    bodyAlt: 'assets/img/snake_body_alt.png',
+    food: 'assets/img/food.png',
+    tile: 'assets/img/tile.png',
+    wall: 'assets/img/wall.png'
+  };
+  var SOUNDS = {
+    start: 'assets/audio/start.wav',
+    eat: 'assets/audio/eat.wav',
+    turn: 'assets/audio/turn.wav',
+    gameover: 'assets/audio/gameover.wav'
+  };
+
+  function loadImage(src) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () {
+        console.warn('asset missing, using fallback drawing: ' + src);
+        resolve(null);
+      };
+      img.src = src;
+    });
+  }
+
+  function loadSound(src) {
+    return new Promise(function (resolve) {
+      var audio = new Audio();
+      var done = false;
+      function finish(value) { if (!done) { done = true; resolve(value); } }
+      audio.preload = 'auto';
+      audio.addEventListener('canplaythrough', function () { finish(audio); });
+      audio.addEventListener('error', function () {
+        console.warn('asset missing, playing no sound: ' + src);
+        finish(null);
+      });
+      // Do not hold the title screen on a slow or silent audio backend.
+      setTimeout(function () { finish(audio.error ? null : audio); }, 3000);
+      audio.src = src;
+      audio.load();
+    });
+  }
+
+  function loadAll() {
+    var images = {};
+    var sounds = {};
+    var jobs = [];
+    Object.keys(IMAGES).forEach(function (k) {
+      jobs.push(loadImage(IMAGES[k]).then(function (img) { images[k] = img; }));
+    });
+    Object.keys(SOUNDS).forEach(function (k) {
+      jobs.push(loadSound(SOUNDS[k]).then(function (a) { sounds[k] = a; }));
+    });
+    return Promise.all(jobs).then(function () {
+      return { images: images, sounds: sounds };
+    });
+  }
+
+  global.SnakeAssets = { IMAGES: IMAGES, SOUNDS: SOUNDS, loadAll: loadAll };
+})(window);

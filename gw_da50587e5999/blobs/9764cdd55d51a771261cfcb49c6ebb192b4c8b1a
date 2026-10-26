@@ -1,0 +1,42 @@
+{
+ "id": "v1_Chc2N2pXYXVyTEpaZVB2ZElQdDlhNm9BMBIXNjdqV2F1ckxKWmVQdmRJUHQ5YTZvQTA",
+ "status": "completed",
+ "usage": {
+  "total_tokens": 1437,
+  "total_input_tokens": 55,
+  "input_tokens_by_modality": [
+   {
+    "modality": "audio",
+    "tokens": 13
+   },
+   {
+    "modality": "text",
+    "tokens": 42
+   }
+  ],
+  "total_cached_tokens": 0,
+  "total_output_tokens": 198,
+  "total_tool_use_tokens": 0,
+  "total_thought_tokens": 1184
+ },
+ "created": "2026-10-20T00:42:34Z",
+ "updated": "2026-10-20T00:42:34Z",
+ "service_tier": "standard",
+ "steps": [
+  {
+   "signature": "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",
+   "type": "thought"
+  },
+  {
+   "content": [
+    {
+     "text": "Here is a detailed breakdown of the audio:\n\n- **Audio Content**: A single, short, low-frequency pure sine wave tone (a low beep/pulse).\n- **Timing**: \n  - **00:00.00 \u2013 ~00:00.35 (0 to ~0.35 s)**: The low tone plays.\n  - **~00:00.35 \u2013 end**: Complete silence.\n- **Pitch / Frequency**: Approximately **150\u2013200 Hz** (a low bass/mid-bass tone).\n- **Fading**: The tone has a gentle decay/fade-out at its tail to avoid an abrupt click/transient.\n- **Silence**: Occurs after the tone decays, from around **0.35 seconds to the end** of the file.\n- **Total Duration**: Approximately **0.6 to 0.8 seconds**.",
+     "type": "text"
+    }
+   ],
+   "type": "model_output"
+  }
+ ],
+ "object": "interaction",
+ "model": "gemini-3.8-flash"
+}

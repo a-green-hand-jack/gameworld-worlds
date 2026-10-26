@@ -1,0 +1,5 @@
+# Brief: Click Ten
+Objective (quoted): "Make "Click Ten" as a tiny web game played in the browser: one page with a button and a counter; each click adds one, and at ten clicks the game shows "You did it!" and a button to play again, which resets the counter to zero. One HTML file with its script and style inside it; no images, sound or libraries."
+
+Priorities: single `index.html` (inline script/style); counter starts 0; click +1; at 10 show "You did it!" and a play-again button, hide/disable the click button; play again resets to 0. No external assets.
+Unknown: file name (chosen: index.html at game-developer repo root).

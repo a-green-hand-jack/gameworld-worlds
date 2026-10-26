@@ -1,0 +1,8 @@
+PASS start: player on the ground, not won x=40
+PASS run right x 40 -> 100
+PASS run left x 100 -> 37
+PASS jump leaves the ground y 260 -> 199
+PASS cross the gap x=460 falls=0
+FAIL reach the flag won=false flag=(544,128) player=(612,260)
+PASS no page errors 
+SMOKE FAILED (1)

@@ -1,0 +1,60 @@
+[
+  {
+    "step": "open index.html",
+    "url": "file:///tmp/playtest-delivery-ad596e09/index.html",
+    "state": "title",
+    "score": 0,
+    "high": 0
+  },
+  {
+    "step": "Enter then ArrowLeft 400ms",
+    "before": {
+      "x": 400,
+      "y": 520,
+      "state": "play"
+    },
+    "after": {
+      "x": 279.97000000000037,
+      "y": 520,
+      "state": "play"
+    }
+  },
+  {
+    "step": "P pause",
+    "state": "pause"
+  },
+  {
+    "step": "P resume",
+    "state": "play"
+  },
+  {
+    "step": "play until collision or 20s",
+    "result": {
+      "state": "over",
+      "score": 46,
+      "high": 46,
+      "rocks": 5
+    },
+    "elapsed_wall_s": 3.9
+  },
+  {
+    "step": "Enter restart",
+    "result": {
+      "state": "play",
+      "score": 2,
+      "high": 46
+    }
+  },
+  {
+    "step": "reload",
+    "result": {
+      "state": "title",
+      "score": 0,
+      "high": 46
+    }
+  },
+  {
+    "step": "errors",
+    "result": []
+  }
+]

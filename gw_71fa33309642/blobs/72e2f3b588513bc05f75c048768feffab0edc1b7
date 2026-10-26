@@ -1,0 +1,31 @@
+{
+ "1-1_koopas": [
+  [
+   1693,
+   186,
+   -0.5,
+   -1,
+   "green"
+  ]
+ ],
+ "1-1_koopa_walking_left": {
+  "x": 1693,
+  "y": 186,
+  "vx": -0.5,
+  "facing": -1
+ },
+ "1-1_koopa_walking_right_after_instrumented_flip": {
+  "x": 1694,
+  "y": 186,
+  "vx": 0.5,
+  "facing": 1
+ },
+ "1-3_koopas": [],
+ "1-4_bowser": [
+  2132,
+  130,
+  -0.5,
+  -1
+ ],
+ "code": "NOT A BUILD-4 FINDING: this text is hard-coded in tools/probe_facing.py and describes build-3 (flip = facing > 0). Build-4 has flip = facing < 0 (src/enemies.js:166); see the crops next to this file."
+}

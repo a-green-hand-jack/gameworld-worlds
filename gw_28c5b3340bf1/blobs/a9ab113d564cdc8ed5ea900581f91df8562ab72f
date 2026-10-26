@@ -1,0 +1,21 @@
+title: screen title title visible True hud hidden True
+page scroll size [768, 768, 1366, 1366]
+arrow on title -> screen title
+after Enter playing [{'x': 10, 'y': 10}, {'x': 9, 'y': 10}, {'x': 8, 'y': 10}] right
+0.5s later head {'x': 15, 'y': 10} moved 5 cells (tick 120ms => ~4)
+reverse press: over False dir right
+quick Up+Left from right: dir left over False head {'x': 14, 'y': 9}
+idle death: cause wall screen gameover
+gameover visible True final 0 cause text You ran into the wall. button Play again
+play again 1: screen playing score 0 len 3 head {'x': 10, 'y': 10} dir right
+bot: score 3 len 6 over False
+hud score text 3
+paused screen paused head frozen True
+resumed playing
+bot2: score 10 len 13 over False hud 10
+self-collision attempt: over True cause self len 13
+final shown 10 score 10 newbest True You ran into yourself.
+play again 2 (click): screen playing score 0 len 3 hud 0
+play again 3 (Space): screen playing score 0 len 3
+after mash: over False None
+console issues []

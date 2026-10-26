@@ -1,0 +1,52 @@
+import sys, json
+from playwright.sync_api import sync_playwright
+mode, url = sys.argv[1], sys.argv[2]
+OUT='/hutian/repo/playtest'
+log={}
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+    ctx=b.new_context(viewport={'width':1280,'height':800},record_video_dir=f'{OUT}/video-{mode}',record_video_size={'width':1280,'height':800})
+    pg=ctx.new_page(); errs=[]
+    pg.on('console',lambda m:errs.append(m.type+': '+m.text)); pg.on('pageerror',lambda e:errs.append('pageerror '+str(e)))
+    pg.goto(url); pg.wait_for_timeout(500)
+    log['protocol']=pg.evaluate('location.protocol')
+    pg.screenshot(path=f'{OUT}/shots/play2-{mode}-1-title.png')
+    pg.evaluate("""()=>{window.__ev=[];document.querySelectorAll('.hole').forEach((h,i)=>{new MutationObserver(()=>{window.__ev.push([i,h.classList.contains('up'),performance.now()])}).observe(h,{attributes:true,attributeFilter:['class']})});window.__c=[];document.querySelectorAll('.hole').forEach((h,i)=>h.addEventListener('pointerdown',()=>{window.__c.push([i,window.__whack.upHole===i])},true))}""")
+    pg.click('#start-btn'); pg.wait_for_timeout(200)
+    def clickhole(i):
+        bx=pg.locator('.hole').nth(i).bounding_box(); pg.mouse.click(bx['x']+bx['width']/2,bx['y']+bx['height']/2)
+    def play(seconds_hits_until_phase_end, shots):
+        n=0
+        while pg.evaluate("window.__whack.phase")=='playing':
+            idx=pg.evaluate("window.__whack.upHole")
+            if idx>=0:
+                pg.wait_for_timeout(200)
+                if pg.evaluate("window.__whack.upHole")==idx:
+                    if shots and n==1: pg.screenshot(path=f'{OUT}/shots/play2-{mode}-{shots}-mole-up.png')
+                    clickhole(idx); n+=1; pg.wait_for_timeout(50)
+                    if shots and n==1: pg.screenshot(path=f'{OUT}/shots/play2-{mode}-{shots}-after-hit.png')
+                    # also click a definitely-empty hole now (mole just hit, upHole==-1)
+                    clickhole((idx+4)%9) if pg.evaluate("window.__whack.upHole")!=(idx+4)%9 else None
+            pg.wait_for_timeout(15)
+        return n
+    n1=play(0,'2')
+    st=pg.evaluate("[window.__whack.score,window.__whack.hits,window.__whack.soundsPlayed]")
+    log['round1']={'clicks_on_up_mole':n1,'score_hits_sounds':st}
+    pg.wait_for_timeout(300)
+    log['round1']['final_shown']=pg.inner_text('#final-score')
+    pg.screenshot(path=f'{OUT}/shots/play2-{mode}-3-end.png')
+    ev=pg.evaluate("window.__ev"); ups={}; durs=[]
+    for i,up,t in ev:
+        if up: ups[i]=t
+        elif i in ups: durs.append(round(t-ups.pop(i)))
+    log['up_durations_ms_max']=max(durs); log['n_appearances']=len(durs)
+    c=pg.evaluate("window.__c"); log['empty_clicks_made']=sum(1 for x in c if not x[1])
+    log['sound']=pg.evaluate("(()=>{const s=window.__whackSound;return s?s.duration:null})()")
+    pg.click('#again-btn'); pg.wait_for_timeout(300)
+    log['replay_start']=[pg.inner_text('#score'),pg.inner_text('#time')]
+    pg.screenshot(path=f'{OUT}/shots/play2-{mode}-4-replay.png')
+    n2=play(0,'5')
+    log['round2']={'clicks_on_up_mole':n2,'score_hits_sounds':pg.evaluate("[window.__whack.score,window.__whack.hits,window.__whack.soundsPlayed]"),'final_shown':pg.inner_text('#final-score')}
+    log['console']=errs
+    ctx.close(); b.close()
+print(mode,json.dumps(log))

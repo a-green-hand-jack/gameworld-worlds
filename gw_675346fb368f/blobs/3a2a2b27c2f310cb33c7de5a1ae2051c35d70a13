@@ -1,0 +1,24 @@
+{
+ "results": [
+  {
+   "match": 1,
+   "winner": "cpu",
+   "score": [
+    0,
+    5
+   ],
+   "secs": 24,
+   "longest_rally_hits": 6,
+   "ball_stuck": false
+  }
+ ],
+ "errors": [],
+ "log": [
+  "match 1: score 0-1 at 2s",
+  "match 1: score 0-2 at 17s",
+  "match 1: score 0-3 at 19s",
+  "match 1: score 0-4 at 21s",
+  "{\"match\": 1, \"winner\": \"cpu\", \"score\": [0, 5], \"secs\": 24, \"longest_rally_hits\": 6, \"ball_stuck\": false}",
+  "console/page errors: []"
+ ]
+}

@@ -1,0 +1,91 @@
+import time, json, sys
+from playwright.sync_api import sync_playwright
+OUT='/hutian/repo/playtest'
+log=[]
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+    ctx=b.new_context(viewport={'width':1280,'height':800},record_video_dir=OUT+'/video',record_video_size={'width':1280,'height':800})
+    pg=ctx.new_page()
+    errs=[]
+    pg.on('console',lambda m:errs.append(m.type+': '+m.text))
+    pg.on('pageerror',lambda e:errs.append('pageerror '+str(e)))
+    pg.goto('http://localhost:8000/')
+    pg.wait_for_timeout(500)
+    pg.screenshot(path=OUT+'/shots/1-title.png')
+    # observe mole up/down durations in-page
+    pg.evaluate("""()=>{window.__ev=[];const t0=performance.now();
+      document.querySelectorAll('.hole').forEach((h,i)=>{new MutationObserver(()=>{window.__ev.push([i,h.classList.contains('up'),h.classList.contains('hit'),performance.now()])}).observe(h,{attributes:true,attributeFilter:['class']})})}""")
+    pg.click('#start-btn')
+    t_start=time.time()
+    pg.screenshot(path=OUT+'/shots/2-play-start.png')
+    clicks=0; shot=False
+    def click_up():
+        global clicks
+        idx=pg.evaluate("window.__whack.upHole")
+        if idx>=0:
+            box=pg.locator('.hole').nth(idx).bounding_box()
+            pg.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2)
+            return idx
+        return -1
+    # phase 1: hit ~8 moles with reaction delay 250ms, screenshot a mole up
+    hits_target=8
+    while pg.evaluate("window.__whack.hits")<hits_target:
+        idx=pg.evaluate("window.__whack.upHole")
+        if idx>=0:
+            pg.wait_for_timeout(250)
+            if pg.evaluate("window.__whack.upHole")==idx:
+                if not shot:
+                    pg.screenshot(path=OUT+'/shots/3-mole-up.png'); shot=True
+                click_up()
+                pg.wait_for_timeout(60)
+                if clicks==0: pg.screenshot(path=OUT+'/shots/4-after-hit.png')
+                clicks+=1
+        pg.wait_for_timeout(15)
+    log.append(('after 8 hits',pg.evaluate("[window.__whack.score,window.__whack.hits,window.__whack.soundsPlayed,window.__whack.timeLeft]")))
+    # empty-hole click and late click
+    s0=pg.evaluate("window.__whack.score")
+    for _ in range(20):
+        up=pg.evaluate("window.__whack.upHole")
+        e=[i for i in range(9) if i!=up][0]
+        box=pg.locator('.hole').nth(e).bounding_box()
+        pg.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2)
+        pg.wait_for_timeout(20)
+    log.append(('empty clicks scored', pg.evaluate("window.__whack.score")-s0))
+    # double-click on mole (same appearance)
+    while pg.evaluate("window.__whack.upHole")<0: pg.wait_for_timeout(10)
+    idx=pg.evaluate("window.__whack.upHole"); s0=pg.evaluate("window.__whack.score")
+    box=pg.locator('.hole').nth(idx).bounding_box()
+    for _ in range(5): pg.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2,delay=0)
+    log.append(('5 rapid clicks on one mole scored', pg.evaluate("window.__whack.score")-s0))
+    pg.screenshot(path=OUT+'/shots/5-play-mid.png')
+    # rest: idle, don't click, until end
+    while pg.evaluate("window.__whack.phase")=='playing':
+        pg.wait_for_timeout(100)
+    t_end=time.time()
+    log.append(('round wall seconds',round(t_end-t_start,2)))
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=OUT+'/shots/6-end.png')
+    log.append(('final shown',pg.inner_text('#final-score'),'state score',pg.evaluate("window.__whack.score")))
+    ev=pg.evaluate("window.__ev")
+    # durations
+    ups={}; durs=[]
+    for i,up,hit,t in ev:
+        if up: ups[i]=t
+        elif i in ups: durs.append(round(t-ups.pop(i))); 
+    log.append(('mole up durations ms (incl. hit-shortened)',durs))
+    # replay
+    pg.click('#again-btn'); pg.wait_for_timeout(300)
+    log.append(('replay score/time',pg.inner_text('#score'),pg.inner_text('#time')))
+    pg.screenshot(path=OUT+'/shots/7-replay.png')
+    # hit in replay, no idle
+    n=0; 
+    while n<3:
+        if pg.evaluate("window.__whack.upHole")>=0:
+            pg.wait_for_timeout(200); click_up(); n+=1; pg.wait_for_timeout(100)
+        pg.wait_for_timeout(15)
+    log.append(('replay score after 3 hits',pg.inner_text('#score')))
+    # time display check
+    log.append(('hole count',pg.locator('.hole').count()))
+    log.append(('console',errs))
+    ctx.close(); b.close()
+print(json.dumps(log,indent=1))

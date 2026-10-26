@@ -1,0 +1,21 @@
+# Brief: pixel-art night sky
+
+## What the input asks (quoted)
+> 用图像生成模型生成一张 800×600 的像素风夜空背景 PNG（不要用代码画），提交到美术仓库的 assets/sky.png，并在仓库里写明它是怎样生成的。
+
+## Focus and priorities
+1. `assets/sky.png` exists in the artist repository: a real PNG, exactly 800x600, pixel-art night sky (stars, moon/gradient or similar), usable as a game background.
+2. It must be produced by an image-generation model, not drawn with code (no PIL/canvas/numpy procedural drawing of the picture itself). Post-processing needed to meet size/format (resize/nearest-neighbour downscale, palette quantisation, PNG conversion) is allowed only if disclosed, and the content must come from the model.
+3. The repository documents the generation: model name/version and how it was reached, exact prompt(s) and parameters, seed if any, raw output size, every post-processing step and its tool, date. Honest: if something is unknown, say so.
+
+## Acceptance standard
+- File at the path, valid PNG, 800x600 verified by running a check.
+- Looks like pixel art and a night sky when viewed (I will open the image).
+- Generation note present in the artist repo under `assets/` and consistent with how the file was really made; no code-drawn image.
+- If no image-generation model is reachable, the artist must report that with evidence rather than substitute a code-drawn image.
+
+## Not established
+- Which image-generation model/endpoint is available in this world; the artist owns finding out.
+
+## Split
+Artist delivers `assets/` (sky.png + generation note). Producer: brief, assignment, acceptance. No build/quality/playtest positions; none are needed.

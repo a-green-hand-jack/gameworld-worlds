@@ -1,0 +1,18 @@
+# Acceptance record
+
+Delivery: game-developer main 74ba904c973dacc63235eee878dc806893f6a562 (index.html), release v1.2 `jump-game-v1.2.zip`.
+
+Inspected by producer:
+- Downloaded the v1.2 zip: contains `index.html` at the root (plus README.md); `index.html` is byte-identical to main at 74ba904 (v1.2 tag = that commit).
+- Read index.html: Space jumps, collision ends game, Space restarts, score and best score drawn on canvas, localStorage guarded with in-memory fallback, speed capped at 560 px/s, distance-based spawn gaps (edge gap = speed x 0.9-1.6 s vs 0.67 s airtime).
+- Earlier findings (game-developer#3: unwinnable spacing, unguarded storage) are fixed in v1.2.
+
+Checks/playtests:
+- game-developer checks/RESULTS.md: smoke (file://, headless Chromium) and timing bot survived 45 s, no errors.
+- playtester playtest/v1.2.md at aa9a7364b185: all brief requirements observed working via file://, real Space presses; bot survived at capped speed with timing noise; no blockers; screenshots 01-07 reviewed (05, 06 by producer). Its one caveat (zip layout) is covered by my zip inspection above.
+
+Not done: no human-in-the-loop play; I did not run the browser checks myself (no Playwright in my sandbox); other browsers untested.
+
+Open minor notes (not blocking, accepted): easy/flat difficulty; best score updates only on death; instant restart on Space after death (no lockout).
+
+Conclusion: approved.

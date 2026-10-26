@@ -1,0 +1,42 @@
+{
+  "id": "v1_ChdVY1RXYXVUVE5NRy12ZElQb2M2RHFRaxIXVWNUV2F1VFROTUctdmRJUG9jNkRxUWs",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 500,
+    "total_input_tokens": 47,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 40
+      },
+      {
+        "modality": "audio",
+        "tokens": 7
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 120,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 333
+  },
+  "created": "2026-10-20T01:31:02Z",
+  "updated": "2026-10-20T01:31:02Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "EuAJCt0JAWkUfRNDmhBElMTy1Cj9SieDrrmA0bGK6II7XYmAH+bxv3bfy3usLPBMHf+Fm2pb74+mhE/6bAJjDKvM4G4xObE+TgKpOpB4leBzLX53gsHJCXcXj18jndmbumsf7OANirMa0TYoSPS7ihuaEDiN6UeyNU5chI4gy7wj0Lhs55hJRlQtRP4LnFbaDXvR7aWuh8qwZiBX6XtBJwVztUv93LpayKYRwgVIGQRhOQxUE+K9NSMMz4i2Sby4e+P4JJj+kuPVQfZSQfBSGX9C10+aqf1sQIq+ORyPQLS9lm6rZKd7oY4IUh71Aq/7JOriCaCcmP9UYRzyQywtWB+McqM8U07vGcqvCiWRSRxh95rT1qIMuFDOgbh/vNO+ACEMwcD2tgZjDN0YkFaDsWlQAgiTZTiA72Nh94LO+4xGFKePm/bmfh0+76902CHxpdeXZ8FltluP/6Es/jbcIN0SLil9ouVIAX8s/fJp6AgOibORn2ZePg5DXzuX5dd6jLMAWsbI4B0jt9XC+Llf9UkUExEoSRWPB9+bFMg0W0aYgURuZ95AFnhzEQs2fq+n6MREhPeoPlOn7S+l5aWZTjVOO5sC3flyy6P74eT1OSGLP70sibsJYL0RZWnj2uNKtguNJuUOAlTcWjki7ZwuVtmpKqdfsIuXRyPht6iY/TSICiABrEsfjfw18z1vokt0zNxwUx1ehJYpnWAoM0QLqgeCGXJCI7NKxZ9VzZcDfBdt9TePkhvryd3LVR9Or/oSVNhrvKM/NxiolhECZ8o4SmnNaHMaL/QkFzSnCLLTTzK6Pgivk91HfymreHy2Xmm4vhW0ugnbLYMfjIv7E9N2zw2Jbv/nZ9MDWwszLwtG+GV8bJqYJtlz72CxyiCcUs0ZGtvAOPkbzUPUvGE8Rx2gs2cxlZ98qRV7OLKSUBZMZN8rmEmTHs2Emp0Idi94xR4Pgrlh1isSfHIQ6bIbYV6BVpY1cHMj+BmJZsvU86K3BILsboZ6qpSnWi2o/nn2GZeLkAa3nnyMPZ09wZMY99Z27SWkDuM8Kqq2FmUDojImCUBjzv+zOoB1W8Fjdb3Tu4ugeXtuvttlu6DG5G6yBFy5sby7Tj82ZQrpPtOt96iexM/H/QR1eUXAjApV+iG46GYQrr12vpBwbXPZymJUYmqnVSFAdkWWmKIF9YgXZ2+7VmskWbJPPxR7PYKWnuvREaETJEffRjrvoDYa8MnsX+KHiBcWWKj0Jv7uJWOCSlFayRmQVP1+pz9XVTqEU6d+Te1kn+wgNiKf4VIjaB81JW36iZ3e502Xu85FdYm9j/Cw9Oz89cyHge160DdTw5aCLJ5acvTW2Pz0ua9UMraIIhAf7G73WFIfFKdUk6PU56iqKPKh6q1dlmwClxxbKL4Jhv1rNBW2T+A4FSuaTVYCJcZ9Da1TTh4DGzsKEGOcxKg10Y2mND5AxM+8Df7msITAlB3NsLE+BfeXAJFgPGTDDntQN1HZuiTAu6KHpP2AJcK3zdu2oJQYaPi29EmcgYXyGCCafi3cCGwpar3gsH9Yg0ZeA3qpsrC1yfH5tku2z5oxKl0OIkJl8ujurqacJ6n+JrAo9zrSZRMWPTuCvCq0C0CVKzR4CLtOQhDoleLS7EJOKlGloRNoMxUOk1UX4n2Jhz7BiCnG",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "Here are the details of the audio clip:\n\n* **What you hear:** A single hit from a **bass drum (kick drum)** or a deep, low-frequency percussive thump.\n* **Duration:** Approximately **0.5 to 0.6 seconds**.\n* **Sound characteristics:** \n  * **Short and percussive:** It has a sharp, punchy initial transient (attack) that quickly fades out.\n  * **Low-frequency / Tonal:** It features a deep sub-bass resonance/tone with very little high-frequency noise.",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.8-flash"
+}

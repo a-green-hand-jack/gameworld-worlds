@@ -1,0 +1,47 @@
+# Assets the game loads
+
+The game is a static web page (`index.html` + `src/`, no build step). It loads
+every asset below from the `assets/` directory at the delivery root, which the
+`artist` position supplies. Paths are case-sensitive. If a file is missing the
+game falls back to plain shapes/colours and stays playable, so missing assets
+never break a build — but the shipped game should have all of them.
+
+Grid: 20 x 20 cells, each cell drawn at 32 x 32 px (canvas 640 x 640).
+
+## Images (PNG, RGBA, transparent background unless stated)
+
+| Path | Size (px) | What it shows |
+|---|---|---|
+| `assets/images/snake_head.png` | 32 x 32 | Snake head **facing right** (moving right). The game rotates it for up/down/left. |
+| `assets/images/snake_body.png` | 32 x 32 | One straight body segment, **horizontal** (game rotates for vertical). Should tile seamlessly left-to-right with itself, the head and the tail. |
+| `assets/images/snake_tail.png` | 32 x 32 | Tail end, **pointing left** (the rest of the snake is to its right). Game rotates it. |
+| `assets/images/food.png` | 32 x 32 | The food item (e.g. an apple), centred, ~24 px visible. |
+| `assets/images/tile.png` | 32 x 32 | Opaque floor tile drawn under every grid cell. Subtle, low contrast so snake and food read clearly. |
+| `assets/images/title.png` | 512 x 160 | "SNAKE" title logo for the title screen, transparent background. |
+
+## Audio (MP3, mono or stereo, 44.1 kHz, short, normalised, no leading silence)
+
+| Path | Length | When it plays |
+|---|---|---|
+| `assets/audio/eat.mp3` | < 0.3 s | Snake eats food. |
+| `assets/audio/game_over.mp3` | < 1.5 s | Snake hits a wall or itself. |
+| `assets/audio/start.mp3` | < 0.8 s | Player starts / restarts a game. |
+
+## Theme
+
+`assets/theme.json` — colours and font for the screens and HUD, so the UI
+matches the art:
+
+```json
+{
+  "background": "#101820",
+  "text": "#f0f0e0",
+  "accent": "#7bd36b",
+  "danger": "#e0533b",
+  "font": "\"Press Start 2P\", monospace"
+}
+```
+
+All keys optional; the game uses the defaults above for any missing key. If
+`font` names a web font, put the font file under `assets/fonts/` and add
+`"fontFile": "assets/fonts/<file>"` (woff2 or ttf); the game loads it.

@@ -1,0 +1,13 @@
+# Meteor Dodge art
+
+All assets are standalone SVG files with no external fonts, references, scripts or network dependencies. They load as ordinary relative-path browser images from `file://` as well as HTTP. Preserve sprite transparency; rotate meteor sprites freely. Colors: deep navy `#071423` / `#0b1c32`, cyan ship `#54dce8`, warm amber meteors `#eaa666`.
+
+| File | Intrinsic size | Intended use |
+| --- | --- | --- |
+| `background.svg` | 800 × 600 | Full-screen game field behind play and overlays; scale to canvas extent. |
+| `ship.svg` | 64 × 64 | Player ship, nose upward; render approximately 44–58 px square. |
+| `meteor-1.svg` | 72 × 72 | Warm irregular meteor variant; render approximately 40–80 px square. |
+| `meteor-2.svg` | 72 × 72 | Alternate meteor silhouette; same size range. |
+| `meteor-3.svg` | 72 × 72 | Alternate meteor silhouette; same size range. |
+
+Load with `new Image()` using `assets/<filename>.svg`; browser canvas `drawImage` accepts the SVG images without needing fetch or modules. For collision fairness, use a smaller hitbox than the visual bounds. No sound asset is included; gameplay must not depend on audio.

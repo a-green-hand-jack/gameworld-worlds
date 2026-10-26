@@ -1,0 +1,72 @@
+import sys, json, time
+from playwright.sync_api import sync_playwright
+G=sys.argv[1]; OUT=sys.argv[2]
+log=[]
+def L(*a): log.append(' '.join(map(str,a))); print(*a, flush=True)
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1366,'height':768})
+    errs=[]; pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type=='error' and errs.append(m.text))
+    pg.goto('file://'+G+'/index.html'); pg.wait_for_function('window.__snake && window.__snake.ready')
+    S=lambda: pg.evaluate('({s:__snake.screen,sc:__snake.score,sn:__snake.snake,f:__snake.food,d:__snake.direction,c:__snake.cause})')
+    pg.screenshot(path=OUT+'/p1-title.png'); L('title', S()['s'], 'scrollH', pg.evaluate('document.documentElement.scrollHeight'), 'innerH', pg.evaluate('innerHeight'))
+    pg.keyboard.press('Enter'); time.sleep(0.05); st=S(); L('after Enter', st['s'], 'len', len(st['sn']), 'score', st['sc'])
+    # greedy chase food for N foods
+    opp={'up':'down','down':'up','left':'right','right':'left'}
+    key={'up':'ArrowUp','down':'ArrowDown','left':'ArrowLeft','right':'ArrowRight'}
+    eaten=0; prev=S(); t0=time.time(); growth_ok=True
+    while eaten<6 and time.time()-t0<40:
+        st=S()
+        if st['s']!='playing': L('unexpected', st); break
+        if st['sc']!=prev['sc']:
+            dl=len(st['sn'])-len(prev['sn']); ds=st['sc']-prev['sc']
+            hud=pg.inner_text('#score'); L('ate: score',st['sc'],'len',len(st['sn']),'dlen',dl,'dscore',ds,'hud',hud)
+            if dl!=1 or ds!=1 or hud!=str(st['sc']): growth_ok=False
+            eaten+=1
+            if eaten==2: pg.screenshot(path=OUT+'/p2-play.png')
+        prev=st
+        h=st['sn'][0]; f=st['f']; d=st['d']
+        want=None
+        if f['x']>h['x']: want='right'
+        elif f['x']<h['x']: want='left'
+        elif f['y']>h['y']: want='down'
+        else: want='up'
+        if want==opp[d]: want='down' if h['y']<10 else 'up'
+        body=set((c['x'],c['y']) for c in st['sn'][:-1])
+        D={'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
+        nx=(h['x']+D[want][0],h['y']+D[want][1])
+        if nx in body or not(0<=nx[0]<20 and 0<=nx[1]<20):
+            for w in D:
+                if w==opp[d]: continue
+                n=(h['x']+D[w][0],h['y']+D[w][1])
+                if n not in body and 0<=n[0]<20 and 0<=n[1]<20: want=w;break
+        if want!=d: pg.keyboard.press(key[want])
+        time.sleep(0.03)
+    L('eaten',eaten,'growth_ok',growth_ok)
+    # reversal test: press opposite of current direction
+    st=S(); pg.keyboard.press(key[opp[st['d']]]); time.sleep(0.3); st2=S(); L('reverse ignored', st2['s']=='playing', st2['d'])
+    # drive into wall: head straight in current direction
+    while S()['s']=='playing': time.sleep(0.05)
+    st=S(); L('end', st['s'], 'cause', st['c'], 'score', st['sc'], 'final shown', pg.inner_text('#final-score'), pg.inner_text('#gameover-cause'))
+    pg.screenshot(path=OUT+'/p3-gameover-wall.png')
+    final_score=st['sc']
+    # play again via button
+    pg.click('#restart-button'); time.sleep(0.05); st=S(); L('play again (click)', st['s'], 'score', st['sc'], 'len', len(st['sn']), 'hud', pg.inner_text('#score'))
+    # self collision: eat a few then loop. Use tight turns with length>=5: need length 5. Easier: play until eat 2, then do down,left,up quickly.
+    eaten=0; prev=S(); t0=time.time()
+    while eaten<3 and time.time()-t0<30:
+        st=S()
+        if st['sc']!=prev['sc']: eaten+=1
+        prev=st; h=st['sn'][0]; f=st['f']; d=st['d']
+        want='right' if f['x']>h['x'] else 'left' if f['x']<h['x'] else 'down' if f['y']>h['y'] else 'up'
+        if want==opp[d]: want='down' if h['y']<10 else 'up'
+        if want!=d: pg.keyboard.press(key[want])
+        time.sleep(0.03)
+    st=S(); L('len before self test', len(st['sn']), st['s'])
+    d=st['d']; perp={'up':['right','down','left'],'down':['left','up','right'],'left':['up','right','down'],'right':['down','left','up']}[d]
+    for w in perp: pg.keyboard.press(key[w]); time.sleep(0.13)
+    time.sleep(0.5); st=S(); L('self test end', st['s'], st['c'], 'score', st['sc'], pg.inner_text('#gameover-cause'))
+    pg.screenshot(path=OUT+'/p4-gameover-self.png')
+    pg.keyboard.press('Enter'); time.sleep(0.05); st=S(); L('play again (Enter)', st['s'], st['sc'], len(st['sn']))
+    L('scrollY after arrows', pg.evaluate('scrollY'), 'errors', errs)
+    b.close()
+json.dump(log, open(OUT+'/log.json','w'), indent=1)

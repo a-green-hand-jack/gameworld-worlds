@@ -1,0 +1,18 @@
+[
+ "title title scrollH 768 innerH 768",
+ "after Enter playing len 3 score 0",
+ "ate: score 1 len 4 dlen 1 dscore 1 hud 1",
+ "ate: score 2 len 5 dlen 1 dscore 1 hud 2",
+ "ate: score 3 len 6 dlen 1 dscore 1 hud 3",
+ "ate: score 4 len 7 dlen 1 dscore 1 hud 4",
+ "ate: score 5 len 8 dlen 1 dscore 1 hud 5",
+ "ate: score 6 len 9 dlen 1 dscore 1 hud 6",
+ "eaten 6 growth_ok True",
+ "reverse ignored True down",
+ "end gameover cause self score 6 final shown 6 You ran into yourself.",
+ "play again (click) playing score 0 len 3 hud 0",
+ "len before self test 6 playing",
+ "self test end playing None score 3 You ran into yourself.",
+ "play again (Enter) playing 3 6",
+ "scrollY after arrows 0 errors []"
+]

@@ -1,0 +1,23 @@
+// Audio check, run through tools/smoke.mjs: unlocks audio as a key press
+// would, decodes every sound the manifest lists, then starts 1-1 and checks
+// that its music is playing and a jump plays its sound.
+//   node tools/smoke.mjs <site> <out> tools/check-audio.mjs
+export default async function ({ page, step, hold, result }) {
+  await page.keyboard.press('ArrowDown'); // a real key press: the first user gesture
+  await step(2);
+  result.audio = await page.evaluate(async () => {
+    const audio = window.smb.game.audio;
+    const out = { context: audio.ctx && audio.ctx.state, decoded: [], failed: [] };
+    for (const id of Object.keys(audio.entries)) {
+      const buf = await audio.fetch(id);
+      if (buf) out.decoded.push(`${id} ${buf.duration.toFixed(2)}s`); else out.failed.push(id);
+    }
+    return out;
+  });
+  await hold({ start: true }); await step(1); await hold({ start: false });
+  await step(200);
+  await page.waitForTimeout(300);
+  result.music = await page.evaluate(() => { const a = window.smb.game.audio; return { id: a.musicId, playing: !!a.musicSrc, context: a.ctx.state }; });
+  await hold({ a: true }); await step(3); await hold({ a: false }); await step(1);
+  result.jumpSfx = await page.evaluate(() => [...window.smb.game.audio.sfxPlaying.keys()]);
+}

@@ -1,0 +1,323 @@
+{
+ "arena_note": "cols 0..26 of 1-1 emptied above the floor (instrumentation) so enemies/blocks do not interfere",
+ "goomba_stomp_noA": {
+  "stomp_frame": 9,
+  "score_gain": 100,
+  "enemy_after_5f": null,
+  "bounce_apex_y": 164.4,
+  "floor_y": 194
+ },
+ "goomba_stomp_holdA": {
+  "stomp_frame": 9,
+  "score_gain": 100,
+  "enemy_after_5f": null,
+  "bounce_apex_y": 118.8,
+  "floor_y": 194
+ },
+ "goomba_squash_visible_frames": [
+  [
+   0,
+   14,
+   null
+  ],
+  [
+   6,
+   14,
+   null
+  ],
+  [
+   12,
+   14,
+   null
+  ],
+  [
+   18,
+   14,
+   null
+  ],
+  [
+   24,
+   14,
+   null
+  ],
+  [
+   30,
+   14,
+   null
+  ],
+  [
+   36,
+   14,
+   null
+  ],
+  [
+   42,
+   null,
+   null
+  ],
+  [
+   48,
+   null,
+   null
+  ],
+  [
+   54,
+   null,
+   null
+  ]
+ ],
+ "hit_by_goomba_big": {
+  "frames_to_contact": 33,
+  "state_at_contact": "transform",
+  "power_at_contact": 0,
+  "invuln_at_contact": 120,
+  "state_+30": "transform",
+  "power_+30": 0,
+  "invuln_+30": 120,
+  "player": {
+   "x": 54.04296875,
+   "y": 194,
+   "vx": 1.26171875,
+   "vy": 0,
+   "power": 0,
+   "invuln": 120,
+   "dead": false,
+   "star": 0,
+   "onGround": true,
+   "w": 12,
+   "h": 14
+  },
+  "invuln_trace_tail": [
+   120,
+   120,
+   120,
+   "...",
+   10,
+   9,
+   8
+  ]
+ },
+ "hit_by_goomba_fire": {
+  "frames_to_contact": 33,
+  "state_at_contact": "transform",
+  "power_at_contact": 0,
+  "invuln_at_contact": 120,
+  "state_+30": "transform",
+  "power_+30": 0,
+  "invuln_+30": 120,
+  "player": {
+   "x": 54.04296875,
+   "y": 194,
+   "vx": 1.26171875,
+   "vy": 0,
+   "power": 0,
+   "invuln": 120,
+   "dead": false,
+   "star": 0,
+   "onGround": true,
+   "w": 12,
+   "h": 14
+  },
+  "note": "fire Mario shrinks straight to small (power 0)"
+ },
+ "hit_by_goomba_small": {
+  "frames_to_contact": 33,
+  "state": "dying",
+  "death_anim_y_trace_every_10": [
+   [
+    "dying",
+    194
+   ],
+   [
+    "dying",
+    194
+   ],
+   [
+    "dying",
+    194
+   ],
+   [
+    "dying",
+    189.5
+   ],
+   [
+    "dying",
+    158.2
+   ],
+   [
+    "dying",
+    152
+   ],
+   [
+    "dying",
+    170.8
+   ],
+   [
+    "dying",
+    209.2
+   ],
+   [
+    "dying",
+    249.2
+   ],
+   [
+    "dying",
+    289.2
+   ],
+   [
+    "dying",
+    329.2
+   ],
+   [
+    "dying",
+    369.2
+   ]
+  ]
+ },
+ "death_flow": {
+  "state_sequence": [
+   "dying",
+   "intro",
+   "play"
+  ],
+  "frames_to_play_again": 230,
+  "lives": 2,
+  "x": 34,
+  "camX": 0
+ },
+ "koopa_stomp": {
+  "score_gain": 100,
+  "enemies": [
+   {
+    "t": "koopa",
+    "state": "shell",
+    "w": 14,
+    "h": 14,
+    "vx": 0
+   }
+  ],
+  "after_40f": [
+   {
+    "t": "koopa",
+    "state": "slide",
+    "x": 21.5,
+    "vx": -3
+   }
+  ]
+ },
+ "shell_chain": {
+  "shell_after_kick": [
+   {
+    "state": "slide",
+    "vx": 3,
+    "x": 52.5
+   }
+  ],
+  "score_gains_in_order": [
+   500,
+   800,
+   1000,
+   2000,
+   4000,
+   5000
+  ],
+  "goombas_left": 0
+ },
+ "shell_speed_px_per_frame": 2.8,
+ "shell_state_history": [
+  [
+   10,
+   "shell"
+  ],
+  [
+   300,
+   "walk"
+  ],
+  [
+   830,
+   null
+  ]
+ ],
+ "star_kills": {
+  "gains": [
+   100,
+   200,
+   400,
+   500
+  ],
+  "player_alive": true
+ },
+ "first_pit_col": 69,
+ "pit_death": {
+  "frames_until_not_play": 66,
+  "state": "dying",
+  "dead": true,
+  "lives": [
+   3,
+   2
+  ],
+  "seq": [
+   "dying",
+   "intro",
+   "play"
+  ],
+  "respawn_x": 34,
+  "respawn_camX": 0
+ },
+ "hurry": {
+  "hurried_flag": true,
+  "time": 100,
+  "events": []
+ },
+ "time_up": {
+  "state": "dying",
+  "time": 0,
+  "frames": 52,
+  "player_dead": true,
+  "seq": [
+   "dying",
+   "timeup",
+   "intro",
+   "play"
+  ],
+  "lives": [
+   3,
+   2
+  ]
+ },
+ "game_over": {
+  "seq": [
+   "dying",
+   "gameover",
+   "title"
+  ],
+  "frames": 500,
+  "lives": 0,
+  "score": 0,
+  "coins": 0,
+  "restart_to_play_frames": 150,
+  "after_restart": {
+   "score": 0,
+   "coins": 0,
+   "lives": 3,
+   "time": 400,
+   "x": 34,
+   "camX": 0,
+   "level": "1-1"
+  }
+ },
+ "sound_calls": {
+  "stopMusic:": 36,
+  "playMusic:overworld": 14,
+  "play:stomp": 7,
+  "play:pipe": 2,
+  "playMusic:death": 5,
+  "play:kick": 13,
+  "playMusic:hurry": 1,
+  "playMusic:game_over": 1
+ },
+ "console_errors": [],
+ "failed_requests": [
+  "count=0"
+ ]
+}

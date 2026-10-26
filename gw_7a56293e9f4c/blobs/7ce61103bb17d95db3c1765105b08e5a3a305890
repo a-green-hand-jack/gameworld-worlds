@@ -1,0 +1,25 @@
+# QA report — Snake v0.2.0
+
+Build: `world/game-developer` release `v0.2.0`, commit `78f16e43e892da6e97db091d3eb93d128a8b45ed`, assembled with
+`assets/` from `world/artist` commit `168dbb55bb376666aa61632057c92f126ef20e2f` (`ht-role delivery`, producer assignment `e685695996495629902aae26ef98afac1a113300`).
+Method: `qa/tests/test_snake.py <delivery dir> <shot dir>` — headless Chromium (Playwright 1.64), served over http and opened via `file://`; real keyboard events, build's documented hooks (`window.__snake`, `?speed=`, `setAuto/tick`) for determinism; plus a real-time run. Screenshots in `qa/reports/shots/`.
+
+Result: **56 checks, 0 failed. No defects reproduced against R1–R9.**
+
+| Req | Checked (observed) |
+|---|---|
+| R1 | Loads over http and from `file://index.html`; no console errors, page errors, failed or 4xx requests over the whole run (excluding a warning my own pixel probe triggers). |
+| R2 | 20×20 board; real-time at `?speed=100`: 11 consecutive ticks each exactly 1 cell, median 100 ms (min 84, max 101); default tick 130 ms; P pauses/resumes. |
+| R3 | Left/Up/Down/Right each turn correctly; reverse into neck ignored (incl. buffered up→down, up→left sequences — no suicide); arrow keys and Space are `preventDefault`-ed, and a scrollable page in a 500×300 viewport did not scroll. |
+| R4 | 6 foods eaten in sequence: each exactly +1 length, +1 score, new food on a free in-bounds cell. Bot play of 443 ticks / 30 foods with real key presses: length == 3+score, contiguous, no overlaps, food never on the snake. |
+| R5 | All four walls: snake survives on the edge cell and dies when leaving the grid. Self-hit (length 5 loop right,down,left,up) ends the game; length-3 U-turn correctly doesn't (tail has moved). Real-time unattended snake dies on the right wall. |
+| R6 | Title shown first, nothing moves there; names the game, says "Arrow keys to turn" and "Press Enter or Space to start"; Enter, Space, arrow key and click all start. |
+| R7 | HUD "Score: N" drawn all the time (title, play, game-over); `data-score` matched the score after each food. |
+| R8 | Game-over panel shows "Final score: N" (3 in test) and "Press Enter, Space or click to play again"; Enter, Space, R, click each start a fresh game (score 0, length 3, playing) without reload; 3 consecutive replays OK; no auto-restart. |
+| R9 | Head, body, food clearly distinct from the board (pixel + screenshots); one consistent flat style. Sound not exercised audibly by QA (headless); no audio errors in console. |
+
+## Observations (not defects, no action required)
+- The board's checker pattern and edge are low-contrast (tiles ≈ rgb(18,24,38) vs. rgb(22,30,46)), the wall is essentially the canvas border; legible but subtle. R9 owner `artist`/`game-developer` may raise it if desired.
+- The "play again" hint appears only 400 ms after death and Enter/Space/click are ignored in that window (intentional guard, documented). A player who hits Enter at once gets no reaction for 0.4 s.
+- `window blur` auto-pauses; not covered by headless run.
+- Tail cell entry when not growing is allowed (standard rule); noted in case the producer reads "into itself" strictly.

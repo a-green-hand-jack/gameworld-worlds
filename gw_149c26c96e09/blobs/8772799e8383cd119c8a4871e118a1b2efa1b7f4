@@ -1,0 +1,7 @@
+--- run 0: start state=playing score=0 len=3
+run 0 ended state=playing cause=None score=15 len=18 foodOnSnake=0 growth/score violations=[]
+--- run 1: start state=over score=15 len=18
+run 1 ended state=over cause=wall score=15 len=18 foodOnSnake=0 growth/score violations=[]
+  final-score shown: 15 | New best score!
+--- run 2: start state=playing score=0 len=3
+run 2 ended state=playing cause=None score=14 len=17 foodOnSnake=0 growth/score violations=[]

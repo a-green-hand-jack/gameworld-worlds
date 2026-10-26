@@ -1,0 +1,28 @@
+const { chromium } = require('/tmp/playwright-runner/node_modules/playwright');
+const path = require('path');
+(async () => {
+  const browser = await chromium.launch({headless:true});
+  const context = await browser.newContext({viewport:{width:1000,height:800}});
+  const page = await context.newPage();
+  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('file://' + path.resolve('/tmp/star-catcher/index.html'));
+  await page.keyboard.press('Enter');
+  for (let n=0;n<8;n++) {
+    const target=await page.evaluate(()=>({b:{...window.__game.ball},s:window.__game.stars[0]}));
+    if (!target.s) break;
+    const dx=target.s.x-target.b.x, dy=target.s.y-target.b.y;
+    const keys=[]; if(dx>20)keys.push('ArrowRight'); if(dx<-20)keys.push('ArrowLeft'); if(dy>20)keys.push('ArrowDown'); if(dy<-20)keys.push('ArrowUp');
+    for(const k of keys) await page.keyboard.down(k);
+    await page.waitForTimeout(220);
+    for(const k of keys) await page.keyboard.up(k);
+    await page.waitForTimeout(80);
+  }
+  const result=await page.evaluate(()=>({state:window.__game.state,score:window.__game.score,best:document.querySelector('#best').textContent,time:window.__game.timeLeft}));
+  await page.screenshot({path:'playtest-scored.png'});
+  await page.waitForTimeout(31000);
+  const persisted=await page.evaluate(()=>({state:window.__game.state,score:window.__game.score,best:document.querySelector('#best').textContent,stored:localStorage.getItem('starCatcher.best')}));
+  await page.reload();
+  const afterReload=await page.evaluate(()=>({best:document.querySelector('#best').textContent,state:window.__game.state}));
+  console.log(JSON.stringify({result,persisted,afterReload,errors},null,2));
+  await browser.close();
+})();

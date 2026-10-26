@@ -1,0 +1,7 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as pw:
+    b=pw.chromium.launch()
+    for w,h in [(1366,657),(1280,600),(1024,600)]:
+        p=b.new_page(viewport={'width':w,'height':h}); p.goto('file:///hutian/b2/x/index.html'); p.wait_for_function("__snake.ready")
+        r=p.evaluate("(()=>{const c=document.getElementById('board').getBoundingClientRect();return [Math.round(c.top),Math.round(c.bottom),Math.round(c.width),document.documentElement.scrollHeight,innerHeight]})()")
+        print(w,h,r); p.screenshot(path=f'/hutian/repo/evidence/build-2/viewport-{w}x{h}.png')

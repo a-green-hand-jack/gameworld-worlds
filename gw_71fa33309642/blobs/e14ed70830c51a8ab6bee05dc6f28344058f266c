@@ -1,0 +1,113 @@
+{
+ "A_control_mute_unmute": {
+  "before": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "t": 1.15,
+   "muted": false,
+   "state": "play",
+   "area": "main"
+  },
+  "muted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "t": 1.77,
+   "muted": true,
+   "state": "play",
+   "area": "main"
+  },
+  "unmuted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "t": 2.83,
+   "muted": false,
+   "state": "play",
+   "area": "main"
+  }
+ },
+ "B_hurry_while_muted": {
+  "before": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "t": 1.15,
+   "muted": false,
+   "state": "play",
+   "area": "main"
+  },
+  "muted_after_hurry_tick": {
+   "name": "hurry",
+   "has_element": true,
+   "paused": false,
+   "t": 2.67,
+   "muted": true,
+   "state": "play",
+   "area": "main"
+  },
+  "unmuted_3.5s_later": {
+   "name": "overworld_fast",
+   "has_element": true,
+   "paused": false,
+   "t": 3.36,
+   "muted": false,
+   "state": "play",
+   "area": "main"
+  }
+ },
+ "B_page_errors": [],
+ "B2_hurry_not_muted": {
+  "after_4.5s": {
+   "name": "overworld_fast",
+   "has_element": true,
+   "paused": false,
+   "t": 0.73,
+   "muted": false,
+   "state": "play",
+   "area": "main"
+  }
+ },
+ "C_pipe_while_muted": {
+  "before": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "t": 1.1,
+   "muted": false,
+   "state": "play",
+   "area": "main"
+  },
+  "in_coinroom_muted": {
+   "name": "underground",
+   "has_element": true,
+   "paused": false,
+   "t": 0.44,
+   "muted": true,
+   "state": "play",
+   "area": "coinroom"
+  },
+  "in_coinroom_unmuted_2.5s": {
+   "name": "underground",
+   "has_element": true,
+   "paused": false,
+   "t": 3,
+   "muted": false,
+   "state": "play",
+   "area": "coinroom"
+  }
+ },
+ "C_page_errors": [],
+ "C2_pipe_not_muted": {
+  "in_coinroom": {
+   "name": "underground",
+   "has_element": true,
+   "paused": false,
+   "t": 1.39,
+   "muted": false,
+   "state": "play",
+   "area": "coinroom"
+  }
+ }
+}

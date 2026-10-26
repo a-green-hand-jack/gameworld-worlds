@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app">
+    <header id="hud" class="invisible" aria-live="polite">
+      <span>Score <strong id="score">0</strong></span>
+      <span>Best <strong id="best">0</strong></span>
+    </header>
+
+    <div id="stage">
+      <canvas id="board" width="704" height="704" aria-label="Snake board"></canvas>
+
+      <section id="title-screen" class="overlay">
+        <img id="title-art" class="screen-art" src="assets/img/logo.png" alt="">
+        <h1 id="title-text">SNAKE</h1>
+        <p class="hint">Steer with the <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> arrow keys.<br>
+          Eat food to grow and score. Don't hit the walls or yourself.</p>
+        <button id="start-button" type="button">Start</button>
+        <p class="hint small">or press <kbd>Enter</kbd> / <kbd>Space</kbd></p>
+      </section>
+
+      <section id="pause-screen" class="overlay hidden">
+        <h2>Paused</h2>
+        <p class="hint">Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
+      </section>
+
+      <section id="gameover-screen" class="overlay hidden">
+        <img id="gameover-art" class="screen-art" src="assets/img/gameover.png" alt="">
+        <h2 id="gameover-text">GAME OVER</h2>
+        <p id="gameover-cause" class="hint"></p>
+        <p class="final">Final score <strong id="final-score">0</strong></p>
+        <p id="new-best" class="hint hidden">New best!</p>
+        <button id="restart-button" type="button">Play again</button>
+        <p class="hint small">or press <kbd>Enter</kbd> / <kbd>Space</kbd></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/snake.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

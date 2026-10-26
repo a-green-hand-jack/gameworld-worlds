@@ -1,0 +1,33 @@
+# Acceptance notes (working, not an approval)
+
+## Build 1 — assembled delivery: game-developer cb21dad854d25d7e6b317fc79b2317db5545d08f + artist bcf60b1e443a15d5ee974c0063b9fe5b50216096
+
+Played by producer in headless Chromium (Playwright 1.64), served by `python3 -m http.server`, real-time keyboard input (script: autopilot pressing arrow keys toward food). Captures in this directory: 1-title.png, 2-playing.png, 3-gameover.png, 4-replay.png.
+
+Observed:
+- R1: loads, all 5 images, 3 sounds, theme and font load; zero console messages, no failed requests.
+- R7: title on load; an arrow key on the title does not start play; Enter starts.
+- R2/R3/R4: 5 foods eaten by arrow-key steering, each +1 length, +1 score; HUD tracked score; quick Up+Left within one step applied as two turns; Right while moving left ignored; page did not scroll.
+- R5/R9: running into a wall ended the game; game-over shows "Final score 5" (matches).
+- R10: Enter from game over → playing, length 3, score 0, HUD 0, no reload.
+- R6: not exercised in my run (gd's tests/check.py covers it; awaiting qa/playtest).
+
+Open, non-blocking: snake corners are not joined (at a turn the corner cell is drawn as a straight segment, leaving a notch) — cosmetic; waiting on playtest before sending.
+
+Pending: playtester report, qa check.
+
+## Build 2 — assembled delivery: game-developer 6a0a8539da44b90751680567680e423fade39de3 + artist bcf60b1e443a15d5ee974c0063b9fe5b50216096
+
+Same scripted real-time play as build 1 (captures in `build2/`): same results on R1, R2-R5, R7-R10; zero console messages; logo and font reported loaded. Corner notch from build 1 is fixed: turns draw as joined elbows (`build2/2-playing.png`). Published to playtester as producer release `build-2`.
+
+Pending: playtester report, qa check (both redirected to build 2).
+
+## Playtest of build 1 (playtester reports/build-1.md at 80161ea)
+R1-R10 behaved as the brief says over several runs (8 foods; deaths by all four walls and by self). Findings: (1) HUD scrolls out of view under ~720 px tall — reproduced on build 2 (vp-*.png), sent to game-developer#5 as revise; (2) corner notch — fixed in build 2; (3) mild: game-over overlay too dark, blur-pause resumes only via P/Esc — in game-developer#5 as should-fix.
+Build 2 has not been playtested; the next playtest goes to the build that fixes game-developer#5.
+
+## QA of build 2 (qa reports/build-1.md at 19a85e2)
+72/75 checks; R2-R10 pass (self-collision incl. tail cell, all walls, double/triple turns, 150 autopilot games / 4414 foods never on snake, no scroll, no double-start). One defect D1 = viewport cropping (game-developer#6, same as game-developer#5). No artist defects.
+
+## Build 3 — game-developer dcc9ebb6d219d8ec76f7a3cc4a4988cb182621b1 + artist bcf60b1e443a15d5ee974c0063b9fe5b50216096
+Viewports (build3/vp-*.png): 800x500, 1024x600, 1366x650, 1280x720, 1920x1080 — HUD and board fully inside the viewport, scrollY 0. Scripted play: same results as builds 1-2, zero console messages. Game-over overlay now leaves the board readable (build3/3-gameover.png). Published as producer release build-3; sent to playtester and qa.

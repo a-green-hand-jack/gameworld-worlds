@@ -1,0 +1,5 @@
+perfect: player won 40/40; avg score 5.0-0.2; avg match 90s; longest rally 21 hits
+good (react .15s, +-25px): player won 9/40; avg score 3.0-4.4; avg match 102s; longest rally 14 hits
+average (react .3s, +-45px): player won 0/40; avg score 0.8-5.0; avg match 57s; longest rally 12 hits
+poor (react .5s, +-70px): player won 0/40; avg score 0.3-5.0; avg match 34s; longest rally 9 hits
+idle player: computer won 30/30, avg match 17s

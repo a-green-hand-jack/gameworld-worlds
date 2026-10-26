@@ -1,0 +1,501 @@
+#!/usr/bin/env node
+// Converts the public FullScreenMario level maps (MIT licence, see
+// docs/levels.md) into this game's own level format, src/levels/W-L.js.
+//
+//   node tools/convert-fsm.mjs <dir with FSM maps.js and 1-1.js..8-4.js> [W-L ...]
+//
+// Only layout data is taken over (positions of tiles, enemies, items, pipes,
+// lifts and triggers).  FSM map units are 2 px; an FSM "y" is the top of a
+// thing measured upward from the top of the floor (208 px).  Hand fixes that
+// bring a layout closer to the NES original live in tools/level-fixes.mjs and
+// are applied after conversion.
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { applyFixes } from './level-fixes.mjs';
+
+const SRC = process.argv[2];
+const ONLY = process.argv.slice(3);
+const OUT = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src', 'levels');
+
+const ROWS = 15;
+const FLOOR = 208;
+const px = (u) => u * 2;
+const topPx = (y) => FLOOR - 2 * y;
+
+// ---- load FSM data with a stub global ---------------------------------------
+const proto = new Proxy({}, { get: (_, k) => String(k) });
+const sandbox = {
+  FullScreenMario: { FullScreenMario: { prototype: proto, settings: { maps: { library: {} } }, unitsize: 4 } },
+};
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync(path.join(SRC, 'maps.js'), 'utf8'), sandbox);
+sandbox.FullScreenMario.FullScreenMario.settings.maps.library = {};
+const patterns = sandbox.FullScreenMario.FullScreenMario.settings.maps.patterns;
+const LEVELS = [];
+for (let w = 1; w <= 8; w++) for (let l = 1; l <= 4; l++) LEVELS.push(`${w}-${l}`);
+for (const id of LEVELS) {
+  vm.runInContext(fs.readFileSync(path.join(SRC, `${id}.js`), 'utf8'), sandbox);
+}
+const library = sandbox.FullScreenMario.FullScreenMario.settings.maps.library;
+
+// FSM default sizes (units) needed for the conversion
+const SIZE = {
+  Stone: [8, 8], Brick: [8, 8], Block: [8, 8], Floor: [8, 8], Coin: [5, 7], CastleBlock: [8, 8],
+  Cannon: [8, 8], Coral: [8, 8], Goomba: [8, 8], Koopa: [8, 12], Beetle: [8, 8], Piranha: [8, 12],
+  Blooper: [8, 12], CheepCheep: [8, 8], Podoboo: [7, 8], Lakitu: [8, 12], HammerBro: [8, 12],
+  Bowser: [16, 16], Springboard: [8, 14.5], Platform: [8, 4], PipeHorizontal: [19.5, 16],
+  Pipe: [16, 8], PipeVertical: [16, 8], CastleAxe: [8, 8], CastleChain: [7.5, 8], CastleBridge: [8, 8],
+  BridgeBase: [8, 4], Railing: [4, 4], TreeTop: [8, 8], ShroomTop: [8, 8], TreeTrunk: [4, 4],
+  ShroomTrunk: [8, 8], Water: [4, 5], Toad: [8, 13], Peach: [8, 13], CastleWall: [8, 48],
+  Bush1: [16, 8], Bush2: [24, 8], Bush3: [32, 8], Cloud1: [16, 12], Cloud2: [24, 12], Cloud3: [32, 12],
+  Fence: [8, 8], HillSmall: [24, 9.5], HillLarge: [40, 17.5], PlantSmall: [7, 15], PlantLarge: [8, 23],
+};
+const sizeOf = (t) => SIZE[t] || [8, 8];
+
+// ---- macro expansion into primitive things ----------------------------------
+function expand(list, out) {
+  for (const ref of list) {
+    if (!ref) continue;
+    if (ref.macro) expandMacro(ref, out);
+    else out.push({ ...ref });
+  }
+  return out;
+}
+
+function expandMacro(r, out) {
+  const x = r.x || 0, y = r.y || 0;
+  const push = (o) => (o.macro ? expandMacro(o, out) : out.push(o));
+  const { macro, ...rest } = r;
+  switch (r.macro) {
+    case 'Fill': {
+      const [dw, dh] = sizeOf(r.thing);
+      const xw = r.xwidth || r.width || dw, yh = r.yheight || r.height || dh;
+      for (let i = 0; i < (r.xnum || 1); i++)
+        for (let j = 0; j < (r.ynum || 1); j++)
+          push({ ...rest, x: x + i * xw, y: y + j * yh });
+      break;
+    }
+    case 'Pattern': {
+      const pat = patterns[r.pattern];
+      const skips = new Set(r.skips || []);
+      let xp = x;
+      for (let i = 0; i < (r.repeat || 1); i++) {
+        pat.forEach((p, j) => {
+          if (skips.has(j)) return;
+          const o = { thing: p[0], x: xp + p[1], y: y + p[2] + sizeOf(p[0])[1], scenery: true };
+          if (p[3]) o.width = p[3];
+          out.push(o);
+        });
+        xp += pat.width;
+      }
+      break;
+    }
+    case 'Floor':
+      out.push({ ...rest, thing: 'Floor', x, y, width: r.width || 8, height: Infinity });
+      break;
+    case 'Pipe': {
+      const h = r.height || 16;
+      const inf = h === Infinity || h === 'Infinity';
+      out.push({ ...rest, thing: 'Pipe', x, y: inf ? 120 : y + h, width: 16, height: inf ? Infinity : h });
+      if (r.piranha) out.push({ thing: 'Piranha', x: x + 4, y: (inf ? 120 : y + h) + 12, onPipe: true });
+      break;
+    }
+    case 'Tree': {
+      const w = r.width || 24;
+      out.push({ thing: 'TreeTop', x, y, width: w });
+      if (w > 16) out.push({ thing: 'TreeTrunk', x: x + 8, y: y - 8, width: w - 16, height: Infinity, solid: !!r.solidTrunk });
+      break;
+    }
+    case 'Shroom': {
+      const w = r.width || 24;
+      out.push({ thing: 'ShroomTop', x, y, width: w });
+      if (w > 16) out.push({ thing: 'ShroomTrunk', x: x + (w - 8) / 2, y: y - 8, width: 8, height: Infinity, solid: !!r.solidTrunk });
+      break;
+    }
+    case 'Water':
+      out.push({ ...rest, thing: 'Water', x, y: y + 2, width: r.width || 4, height: Infinity });
+      break;
+    case 'Ceiling':
+      push({ macro: 'Fill', thing: 'Brick', x: r.x, y: 88, xnum: (r.width / 8) | 0, xwidth: 8 });
+      break;
+    case 'Bridge': {
+      let bx = x, w = Math.max(r.width || 0, 16);
+      if (r.begin) { w -= 8; out.push({ thing: 'Stone', x: bx, y, height: Infinity }); bx += 8; }
+      if (r.end) { w -= 8; out.push({ thing: 'Stone', x: bx + w, y, height: Infinity }); }
+      out.push({ thing: 'BridgeBase', x: bx, y, width: w });
+      break;
+    }
+    case 'Scale':
+      out.push({
+        thing: 'Scale', x, y, widthLeft: r.widthLeft || 24, widthRight: r.widthRight || 24,
+        between: r.between || 40, dropLeft: r.dropLeft || 24, dropRight: r.dropRight || 24,
+      });
+      break;
+    case 'PlatformGenerator':
+      out.push({ thing: 'PlatformGenerator', x, width: r.width || 16, direction: r.direction || 1 });
+      break;
+    case 'WarpWorld': {
+      const warps = r.warps;
+      const shift = warps.length === 1 ? 32 : 0;
+      out.push({ thing: 'WarpZone', x: x + 64, warps, textX: x + 8, pipeX: warps.map((_, i) => x + 8 + i * 32 + shift) });
+      warps.forEach((w, i) => {
+        push({ macro: 'Pipe', x: x + 8 + i * 32 + shift, height: 24, transport: { map: `${w}-1` }, warp: true });
+        out.push({ thing: 'Piranha', x: x + 12 + i * 32 + shift, y: y + 36, onPipe: true, warp: true });
+      });
+      break;
+    }
+    case 'CheepsStart': case 'CheepsStop': case 'BulletBillsStart': case 'BulletBillsStop': case 'LakituStop':
+      out.push({ thing: 'Trigger', kind: r.macro, x, width: r.width || 8 });
+      break;
+    case 'CastleSmall':
+      out.push({ thing: 'Castle', x, y, large: false, transport: r.transport });
+      break;
+    case 'CastleLarge':
+      out.push({ thing: 'Castle', x, y, large: true, walls: r.walls ?? 2, transport: r.transport });
+      break;
+    case 'StartInsideCastle': {
+      const w = (r.width || 0) - 40;
+      out.push({ thing: 'Stone', x, y: y + 48, width: 24, height: Infinity });
+      out.push({ thing: 'Stone', x: x + 24, y: y + 40, width: 8, height: Infinity });
+      out.push({ thing: 'Stone', x: x + 32, y: y + 32, width: 8, height: Infinity });
+      if (w > 0) push({ macro: 'Floor', x: x + 40, y: y + 24, width: w });
+      break;
+    }
+    case 'EndOutsideCastle':
+      out.push({ thing: 'Flagpole', x, y });
+      out.push({ thing: 'Stone', x, y: y + 8 });
+      if (r.large) push({ macro: 'CastleLarge', x: x + (r.castleDistance || 24), y, transport: r.transport, walls: r.walls || 8 });
+      else push({ macro: 'CastleSmall', x: x + (r.castleDistance || 32), y, transport: r.transport });
+      // The player walks into the castle door: 40 px into a small castle, 72 px into a large one.
+      out.push({ thing: 'LevelEnd', x: x + (r.large ? (r.castleDistance || 24) + 36 : (r.castleDistance || 32) + 20), transport: r.transport });
+      break;
+    case 'EndInsideCastle': {
+      out.push({ thing: 'Stone', x, y: y + 88, width: 256 });
+      push({ macro: 'Water', x, y, width: 104 });
+      out.push({ thing: 'CastleBridge', x, y: y + 24, width: 104 });
+      out.push({ thing: 'Bowser', x: x + 69, y: y + 42, hard: !!r.hard, spawnType: r.spawnType || 'Goomba', throwing: !!r.throwing });
+      out.push({ thing: 'CastleChain', x: x + 96, y: y + 32 });
+      out.push({ thing: 'CastleAxe', x: x + 104, y: y + 40 });
+      out.push({ thing: 'ScrollBlocker', x: x + 112 });
+      push({ macro: 'Floor', x: x + 104, y, width: 152 });
+      out.push({ thing: 'Stone', x: x + 104, y: y + 32, width: 24, height: 32 });
+      out.push({ thing: 'Stone', x: x + 112, y: y + 80, width: 16, height: 24 });
+      out.push({ thing: 'NPC', npc: r.npc || 'Toad', x: x + 200, y: 13, transport: r.transport, triggerX: x + 180 });
+      out.push({ thing: 'ScrollBlocker', x: x + 256 });
+      break;
+    }
+    case 'Section': case 'SectionPass': case 'SectionFail': case 'SectionDecider':
+      out.push({ ...rest, thing: r.macro, x, y });
+      break;
+    default:
+      throw new Error('unknown macro ' + r.macro);
+  }
+}
+
+// ---- primitives into grid / things / scenery --------------------------------
+const SCENERY = {
+  HillLarge: 'hill_large', HillSmall: 'hill_small', Bush1: 'bush1', Bush2: 'bush2', Bush3: 'bush3',
+  Cloud1: 'cloud1', Cloud2: 'cloud2', Cloud3: 'cloud3', Fence: 'fence', PlantSmall: 'tree_small',
+  PlantLarge: 'tree_large',
+};
+
+const CONTENTS = { Coin: 'coin', Mushroom: 'power', Mushroom1Up: 'oneup', Star: 'star', Vine: 'vine' };
+
+function convertArea(area, fsmArea, level, areaIndex) {
+  const prims = expand(fsmArea.creation || [], []);
+  // Sections (castle mazes) are laid out after the main creation; see layoutSections.
+  const loops = [];
+  if (fsmArea.sections) layoutSections(fsmArea, prims, loops);
+  let maxX = 0;
+  for (const p of prims) {
+    if (p.thing === 'ScrollBlocker' || p.thing === 'Trigger' || p.scenery) continue;
+    const w = p.width === Infinity ? 0 : (p.width || sizeOf(p.thing)[0]);
+    if (p.thing === 'Castle') maxX = Math.max(maxX, p.x + (p.large ? 72 + 8 * Math.max(0, (p.walls ?? 2) - 2) : 40));
+    else maxX = Math.max(maxX, (p.x || 0) + w);
+  }
+  const cols = Math.ceil(px(maxX) / 16) + 1;
+  const grid = Array.from({ length: ROWS }, () => new Array(cols).fill(' '));
+  const contents = {};
+  const things = [], scenery = [], pipes = [], triggers = [];
+  const castle = /Castle/.test(fsmArea.setting || '');
+  const set = (c, r, ch) => {
+    if (r < 0 || r >= ROWS || c < 0) return;
+    while (c >= grid[0].length) for (const row of grid) row.push(' ');
+    grid[r][c] = ch;
+  };
+  const rect = (p, ch, defW = 8, defH = 8) => {
+    const w = p.width === Infinity ? defW : (p.width || defW);
+    const h = p.height === Infinity || p.height === 'Infinity' ? Infinity : (p.height || defH);
+    const top = topPx(p.y || 0);
+    const bottom = h === Infinity ? 240 : top + px(h);
+    const c0 = Math.round(px(p.x || 0) / 16), c1 = Math.round(px((p.x || 0) + w) / 16);
+    const r0 = Math.round(top / 16), r1 = Math.round(bottom / 16);
+    for (let c = c0; c < c1; c++) for (let r = r0; r < Math.min(r1, ROWS); r++) set(c, r, ch);
+    return { c0, c1, r0, r1 };
+  };
+  const cell = (p) => ({ c: Math.floor(px(p.x || 0) / 16 + 0.01), r: Math.floor(topPx(p.y || 0) / 16 + 0.01) });
+  const thing = (type, p, opts = {}) => {
+    const [w, h] = sizeOf(p.thing);
+    const o = Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined && v !== false));
+    things.push(Object.keys(o).length ? [type, px(p.x || 0), topPx(p.y || 0), o] : [type, px(p.x || 0), topPx(p.y || 0)]);
+  };
+
+  // Floors first so that everything else overwrites them.
+  const order = (p) => (p.thing === 'Floor' ? 0 : p.thing === 'Water' ? 1 : p.thing === 'TreeTrunk' || p.thing === 'ShroomTrunk' ? 2 : 3);
+  prims.sort((a, b) => order(a) - order(b));
+
+  for (const p of prims) {
+    switch (p.thing) {
+      case 'Floor': rect(p, 'G'); break;
+      case 'Stone': rect(p, castle ? 'G' : 'S'); break;
+      case 'Brick': case 'Block': {
+        const { c, r } = cell(p);
+        let content = p.contents, extra;
+        if (Array.isArray(content)) { extra = content[1]; content = content[0]; }
+        const ch = p.thing === 'Brick' ? 'B' : p.hidden ? 'h' : '?';
+        set(c, r, ch);
+        if (content && !(p.thing === 'Block' && content === 'Coin')) {
+          contents[`${c},${r}`] = CONTENTS[content] || content;
+          if (content === 'Vine' && extra) contents[`${c},${r}`] = extra.transport !== undefined ? `vine:${extra.transport}` : 'vine';
+        }
+        if (p.thing === 'Brick' && content === 'Coin') contents[`${c},${r}`] = 'coins';
+        break;
+      }
+      case 'Coin': { const { c, r } = cell(p); set(c, r, 'o'); break; }
+      case 'CastleBlock': {
+        const { c, r } = cell(p);
+        if (!p.hidden) set(c, r, 'U');
+        if (p.fireballs) things.push(['firebar', c * 16, r * 16, { length: p.fireballs, dir: p.direction || 1, speed: p.speed || 1 }]);
+        break;
+      }
+      case 'Pipe': {
+        const { c0, r0, r1 } = rect(p, '{', 16, 8);
+        for (let r = r0; r < Math.min(r1, ROWS); r++) { set(c0, r, r === r0 ? '[' : '{'); set(c0 + 1, r, r === r0 ? ']' : '}'); }
+        const entry = { col: c0, row: r0, dir: 'down' };
+        if (p.transport !== undefined) entry.to = p.transport;
+        if (p.entrance !== undefined) entry.exit = p.entrance;
+        if (p.warp) entry.warp = true;
+        if (p.transport !== undefined || p.entrance !== undefined) pipes.push(entry);
+        break;
+      }
+      case 'PipeVertical': {
+        const c0 = Math.round(px(p.x) / 16), r0 = Math.round(topPx(p.y) / 16);
+        const h = p.height === Infinity ? 240 : px(p.height);
+        const r1 = Math.round((topPx(p.y) + h) / 16);
+        for (let r = r0; r < Math.min(r1, ROWS); r++) { set(c0, r, '{'); set(c0 + 1, r, '}'); }
+        break;
+      }
+      case 'PipeHorizontal': {
+        const c0 = Math.round(px(p.x) / 16), r0 = Math.round(topPx(p.y) / 16);
+        const len = Math.round(px(p.width || 19.5) / 16) || 2;
+        set(c0, r0, 'm'); set(c0, r0 + 1, 'n');
+        for (let i = 1; i < len; i++) { set(c0 + i, r0, 'q'); set(c0 + i, r0 + 1, 'r'); }
+        if (p.transport !== undefined) pipes.push({ col: c0, row: r0, dir: 'right', to: p.transport });
+        break;
+      }
+      case 'TreeTop': rect(p, 'T', 8, 8); break;
+      case 'ShroomTop': rect(p, 'M', 8, 8); break;
+      case 'TreeTrunk': rect(p, p.solid ? 'Z' : 't', 8, 8); break;
+      case 'ShroomTrunk': rect(p, p.solid ? 'Y' : 'i', 8, 8); break;
+      case 'Cannon': {
+        const { c, r } = cell(p);
+        const h = Math.round(px(p.height || 8) / 16);
+        for (let i = 0; i < h; i++) set(c, r + i, i === 0 ? 'C' : 'c');
+        if (!p.nofire) things.push(['cannon', c * 16, r * 16]);
+        break;
+      }
+      case 'Coral': rect(p, 'K', 8, 8); break;
+      case 'Water': {
+        const sym = castle ? ['l', 'L'] : ['w', 'W'];
+        const top = topPx(p.y || 0) + 4; // FSM water sits 2 units into its tile
+        const c0 = Math.round(px(p.x) / 16), c1 = Math.round(px(p.x + (p.width || 4)) / 16);
+        const r0 = Math.max(0, Math.floor(top / 16));
+        for (let c = c0; c < c1; c++) for (let r = r0; r < ROWS; r++) if (grid[r][c] === ' ' || grid[r][c] === 'G') set(c, r, r === r0 ? sym[0] : sym[1]);
+        break;
+      }
+      case 'BridgeBase': {
+        const r = Math.floor(topPx(p.y) / 16 + 0.01);
+        const c0 = Math.round(px(p.x) / 16), c1 = Math.round(px(p.x + p.width) / 16);
+        for (let c = c0; c < c1; c++) set(c, r, '=');
+        break;
+      }
+      case 'CastleBridge': {
+        const r = Math.floor(topPx(p.y) / 16 + 0.01);
+        const c0 = Math.round(px(p.x) / 16), c1 = Math.round(px(p.x + p.width) / 16);
+        for (let c = c0; c < c1; c++) set(c, r, 'X');
+        break;
+      }
+      case 'CastleChain': thing('chain', p); break;
+      case 'CastleAxe': thing('axe', p); break;
+      case 'Bowser': thing('bowser', p, { hard: p.hard, fake: p.spawnType, hammers: p.throwing }); break;
+      case 'NPC': things.push([p.npc === 'Peach' ? 'princess' : 'toad', px(p.x), topPx(p.y + 13), { trigger: px(p.triggerX), to: p.transport }]); break;
+      case 'Flagpole': things.push(['flagpole', px(p.x), topPx(p.y + 80)]); break;
+      case 'Castle': {
+        const name = p.large ? 'castle_large' : 'castle_small';
+        // FSM castles are anchored at their left edge; the small castle is 80 px
+        // wide, the large one 144 px plus extra wall columns.
+        scenery.push([name, px(p.x), FLOOR - 2 * (p.y || 0)]);
+        if (p.large && (p.walls ?? 2) > 2) scenery.push(['castle_wall', px(p.x + 72), FLOOR - 2 * (p.y || 0), { cols: p.walls - 2 }]);
+        break;
+      }
+      case 'LevelEnd': triggers.push({ kind: 'castle', x: px(p.x), to: p.transport }); break;
+      case 'Goomba': thing('goomba', p); break;
+      case 'Koopa': thing('koopa', p, { red: p.smart, para: p.jumping, fly: p.flying }); break;
+      case 'Beetle': thing('beetle', p); break;
+      case 'Piranha': thing('piranha', p, { warp: p.warp }); break;
+      case 'Blooper': thing('blooper', p); break;
+      case 'CheepCheep': thing('cheep', p, { red: p.smart, flying: p.flying }); break;
+      case 'Podoboo': thing('podoboo', p, { jump: p.jumpHeight }); break;
+      case 'Lakitu': thing('lakitu', p); break;
+      case 'HammerBro': thing('hammerbro', p); break;
+      case 'Springboard': thing('spring', p); break;
+      case 'Platform': {
+        const o = { w: px(p.width || 8) };
+        if (p.floating) Object.assign(o, { move: 'v', min: topPx(p.end), max: topPx(p.begin) });
+        if (p.sliding) Object.assign(o, { move: 'h', min: px(p.begin), max: px(p.end) });
+        if (p.falling) o.move = 'fall';
+        if (p.transport) o.move = 'ride';
+        if (p.speed) o.speed = p.speed;
+        if (p.nocollidechar) o.ghost = true;
+        things.push(['lift', px(p.x), topPx(p.y || 0), o]);
+        break;
+      }
+      case 'PlatformGenerator': things.push(['liftgen', px(p.x), 0, { w: px(p.width), dir: p.direction }]); break;
+      case 'Scale': things.push(['scale', px(p.x), topPx(p.y), {
+        wl: px(p.widthLeft), wr: px(p.widthRight), between: px(p.between), dl: px(p.dropLeft), dr: px(p.dropRight),
+      }]); break;
+      case 'WarpZone': triggers.push({ kind: 'warpzone', x: px(p.x), warps: p.warps, pipes: p.pipeX.map(px) }); break;
+      case 'Trigger': triggers.push({ kind: p.kind[0].toLowerCase() + p.kind.slice(1), x: px(p.x), w: px(p.width) }); break;
+      case 'ScrollBlocker': triggers.push({ kind: 'scrollStop', x: px(p.x) }); break;
+      case 'ScrollEnabler': break;
+      case 'Section': case 'SectionPass': case 'SectionFail': case 'SectionDecider': break;
+      case 'CustomText': case 'DecorativeBack': case 'DecorativeDot': break;
+      case 'CastleWall': scenery.push(['castle_wall', px(p.x), topPx(p.y - 48)]); break;
+      default:
+        if (SCENERY[p.thing]) {
+          const [w, h] = sizeOf(p.thing);
+          const reps = p.thing === 'Fence' && p.width ? p.width / 8 : 1;
+          for (let i = 0; i < reps; i++) scenery.push([SCENERY[p.thing], px(p.x + i * 8), topPx(p.y - h)]);
+        } else {
+          throw new Error(`${level}/${areaIndex}: unknown thing ${p.thing}`);
+        }
+    }
+  }
+  // Loops are kept as data for the engine (castle mazes).
+  if (loops.length) area.loops = loops;
+  area.rows = grid.map((r) => r.join('').replace(/\s+$/, ''));
+  area.width = grid[0].length * 16;
+  if (Object.keys(contents).length) area.contents = contents;
+  area.things = things.sort((a, b) => a[1] - b[1]);
+  area.scenery = scenery;
+  if (pipes.length) area.pipes = pipes;
+  if (triggers.length) area.triggers = triggers.sort((a, b) => a.x - b.x);
+  return area;
+}
+
+// FSM's castle-maze sections (4-4, 7-4, 8-4) are laid out once, in sequence, as
+// the NES does; whether the player took the right path is decided by the
+// engine through `loops`, which are written by hand in level-fixes.mjs.
+function layoutSections(fsmArea, prims) {
+  let x = 0;
+  for (const p of prims) if (p.thing === 'Section') x = Math.max(x, p.x);
+  for (const sec of fsmArea.sections) {
+    for (const part of ['before', 'stretch', 'after']) {
+      const s = sec[part];
+      if (!s) continue;
+      const reps = part === 'stretch' ? (s.reps || 1) : 1;
+      for (let i = 0; i < reps; i++) {
+        const sub = expand(s.creation || [], []);
+        for (const q of sub) { q.x = (q.x || 0) + x; prims.push(q); }
+        x += s.width || 0;
+      }
+    }
+  }
+}
+
+function theme(setting = 'Overworld') {
+  const s = setting;
+  const t = { theme: 'overworld', sky: 'day' };
+  if (/Underworld/.test(s)) Object.assign(t, { theme: 'underground', sky: 'black' });
+  else if (/Underwater Castle/.test(s)) Object.assign(t, { theme: 'underwater', sky: 'water', tiles: 'castle' });
+  else if (/Underwater/.test(s)) Object.assign(t, { theme: 'underwater', sky: 'water' });
+  else if (/Castle/.test(s)) Object.assign(t, { theme: 'castle', sky: 'black' });
+  else if (/Sky/.test(s)) Object.assign(t, { theme: 'sky', sky: /Night/.test(s) ? 'night' : 'day' });
+  else {
+    if (/Night/.test(s)) t.sky = 'night';
+    if (/Alt/.test(s)) t.tiles = 'snow';
+    if (/Shrooms/.test(s)) t.shrooms = true;
+  }
+  return t;
+}
+
+const ENTRY = { Plain: 'plain', Normal: 'fall', Walking: 'walk', Castle: 'castle', Vine: 'vine', PipeVertical: 'pipeUp', PipeHorizontal: 'pipeRight' };
+
+function convertLevel(id) {
+  const m = library[id];
+  const level = { id, time: m.time || 400, locations: [], areas: [] };
+  m.areas.forEach((a, i) => {
+    const area = { ...theme(a.setting) };
+    if (a.exit !== undefined) area.exit = a.exit;
+    level.areas.push(convertArea(area, a, id, i));
+  });
+  for (const loc of m.locations) {
+    const o = { area: loc.area || 0, entry: ENTRY[loc.entry || 'Normal'] };
+    if (loc.xloc !== undefined) o.x = px(loc.xloc);
+    level.locations.push(o);
+  }
+  // A pipe's "entrance" names the location that comes out of it.
+  level.areas.forEach((area, ai) => {
+    for (const p of area.pipes || []) {
+      if (p.exit !== undefined) {
+        const loc = level.locations[p.exit];
+        if (loc) { loc.x = p.col * 16; loc.pipe = { col: p.col, row: p.row }; }
+        delete p.exit;
+      }
+    }
+  });
+  return applyFixes(level);
+}
+
+function serialize(level) {
+  // One line per row / thing keeps the files reviewable.
+  const L = [];
+  L.push(`// ${level.id}: generated by tools/convert-fsm.mjs from the FullScreenMario`);
+  L.push(`// map data (MIT, see docs/levels.md), then hand-fixed in tools/level-fixes.mjs.`);
+  L.push('export default {');
+  L.push(`  id: ${JSON.stringify(level.id)},`);
+  L.push(`  time: ${level.time},`);
+  L.push(`  locations: [`);
+  for (const l of level.locations) L.push(`    ${JSON.stringify(l)},`);
+  L.push(`  ],`);
+  L.push(`  areas: [`);
+  for (const a of level.areas) {
+    L.push('    {');
+    for (const [k, v] of Object.entries(a)) {
+      if (k === 'rows') {
+        L.push('      rows: [');
+        for (const r of v) L.push(`        ${JSON.stringify(r)},`);
+        L.push('      ],');
+      } else if (Array.isArray(v)) {
+        L.push(`      ${k}: [`);
+        for (const e of v) L.push(`        ${JSON.stringify(e)},`);
+        L.push('      ],');
+      } else L.push(`      ${k}: ${JSON.stringify(v)},`);
+    }
+    L.push('    },');
+  }
+  L.push('  ],');
+  for (const [k, v] of Object.entries(level)) {
+    if (!['id', 'time', 'locations', 'areas'].includes(k)) L.push(`  ${k}: ${JSON.stringify(v)},`);
+  }
+  L.push('};');
+  return L.join('\n') + '\n';
+}
+
+fs.mkdirSync(OUT, { recursive: true });
+for (const id of ONLY.length ? ONLY : LEVELS) {
+  const level = convertLevel(id);
+  fs.writeFileSync(path.join(OUT, `${id}.js`), serialize(level));
+  console.log(id, level.areas.map((a) => `${a.theme}:${a.width}px`).join(' '));
+}

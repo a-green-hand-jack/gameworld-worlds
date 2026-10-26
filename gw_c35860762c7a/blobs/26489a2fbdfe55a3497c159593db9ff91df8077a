@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""Rebuild every sound effect and music track of the game from source.
+
+    python3 tools/audio/build_audio.py            # build + verify
+    python3 tools/audio/build_audio.py --no-verify
+    python3 tools/audio/build_audio.py --plots /hutian/work/audio_check
+
+Outputs (relative to the repo root):
+    assets/audio/sfx/<id>.wav, <id>.ogg
+    assets/audio/music/<id>.ogg, <id>.mp3
+    assets/audio/audio.json
+
+Everything is synthesised deterministically by nes_synth.py from the note /
+register data in music_defs.py and sfx_defs.py.  Requires numpy, scipy and an
+ffmpeg with libvorbis + libmp3lame (env FFMPEG, /hutian/.mamba/bin/ffmpeg or
+ffmpeg on PATH).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+import numpy as np  # noqa: E402
+from scipy.signal import lfilter  # noqa: E402
+
+import music_defs  # noqa: E402
+import sfx_defs  # noqa: E402
+from nes_synth import APU, SR, write_wav  # noqa: E402
+from sequencer import render_track, trim_tail  # noqa: E402
+
+REPO = HERE.parent.parent
+ASSETS = REPO / "assets"
+OUT = ASSETS / "audio"
+SFX_PEAK_DB = -3.0
+MUSIC_PEAK_DB = -6.0
+LOUDNESS_SLACK = 1.0
+
+
+def find_ffmpeg():
+    for c in [os.environ.get("FFMPEG"), "/hutian/.mamba/bin/ffmpeg", shutil.which("ffmpeg")]:
+        if c and Path(c).exists():
+            return c
+    sys.exit("ffmpeg not found (set FFMPEG=/path/to/ffmpeg)")
+
+
+FFMPEG = find_ffmpeg()
+BITEXACT = ["-map_metadata", "-1", "-fflags", "+bitexact", "-flags:a", "+bitexact"]
+
+
+def encode(wav, dst, kind):
+    codec = (["-c:a", "libvorbis", "-q:a", "5"] if kind == "ogg"
+             else ["-c:a", "libmp3lame", "-b:a", "128k"])
+    subprocess.run([FFMPEG, "-v", "error", "-y", "-i", str(wav), "-ac", "1", "-ar", str(SR),
+                    *codec, *BITEXACT, str(dst)], check=True)
+
+
+# ----------------------------------------------------------------------------
+# loudness (ITU-R BS.1770 style: K-weighting + gated 400 ms blocks)
+# ----------------------------------------------------------------------------
+
+def _k_filter(x):
+    G, Q, fc = 3.99984385397, 0.7071752369554193, 1681.9744509555319
+    A = 10 ** (G / 40)
+    w0 = 2 * math.pi * fc / SR
+    al = math.sin(w0) / (2 * Q)
+    c = math.cos(w0)
+    b = [A * ((A + 1) + (A - 1) * c + 2 * math.sqrt(A) * al),
+         -2 * A * ((A - 1) + (A + 1) * c),
+         A * ((A + 1) + (A - 1) * c - 2 * math.sqrt(A) * al)]
+    a = [(A + 1) - (A - 1) * c + 2 * math.sqrt(A) * al,
+         2 * ((A - 1) - (A + 1) * c),
+         (A + 1) - (A - 1) * c - 2 * math.sqrt(A) * al]
+    x = lfilter(b, a, x)
+    Q, fc = 0.5003270373253953, 38.13547087613982
+    w0 = 2 * math.pi * fc / SR
+    al = math.sin(w0) / (2 * Q)
+    c = math.cos(w0)
+    b = [(1 + c) / 2, -(1 + c), (1 + c) / 2]
+    a = [1 + al, -2 * c, 1 - al]
+    return lfilter(b, a, x)
+
+
+def loudness(x, loop=False):
+    """Integrated loudness in LUFS (mono)."""
+    if loop:                     # measure loops in steady state
+        x = np.concatenate([x, x])
+    y = _k_filter(x)
+    blk = int(0.4 * SR)
+    hop = blk // 4
+    if len(y) < blk:
+        y = np.pad(y, (0, blk - len(y)))
+    z = np.array([np.mean(y[i:i + blk] ** 2) for i in range(0, len(y) - blk + 1, hop)])
+    lk = -0.691 + 10 * np.log10(np.maximum(z, 1e-20))
+    z = z[lk > -70]
+    rel = -0.691 + 10 * np.log10(np.mean(z)) - 10
+    lk = -0.691 + 10 * np.log10(np.maximum(z, 1e-20))
+    z = z[lk > rel]
+    return float(-0.691 + 10 * np.log10(np.mean(z)))
+
+
+def db(x):
+    return 20 * math.log10(max(x, 1e-12))
+
+
+# ----------------------------------------------------------------------------
+
+def render_sfx():
+    out = {}
+    for sid, fn in sfx_defs.SFX.items():
+        evs = fn()
+        n = max(e.start + e.length() for e in evs) + SR
+        apu = APU(n)
+        apu.extend(evs)
+        y = apu.render()
+        y = trim_tail(y, thresh=1e-4, fade_ms=6)
+        k = 32
+        y[:k] *= np.linspace(0, 1, k)
+        y = y * (10 ** (SFX_PEAK_DB / 20) / np.max(np.abs(y)))
+        out[sid] = y
+    return out
+
+
+def render_music():
+    out = {}   # id -> (audio, meta)
+    tracks = []
+    for tid, fn in music_defs.LOOPS.items():
+        tracks.append((tid, fn(), 1.0))
+        if tid in music_defs.HURRY:
+            tracks.append((tid + "_hurry", fn(), music_defs.HURRY_SCALE))
+    for tid, fn in music_defs.JINGLES.items():
+        tracks.append((tid, fn(), 1.0))
+    for tid, tr, scale in tracks:
+        y, info = render_track(tr, tempo_scale=scale)
+        meta = {"loop": tr.loop, "bpm": info["bpm"], "key": tr.key, "meter": tr.meter,
+                "bars": tr.bars if tr.loop else None}
+        if tr.loop:
+            meta["seam_err"] = info["seam_err"]
+        else:
+            y = trim_tail(y, thresh=2e-4, fade_ms=10, min_len=info["body_samples"])
+        out[tid] = (y, meta)
+    # Loudness match: the common target is the loudest level at which every
+    # track still peaks <= MUSIC_PEAK_DB.  Tracks with spare headroom may be
+    # up to LOUDNESS_SLACK dB louder (brings their peaks closer to -6 dBFS
+    # while keeping the loudness spread well inside 2 dB).
+    lufs = {k: loudness(v[0], v[1]["loop"]) for k, v in out.items()}
+    head = {k: MUSIC_PEAK_DB - (db(np.max(np.abs(v[0]))) - lufs[k]) for k, v in out.items()}
+    target = min(head.values())
+    final = {}
+    for k, (y, meta) in out.items():
+        t = min(target + LOUDNESS_SLACK, head[k])
+        g = 10 ** ((t - lufs[k]) / 20)
+        final[k] = (y * g, dict(meta, lufs=t, gain_db=t - lufs[k]))
+    return final, target
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--no-verify", action="store_true")
+    ap.add_argument("--plots", default=None, help="directory for spectrogram PNGs")
+    args = ap.parse_args()
+
+    sfx_dir = OUT / "sfx"
+    mus_dir = OUT / "music"
+    for d in (sfx_dir, mus_dir):
+        if d.exists():
+            for f in d.iterdir():
+                if f.suffix in (".wav", ".ogg", ".mp3"):
+                    f.unlink()
+        d.mkdir(parents=True, exist_ok=True)
+
+    manifest = {"sfx": {}, "music": {}}
+    print("rendering sfx ...")
+    sfx = render_sfx()
+    for sid, y in sfx.items():
+        wav = sfx_dir / f"{sid}.wav"
+        write_wav(wav, y)
+        encode(wav, sfx_dir / f"{sid}.ogg", "ogg")
+        manifest["sfx"][sid] = {"files": [f"audio/sfx/{sid}.ogg", f"audio/sfx/{sid}.wav"],
+                                "duration": round(len(y) / SR, 6)}
+
+    print("rendering music ...")
+    music, target = render_music()
+    info = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        for mid, (y, meta) in music.items():
+            wav = Path(tmp) / f"{mid}.wav"
+            write_wav(wav, y)
+            encode(wav, mus_dir / f"{mid}.ogg", "ogg")
+            encode(wav, mus_dir / f"{mid}.mp3", "mp3")
+            dur = round(len(y) / SR, 6)
+            entry = {"files": [f"audio/music/{mid}.ogg", f"audio/music/{mid}.mp3"],
+                     "duration": dur, "loop": bool(meta["loop"])}
+            # loops: the whole file is the loop body (tails already wrapped
+            # around), so loopStart = 0 and loopEnd = duration.  Jingles carry
+            # the same keys for a uniform shape.
+            entry["loopStart"] = 0.0
+            entry["loopEnd"] = dur
+            manifest["music"][mid] = entry
+            info[mid] = meta
+    with open(OUT / "audio.json", "w") as f:
+        json.dump(manifest, f, indent=2)
+        f.write("\n")
+    print(f"music loudness target {target:.1f} LUFS")
+    for mid, m in info.items():
+        e = manifest["music"][mid]
+        seam = f" seam_err={m['seam_err']:.1e}" if m["loop"] else ""
+        print(f"  {mid:20s} {e['duration']:9.5f}s loop={e['loop']!s:5s} bpm={m['bpm']:6.1f} "
+              f"{m['lufs']:6.1f} LUFS gain={m['gain_db']:+.1f}dB {m['key']}{seam}")
+
+    if not args.no_verify:
+        import verify_audio
+        ok = verify_audio.verify(OUT, plots=args.plots, ffmpeg=FFMPEG)
+        if not ok:
+            sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

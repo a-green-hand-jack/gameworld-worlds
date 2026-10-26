@@ -1,0 +1,10 @@
+# Acceptance record
+
+Delivery: game-developer main 03fa8270aeae (index.html); zip release v1.0 (game-developer) / v1.0-playtest (producer copy, sha256 95ae15c0...).
+
+Inspected: read the full index.html; unzipped the release zip (only index.html at root) and confirmed it is byte-identical to index.html on game-developer main; sha256 matches the zip playtester played.
+Checks (game-developer tests/results.txt): Space jump, collision, score/best, restart, 300 s bot, no console errors, no external requests - all pass.
+Playtest (playtester 84c488f8358a): all five requirements met; no blocking defects. Non-blocking: difficulty plateaus after ~42 s; tightest moment is a 60 px pair at start speed; restart ignored within 400 ms of death with no hint. Not covered: Firefox, physical keyboard, audio.
+Not done by me: my own interactive play; judgement rests on code reading, the screenshots and the playtest report.
+
+Conclusion: meets the input (single-screen, Space jump, collision ends game, score and high score shown, index.html opens offline, zip with index.html at root). Approved.

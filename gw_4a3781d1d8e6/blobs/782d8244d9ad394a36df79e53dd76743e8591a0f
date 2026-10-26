@@ -1,0 +1,608 @@
+[
+ {
+  "req": "R7",
+  "check": "title shown on load",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "title names game, says how to start and control",
+  "ok": true,
+  "detail": "steer with the \u2190 \u2191 \u2192 \u2193 arrow keys.\n\neat food to grow and score. don't hit the walls or yourself.\n\nstart\n\nor press enter / space \u00b7 p pauses"
+ },
+ {
+  "req": "R7",
+  "check": "game not playing before start (no game object)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "arrows/other keys on title do not start play",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "score HUD hidden on title",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R1",
+  "check": "no console errors/warnings on load",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R1",
+  "check": "no failed (>=400) responses",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R1",
+  "check": "no network requests outside the local server (offline play)",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R1",
+  "check": "all assets loaded",
+  "ok": true,
+  "detail": "{'images': ['snake_head', 'snake_body', 'snake_tail', 'tile', 'food'], 'sounds': ['eat', 'game_over', 'start'], 'logo': True, 'font': True}"
+ },
+ {
+  "req": "R1",
+  "check": "opens and starts from file:// without errors",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R7",
+  "check": "start with 'Enter'",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "Enter/Space during play do not restart ('Enter' start)",
+  "ok": true,
+  "detail": "({'x': 12, 'y': 10}, {'x': 12, 'y': 10})"
+ },
+ {
+  "req": "R7",
+  "check": "start with ' '",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "Enter/Space during play do not restart (' ' start)",
+  "ok": true,
+  "detail": "({'x': 12, 'y': 10}, {'x': 12, 'y': 10})"
+ },
+ {
+  "req": "R7",
+  "check": "start by clicking button",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "rapid Enter,Enter,Space starts exactly once (still state playing, 3 long)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R8",
+  "check": "HUD visible during play with score 0",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R2",
+  "check": "snake advances continuously rightwards in real time",
+  "ok": true,
+  "detail": "[11, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 18, 18, 19]"
+ },
+ {
+  "req": "R2",
+  "check": "board is a visible grid 20x20 of 32px cells",
+  "ok": true,
+  "detail": "[640, 640]"
+ },
+ {
+  "req": "R2",
+  "check": "board fully inside 1280x720 viewport",
+  "ok": true,
+  "detail": "[60, 700, 320, 960]"
+ },
+ {
+  "req": "R3",
+  "check": "Up turns snake on next step",
+  "ok": true,
+  "detail": "{'x': 10, 'y': 9}"
+ },
+ {
+  "req": "R3",
+  "check": "Left turns",
+  "ok": true,
+  "detail": "{'x': 9, 'y': 9}"
+ },
+ {
+  "req": "R3",
+  "check": "Down turns",
+  "ok": true,
+  "detail": "{'x': 9, 'y': 10}"
+ },
+ {
+  "req": "R3",
+  "check": "Right turns",
+  "ok": true,
+  "detail": "{'x': 10, 'y': 10}"
+ },
+ {
+  "req": "R3",
+  "check": "immediate 180 (Left while moving Right) does not kill and keeps going right",
+  "ok": true,
+  "detail": "[{'x': 13, 'y': 10}, {'x': 12, 'y': 10}, {'x': 11, 'y': 10}]"
+ },
+ {
+  "req": "R3",
+  "check": "Up,Down within one step does not self-kill",
+  "ok": true,
+  "detail": "[{'x': 10, 'y': 7}, {'x': 10, 'y': 8}, {'x': 10, 'y': 9}]"
+ },
+ {
+  "req": "R3",
+  "check": "Up,Left pressed within one step -> up then left (neither lost)",
+  "ok": true,
+  "detail": "{'x': 9, 'y': 9}"
+ },
+ {
+  "req": "R3",
+  "check": "three quick presses Up,Left,Down: no self-kill on a 3-long snake",
+  "ok": true,
+  "detail": "('playing', [{'x': 7, 'y': 9}, {'x': 8, 'y': 9}, {'x': 9, 'y': 9}])"
+ },
+ {
+  "req": "R3",
+  "check": "real-time: Up+Left pressed back-to-back both applied (dir ends left, alive)",
+  "ok": true,
+  "detail": "('playing', 'left')"
+ },
+ {
+  "req": "R3",
+  "check": "arrow keys/Space do not scroll page (page scrollable in 500x300: False)",
+  "ok": true,
+  "detail": "([0, 0], [0, 0])"
+ },
+ {
+  "req": "R4",
+  "check": "eating: length +1",
+  "ok": true,
+  "detail": "(3, 4)"
+ },
+ {
+  "req": "R4",
+  "check": "eating: score +1 (game and HUD)",
+  "ok": true,
+  "detail": "(1, '1')"
+ },
+ {
+  "req": "R4",
+  "check": "new food off the snake and on board",
+  "ok": true,
+  "detail": "{'x': 1, 'y': 0}"
+ },
+ {
+  "req": "R4",
+  "check": "length stays after growth tick (no drift)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R4",
+  "check": "consecutive foods each exactly +1 length/+1 score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R4",
+  "check": "autopilot, 150 games: food never on snake/off board; every eat is +1/+1 (eaten=4517)",
+  "ok": true,
+  "detail": "{'viol': 0, 'eaten': 4517, 'games': 150, 'notBoard': 0}"
+ },
+ {
+  "req": "R5",
+  "check": "wall right ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 19, 'y': 10}, 10)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after right wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R5",
+  "check": "wall up ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 10, 'y': 0}, 10)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after up wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R5",
+  "check": "wall down ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 10, 'y': 19}, 9)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after down wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R5",
+  "check": "wall left ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 0, 'y': 9}, 10)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after left wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R8",
+  "check": "HUD score shows 3 after 3 foods",
+  "ok": true,
+  "detail": "3"
+ },
+ {
+  "req": "R9",
+  "check": "final score equals 3 on game-over screen",
+  "ok": true,
+  "detail": "Game Over\n\nFinal score 3\n\nNew best!\n\nPlay again\n\nor press Enter / Space"
+ },
+ {
+  "req": "R9",
+  "check": "game over screen mentions game over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "arrow keys on game over do not restart / change screen",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "Play again button starts fresh run: playing, score 0 (game+HUD), length 3, dir right, queue empty",
+  "ok": true,
+  "detail": "('playing', 0, 3, 'right')"
+ },
+ {
+  "req": "R10",
+  "check": "no page reload on restart",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "fresh run has food off snake",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "game over screen hidden after restart",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "restarted game moves",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "restart with 'Enter' key from game over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "extra Enter/Space after restart does not double-start",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "restart with ' ' key from game over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "extra Enter/Space after restart does not double-start",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "no stale queued turns carried into restarted run",
+  "ok": true,
+  "detail": "({'x': 10, 'y': 10}, {'x': 11, 'y': 10})"
+ },
+ {
+  "req": "R10",
+  "check": "5 consecutive runs each score/final-score correct",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R6",
+  "check": "U-turn loop into body ends game (length 6)",
+  "ok": true,
+  "detail": "('gameover', [{'x': 9, 'y': 9}, {'x': 10, 'y': 9}, {'x': 10, 'y': 10}])"
+ },
+ {
+  "req": "R9",
+  "check": "game over screen after self collision",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R4",
+  "check": "length 6 after 3 foods from 3",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R6",
+  "check": "natural play: grown snake (6) turning up,left,down dies",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R9",
+  "check": "final score 3 after self-death",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R6",
+  "check": "moving into the cell the tail just vacated is allowed (standard Snake)",
+  "ok": true,
+  "detail": "playing"
+ },
+ {
+  "req": "R6",
+  "check": "entering tail cell while eating (food on it) is a collision",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R6",
+  "check": "head into a mid-body cell ends game",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R6",
+  "check": "real-time: loop into itself ends game",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R2",
+  "check": "P pauses (no movement) and resume continues",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R2",
+  "check": "resume after pause moves again and not dead",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R2",
+  "check": "pause then resume with 'p': same run continues (not restarted)",
+  "ok": true,
+  "detail": "('playing',)"
+ },
+ {
+  "req": "R2",
+  "check": "pause then resume with 'Escape': same run continues (not restarted)",
+  "ok": true,
+  "detail": "('playing',)"
+ },
+ {
+  "req": "R2",
+  "check": "pause then resume with 'Enter': same run continues (not restarted)",
+  "ok": true,
+  "detail": "('playing',)"
+ },
+ {
+  "req": "R2",
+  "check": "pause then resume with ' ': same run continues (not restarted)",
+  "ok": true,
+  "detail": "('playing',)"
+ },
+ {
+  "req": "R2",
+  "check": "pause then resume with 'click': same run continues (not restarted)",
+  "ok": true,
+  "detail": "('playing',)"
+ },
+ {
+  "req": "R3",
+  "check": "arrow pressed while paused does not turn",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 1280x720, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [20, 700, 320, 960], 'hud': [20, 60, 320, 960], 'wrap': [60, 700, 320, 960], 'sy': 0, 'sh': 720}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 1280x720",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 1280x720, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 1366x650, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [8, 642, 385.5, 980.5], 'hud': [8, 47, 385.5, 980.5], 'wrap': [47, 642, 385.5, 980.5], 'sy': 0, 'sh': 650}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 1366x650",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 1366x650, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 1366x768, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [44, 724, 363, 1003], 'hud': [44, 84, 363, 1003], 'wrap': [84, 724, 363, 1003], 'sy': 0, 'sh': 768}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 1366x768",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 1366x768, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 1024x600, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [8, 592, 238, 786], 'hud': [8, 44, 238, 786], 'wrap': [44, 592, 238, 786], 'sy': 0, 'sh': 600}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 1024x600",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 1024x600, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 800x600, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [8, 592, 126, 674], 'hud': [8, 44, 126, 674], 'wrap': [44, 592, 126, 674], 'sy': 0, 'sh': 600}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 800x600",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 800x600, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 800x500, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [8, 492, 173, 627], 'hud': [8, 38, 173, 627], 'wrap': [38, 492, 173, 627], 'sy': 0, 'sh': 500}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 800x500",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 800x500, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 1920x1080, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [200, 880, 640, 1280], 'hud': [200, 240, 640, 1280], 'wrap': [240, 880, 640, 1280], 'sy': 0, 'sh': 1080}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 1920x1080",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 1920x1080, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R1",
+  "check": "title/HUD/board fully inside 500x700, no scroll, title text within board",
+  "ok": true,
+  "detail": "({'game': [90, 610, 10, 490], 'hud': [90, 130, 10, 490], 'wrap': [130, 610, 10, 490], 'sy': 0, 'sh': 700}, [])"
+ },
+ {
+  "req": "R8",
+  "check": "HUD score visible at 500x700",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R9",
+  "check": "game-over screen fits inside board at 500x700, final score visible, no scroll",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "req": "R2",
+  "check": "board remains square when scaled to 800x500",
+  "ok": true,
+  "detail": "[454, 454]"
+ }
+]

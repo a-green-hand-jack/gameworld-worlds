@@ -1,0 +1,47 @@
+"""Producer's acceptance play of an assembled delivery: real keyboard input in headless Chromium.
+Usage: python3 play.py DELIVERY_DIR OUT_DIR"""
+import sys, json, time, pathlib
+from playwright.sync_api import sync_playwright
+root = pathlib.Path(sys.argv[1]).resolve(); out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)
+log = {}
+def st(page): return page.evaluate("({s:pong.game.state,sc:pong.game.score,w:pong.game.winner,py:pong.game.player.y,by:pong.game.ball.y,bvx:pong.game.ball.vx,cy:pong.game.computer.y})")
+with sync_playwright() as p:
+    b = p.chromium.launch(args=["--autoplay-policy=no-user-gesture-required"])
+    page = b.new_page(viewport={"width": 1000, "height": 640})
+    errs = []; page.on("pageerror", lambda e: errs.append(str(e))); page.on("console", lambda m: m.type == "error" and errs.append(m.text))
+    page.goto(root.joinpath("index.html").as_uri()); page.wait_for_function("window.pong && pong.ready", timeout=10000)
+    page.screenshot(path=str(out / "1-title.png")); log["title_state"] = st(page)["s"]
+    page.keyboard.press("Enter"); time.sleep(0.3); log["after_enter"] = st(page)["s"]
+    # paddle responds to held keys
+    y0 = st(page)["py"]; page.keyboard.down("ArrowUp"); time.sleep(0.4); page.keyboard.up("ArrowUp"); y1 = st(page)["py"]
+    page.keyboard.down("s"); time.sleep(0.4); page.keyboard.up("s"); y2 = st(page)["py"]
+    log["paddle"] = {"start": y0, "after_up": y1, "after_s": y2}
+    # play to win: steer with arrow keys toward the ball
+    scores = []; held = None; t0 = time.time(); shot_mid = False
+    while st(page)["s"] != "gameover" and time.time() - t0 < 180:
+        s = st(page); target = s["by"] + 6 - 40
+        want = "ArrowUp" if s["py"] > target + 6 else "ArrowDown" if s["py"] < target - 6 else None
+        if want != held:
+            if held: page.keyboard.up(held)
+            if want: page.keyboard.down(want)
+            held = want
+        sc = (s["sc"]["player"], s["sc"]["computer"])
+        if not scores or scores[-1] != sc: scores.append(sc)
+        if not shot_mid and sum(sc) >= 2: page.screenshot(path=str(out / "2-play.png")); shot_mid = True
+        time.sleep(0.01)
+    if held: page.keyboard.up(held)
+    s = st(page); log["match1"] = {"progression": scores + [(s["sc"]["player"], s["sc"]["computer"])], "winner": s["w"], "state": s["s"], "secs": round(time.time()-t0, 1)}
+    time.sleep(0.5); page.screenshot(path=str(out / "3-gameover-1.png"))
+    time.sleep(1); page.keyboard.press("Enter"); time.sleep(0.3); s = st(page); log["play_again"] = {"state": s["s"], "score": s["sc"]}
+    # second match: idle, computer should win
+    t0 = time.time(); prog = []
+    while st(page)["s"] != "gameover" and time.time() - t0 < 120:
+        sc = st(page)["sc"]; sc = (sc["player"], sc["computer"])
+        if not prog or prog[-1] != sc: prog.append(sc)
+        time.sleep(0.05)
+    s = st(page); log["match2"] = {"progression": prog + [(s["sc"]["player"], s["sc"]["computer"])], "winner": s["w"], "state": s["s"]}
+    time.sleep(0.5); page.screenshot(path=str(out / "4-gameover-2.png"))
+    time.sleep(1); page.mouse.click(500, 320); time.sleep(0.3); s = st(page); log["click_play_again"] = {"state": s["s"], "score": s["sc"]}
+    log["errors"] = errs
+    b.close()
+json.dump(log, open(out / "log.json", "w"), indent=1); print(json.dumps(log, indent=1))

@@ -1,0 +1,127 @@
+"""Named palettes (char -> NES index) and per-theme overrides.
+
+Sprites use 3 colours + transparency, like NES sprite palettes.
+Tiles use 3 colours + black ('K') or background.
+"""
+K = 0x0F  # black
+
+PALETTES = {
+    # --- player (R = cap/shirt, B = hair/shoes/overalls, S = skin)
+    "mario":  {"R": 0x16, "B": 0x18, "S": 0x27},
+    "fire":   {"R": 0x37, "B": 0x16, "S": 0x27},
+    "star1":  {"R": 0x1A, "B": 0x0F, "S": 0x27},
+    "star2":  {"R": 0x30, "B": 0x16, "S": 0x37},
+    "star3":  {"R": 0x0F, "B": 0x07, "S": 0x36},
+    # --- enemies
+    "goomba":  {"B": 0x17, "L": 0x36, "K": K},
+    "koopa_g": {"G": 0x1A, "W": 0x30, "Y": 0x27, "K": K},
+    "koopa_r": {"G": 0x16, "W": 0x30, "Y": 0x27, "K": K},
+    "buzzy":   {"G": 0x0C, "W": 0x10, "Y": 0x27, "K": K},
+    "piranha": {"G": 0x1A, "W": 0x30, "R": 0x16, "K": K},
+    "hammer":  {"G": 0x1A, "W": 0x30, "Y": 0x27, "K": K},
+    "lakitu":  {"G": 0x1A, "W": 0x30, "Y": 0x27, "K": K},
+    "spiny":   {"R": 0x16, "W": 0x30, "Y": 0x27, "K": K},
+    "cheep_r": {"R": 0x16, "W": 0x30, "Y": 0x27, "K": K},
+    "cheep_g": {"R": 0x10, "W": 0x30, "Y": 0x1A, "K": K},
+    "blooper": {"W": 0x30, "G": 0x10, "K": K},
+    "podoboo": {"R": 0x16, "Y": 0x27, "W": 0x30},
+    "bullet":  {"K": K, "G": 0x00, "W": 0x30},
+    "bowser":  {"G": 0x1A, "Y": 0x27, "R": 0x16, "W": 0x30, "K": K},
+    "bfire":   {"R": 0x16, "Y": 0x27, "W": 0x30},
+    "toad":    {"R": 0x16, "W": 0x30, "S": 0x27, "B": 0x12, "K": K},
+    "princess": {"R": 0x16, "W": 0x30, "S": 0x37, "Y": 0x27, "K": K},
+    # --- items
+    "mushroom": {"R": 0x16, "W": 0x30, "S": 0x37, "K": K},
+    "oneup":    {"R": 0x1A, "W": 0x30, "S": 0x37, "K": K},
+    "flower1":  {"R": 0x16, "Y": 0x27, "W": 0x37, "G": 0x1A},
+    "flower2":  {"R": 0x1A, "Y": 0x37, "W": 0x30, "G": 0x1A},
+    "flower3":  {"R": 0x12, "Y": 0x21, "W": 0x30, "G": 0x1A},
+    "flower4":  {"R": 0x27, "Y": 0x16, "W": 0x30, "G": 0x1A},
+    "star_i1":  {"Y": 0x27, "O": 0x17, "K": K},
+    "star_i2":  {"Y": 0x37, "O": 0x27, "K": K},
+    "star_i3":  {"Y": 0x30, "O": 0x16, "K": K},
+    "star_i4":  {"Y": 0x29, "O": 0x1A, "K": K},
+    "coin":     {"Y": 0x27, "W": 0x37, "O": 0x17, "K": K},
+    "coin2":    {"Y": 0x17, "W": 0x27, "O": 0x07, "K": K},
+    "coin3":    {"Y": 0x07, "W": 0x17, "O": 0x08, "K": K},
+    "fireball": {"R": 0x16, "Y": 0x27, "W": 0x37},
+    "debris":   {"B": 0x17, "L": 0x36, "K": K},
+    "score":    {"W": 0x30},
+    "flag":     {"W": 0x30, "G": 0x1A, "K": K},
+    "cflag":    {"W": 0x30, "R": 0x16, "K": K},
+    "vine":     {"G": 0x1A, "L": 0x29, "K": K},
+    "spring":   {"R": 0x16, "W": 0x30, "Y": 0x27, "K": K},
+    "lift":     {"W": 0x36, "O": 0x17, "K": K},
+    "axe":      {"W": 0x30, "G": 0x10, "B": 0x18, "R": 0x16, "K": K},
+    "firework": {"R": 0x16, "Y": 0x27, "W": 0x30},
+    # --- tiles (L = light, M = mid, D = dark, K = black)
+    "ground":  {"L": 0x36, "M": 0x17, "K": K},
+    "brick":   {"L": 0x36, "M": 0x17, "K": K},
+    "qblock":  {"L": 0x27, "M": 0x17, "K": K, "D": 0x07},
+    "used":    {"L": 0x36, "M": 0x17, "K": K},
+    "hard":    {"L": 0x36, "M": 0x17, "K": K},
+    "green":   {"L": 0x29, "M": 0x1A, "K": K},
+    "bush":    {"L": 0x29, "M": 0x1A, "K": K},
+    "hill":    {"L": 0x1A, "M": 0x0A, "K": K},
+    "cloud":   {"L": 0x30, "M": 0x21, "K": K},
+    "tree":    {"L": 0x29, "M": 0x1A, "K": K, "B": 0x18},
+    "mushp":   {"L": 0x36, "M": 0x16, "K": K, "S": 0x27},
+    "castle":  {"L": 0x36, "M": 0x17, "K": K},
+    "cbrick":  {"L": 0x30, "M": 0x10, "K": K, "D": 0x00},
+    "bridge":  {"L": 0x36, "M": 0x17, "K": K, "G": 0x1A},
+    "cbridge": {"L": 0x36, "M": 0x17, "K": K},
+    "chain":   {"L": 0x30, "M": 0x10, "K": K},
+    "lava":    {"L": 0x27, "M": 0x16, "K": K},
+    "water":   {"L": 0x30, "M": 0x21, "K": K},
+    "coral":   {"L": 0x3A, "M": 0x2A, "K": K},
+    "blaster": {"L": 0x10, "M": 0x00, "K": K},
+    "pole":    {"L": 0x29, "M": 0x1A, "K": K},
+    "tcoin":   {"Y": 0x27, "O": 0x17, "K": K},
+}
+
+# Background (sky) colour per theme, NES index -> the build clears with it
+BACKGROUND = {
+    "sky_day": 0x22, "sky_night": 0x0F,
+    "underground": 0x0F, "castle": 0x0F, "underwater": 0x12,
+}
+
+# Per-theme palette overrides.  Every theme renders the same frame layout.
+GREY = {"L": 0x30, "M": 0x10, "K": K}
+TEAL = {"L": 0x3C, "M": 0x1C, "K": K}
+THEMES = {
+    "overworld": {},
+    "night": {},
+    "snow": {
+        "green": {"L": 0x30, "M": 0x10, "K": K},
+        "bush": {"L": 0x30, "M": 0x10, "K": K},
+        "tree": {"L": 0x30, "M": 0x10, "K": K, "B": 0x18},
+        "hill": {"L": 0x30, "M": 0x10, "K": K},
+    },
+    "snow_night": {
+        "green": {"L": 0x30, "M": 0x10, "K": K},
+        "bush": {"L": 0x30, "M": 0x10, "K": K},
+        "tree": {"L": 0x30, "M": 0x10, "K": K, "B": 0x18},
+        "hill": {"L": 0x30, "M": 0x10, "K": K},
+    },
+    "underground": {
+        "ground": TEAL, "brick": TEAL, "hard": TEAL, "used": TEAL,
+        "goomba": {"B": 0x1C, "L": 0x3C, "K": 0x0C},
+        "koopa_g": {"G": 0x1C, "W": 0x30, "Y": 0x3C, "K": 0x0C},
+        "buzzy": {"G": 0x1C, "W": 0x3C, "Y": 0x30, "K": 0x0C},
+        "debris": {"B": 0x1C, "L": 0x3C, "K": K},
+        "tcoin": {"Y": 0x27, "O": 0x17, "K": K},
+    },
+    "castle": {
+        "ground": GREY, "brick": GREY, "hard": GREY, "used": GREY,
+        "goomba": {"B": 0x00, "L": 0x30, "K": K},
+        "koopa_g": {"G": 0x00, "W": 0x30, "Y": 0x10, "K": K},
+        "buzzy": {"G": 0x00, "W": 0x30, "Y": 0x10, "K": K},
+        "debris": {"B": 0x10, "L": 0x30, "K": K},
+    },
+    "underwater": {
+        "ground": {"L": 0x3A, "M": 0x2A, "K": 0x0A},
+        "hard": {"L": 0x3A, "M": 0x2A, "K": 0x0A},
+        "brick": {"L": 0x3A, "M": 0x2A, "K": 0x0A},
+        "used": {"L": 0x3A, "M": 0x2A, "K": 0x0A},
+    },
+}

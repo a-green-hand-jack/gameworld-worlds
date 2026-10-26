@@ -1,0 +1,318 @@
+"""Plays the built game in headless Chromium with real key presses and checks
+every behavior the objective asks for. Screenshots and a JSON report go to
+checks/out/ (or the directory given as the second argument).
+
+    python3 checks/run_checks.py [GAME_DIR] [OUT_DIR]
+
+GAME_DIR defaults to the repository root (the delivery root). The game is
+opened over file:// first (its documented start), then over a local http
+server for the full run.
+"""
+import functools
+import http.server
+import json
+import pathlib
+import sys
+import threading
+import time
+
+from playwright.sync_api import sync_playwright
+
+ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parent.parent).resolve()
+OUT = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else ROOT / "checks" / "out").resolve()
+OUT.mkdir(parents=True, exist_ok=True)
+
+results = []
+
+
+def check(name, ok, detail=""):
+    results.append({"check": name, "pass": bool(ok), "detail": detail})
+    print(("PASS " if ok else "FAIL ") + name + (f" -- {detail}" if detail else ""), flush=True)
+
+
+def serve(root):
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+    handler = functools.partial(Quiet, directory=str(root))
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv
+
+
+def state(page):
+    return page.evaluate("""() => { const s = window.__snake; return {
+        screen: s.screen, score: s.score, snake: s.snake, food: s.food,
+        direction: s.direction, over: s.over, cause: s.cause, tick: s.tickMs }; }""")
+
+
+OPP = {"up": "down", "down": "up", "left": "right", "right": "left"}
+KEY = {"up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight"}
+
+
+def steer_to_food(page, timeout=20):
+    """Steers with arrow keys toward the food until one is eaten."""
+    s0 = state(page)
+    start_score, start_len = s0["score"], len(s0["snake"])
+    deadline = time.time() + timeout
+    last_press = None
+    while time.time() < deadline:
+        s = state(page)
+        if s["screen"] != "playing":
+            return s0, s
+        if s["score"] > start_score:
+            return s0, s
+        head, food, d = s["snake"][0], s["food"], s["direction"]
+        want = []
+        if food["x"] > head["x"]: want.append("right")
+        if food["x"] < head["x"]: want.append("left")
+        if food["y"] > head["y"]: want.append("down")
+        if food["y"] < head["y"]: want.append("up")
+        choice = None
+        for w in want:
+            if w != OPP[d]:
+                choice = w
+                break
+        if choice is None:  # food straight behind: sidestep away from the nearer wall
+            choice = "down" if head["y"] < 10 else "up"
+            if d in ("up", "down"):
+                choice = "right" if head["x"] < 10 else "left"
+        if choice != d and (choice, s["snake"][0]["x"], s["snake"][0]["y"]) != last_press:
+            page.keyboard.press(KEY[choice])
+            last_press = (choice, s["snake"][0]["x"], s["snake"][0]["y"])
+        page.wait_for_timeout(max(10, s["tick"] // 4))
+    return s0, state(page)
+
+
+def wait_screen(page, name, timeout=8000):
+    page.wait_for_function(f"window.__snake && window.__snake.screen === '{name}'", timeout=timeout)
+
+
+def run():
+    srv = serve(ROOT)
+    base = f"http://127.0.0.1:{srv.server_address[1]}/index.html"
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+
+        # --- file:// start, as README says the game can be opened directly ---
+        page = browser.new_page(viewport={"width": 900, "height": 820})
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto((ROOT / "index.html").as_uri())
+        page.wait_for_function("window.__snake && window.__snake.ready", timeout=10000)
+        page.keyboard.press("Enter")
+        wait_screen(page, "playing")
+        page.wait_for_timeout(400)
+        check("file:// start: game runs with no script errors", not errors and state(page)["screen"] == "playing", "; ".join(errors))
+        page.close()
+
+        # --- fits typical laptop viewports without scrolling ---
+        fits = []
+        for w, h in ((1366, 768), (1280, 720), (1440, 900)):
+            page = browser.new_page(viewport={"width": w, "height": h})
+            page.goto(base)
+            page.wait_for_function("window.__snake && window.__snake.ready", timeout=10000)
+            for scr in ("title", "playing"):
+                if scr == "playing":
+                    page.keyboard.press("Enter")
+                    wait_screen(page, "playing")
+                over = page.evaluate("""() => { const d = document.documentElement;
+                    return [d.scrollWidth - innerWidth, d.scrollHeight - innerHeight]; }""")
+                if over[0] > 0 or over[1] > 0:
+                    fits.append(f"{w}x{h} {scr}: overflow {over}")
+            if (w, h) == (1366, 768):
+                page.screenshot(path=str(OUT / "00-laptop-1366x768.png"))
+            page.close()
+        check("fits 1366x768, 1280x720 and 1440x900 without scrolling", not fits, "; ".join(fits))
+
+        # --- full run over http with a fixed food seed and a readable tick ---
+        page = browser.new_page(viewport={"width": 900, "height": 820})
+        errors, failed = [], []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("requestfailed", lambda r: failed.append(r.url))
+        page.on("response", lambda r: failed.append(r.url) if r.status >= 400 else None)
+        page.goto(base + "?seed=7&tick=110")
+        page.wait_for_function("window.__snake && window.__snake.ready", timeout=10000)
+
+        s = state(page)
+        title_visible = page.is_visible("#title-screen")
+        hud_hidden = not page.is_visible("#hud")
+        page.screenshot(path=str(OUT / "01-title.png"))
+        check("title screen shown on load", s["screen"] == "title" and title_visible and hud_hidden)
+
+        page.wait_for_timeout(500)
+        check("snake does not move on the title screen", state(page)["snake"] == s["snake"])
+
+        page.keyboard.press("Enter")
+        wait_screen(page, "playing")
+        s = state(page)
+        check("Enter starts the game with score 0 and a 3-cell snake",
+              s["score"] == 0 and len(s["snake"]) == 3 and page.is_visible("#hud")
+              and page.inner_text("#score") == "0")
+
+        h0 = s["snake"][0]
+        page.wait_for_timeout(int(s["tick"] * 3.5))
+        h1 = state(page)["snake"][0]
+        check("snake moves one cell per tick on the grid (right by default)",
+              h1["y"] == h0["y"] and 2 <= h1["x"] - h0["x"] <= 4, f"{h0} -> {h1}")
+
+        page.keyboard.press("ArrowUp")
+        page.wait_for_timeout(int(s["tick"] * 2.5))
+        s2 = state(page)
+        check("ArrowUp turns the snake up", s2["direction"] == "up" and s2["snake"][0]["y"] < h1["y"])
+
+        page.keyboard.press("ArrowDown")
+        page.wait_for_timeout(int(s["tick"] * 1.5))
+        check("reverse key (Down while moving up) is ignored", state(page)["direction"] == "up")
+
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(int(s["tick"] * 1.5))
+        check("ArrowLeft turns the snake left", state(page)["direction"] == "left")
+        page.keyboard.press("ArrowDown")
+        page.wait_for_timeout(int(s["tick"] * 1.5))
+        check("ArrowDown turns the snake down", state(page)["direction"] == "down")
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(int(s["tick"] * 1.5))
+        check("ArrowRight turns the snake right", state(page)["direction"] == "right")
+
+        page.screenshot(path=str(OUT / "02-playing.png"))
+
+        for n in range(1, 4):
+            before, after = steer_to_food(page)
+            ok = (after["score"] == before["score"] + 1 and len(after["snake"]) == len(before["snake"]) + 1
+                  and page.inner_text("#score") == str(after["score"]))
+            check(f"eating food #{n}: +1 point, +1 cell, score shown during play", ok,
+                  f"score {before['score']}->{after['score']}, length {len(before['snake'])}->{len(after['snake'])}, HUD {page.inner_text('#score')}")
+            check(f"new food #{n} is not on the snake", after["food"] not in after["snake"])
+            if n == 1:
+                page.screenshot(path=str(OUT / "03-after-eating.png"))
+
+        # Self collision: with 6 cells, three quick turns curl the head into the body.
+        s = state(page)
+        d = s["direction"]
+        loop = {"right": ["down", "left", "up"], "left": ["up", "right", "down"],
+                "up": ["right", "down", "left"], "down": ["left", "up", "right"]}[d]
+        head = s["snake"][0]
+        # Make room first: head toward the middle so the curl does not touch a wall.
+        if not (3 <= head["x"] <= 16 and 3 <= head["y"] <= 16):
+            page.keyboard.press(KEY["down" if head["y"] < 10 else "up"] if d in ("left", "right") else KEY["right" if head["x"] < 10 else "left"])
+            page.wait_for_timeout(s["tick"] * 4)
+            s = state(page)
+            d = s["direction"]
+            loop = {"right": ["down", "left", "up"], "left": ["up", "right", "down"],
+                    "up": ["right", "down", "left"], "down": ["left", "up", "right"]}[d]
+        score_before = s["score"]
+        for k in loop:
+            page.keyboard.press(KEY[k])
+        wait_screen(page, "gameover", timeout=5000)
+        s = state(page)
+        page.screenshot(path=str(OUT / "04-gameover-self.png"))
+        check("running into itself ends the game", s["over"] and s["cause"] == "self", f"cause={s['cause']}")
+        check("game-over screen shows the final score",
+              page.is_visible("#gameover-screen") and page.inner_text("#final-score") == str(score_before),
+              f"final {page.inner_text('#final-score')} vs {score_before}")
+        check("play-again button is offered", page.is_visible("#restart-button"))
+
+        frozen = state(page)["snake"]
+        page.wait_for_timeout(400)
+        check("snake stays still on the game-over screen", state(page)["snake"] == frozen)
+
+        # Play again with the button, then run into a wall.
+        page.click("#restart-button")
+        wait_screen(page, "playing")
+        s = state(page)
+        check("Play again (click) restarts: score 0, 3 cells, HUD reset",
+              s["score"] == 0 and len(s["snake"]) == 3 and not s["over"] and page.inner_text("#score") == "0")
+        page.keyboard.press("ArrowUp")
+        wait_screen(page, "gameover", timeout=6000)
+        s = state(page)
+        page.screenshot(path=str(OUT / "05-gameover-wall.png"))
+        check("running into a wall ends the game", s["cause"] == "wall" and s["snake"][0]["y"] == 0,
+              f"cause={s['cause']} head={s['snake'][0]}")
+        check("final score after wall death is 0", page.inner_text("#final-score") == "0")
+
+        # Play again with the keyboard, several times.
+        ok = True
+        for i in range(3):
+            page.keyboard.press("Enter")
+            wait_screen(page, "playing")
+            s = state(page)
+            ok &= s["score"] == 0 and len(s["snake"]) == 3
+            page.keyboard.press("ArrowDown")
+            wait_screen(page, "gameover", timeout=6000)
+        check("Play again with Enter works repeatedly", ok)
+
+        # Food never spawns on the snake: long random simulations of the rules.
+        bad = page.evaluate("""() => {
+            let bad = 0;
+            for (let g = 0; g < 200; g++) {
+              const game = new SnakeGame({ random: SnakeGame.makeRng(g + 1) });
+              const dirs = ['up', 'down', 'left', 'right'];
+              const rng = SnakeGame.makeRng(1000 + g);
+              for (let i = 0; i < 2000 && !game.over; i++) {
+                if (rng() < 0.3) game.turn(dirs[Math.floor(rng() * 4)]);
+                game.step();
+                if (game.food && game.occupies(game.food.x, game.food.y)) bad++;
+              }
+            }
+            return bad;
+        }""")
+        check("food never spawns on the snake (200 simulated games)", bad == 0, f"{bad} bad spawns")
+
+        # Growth rule exactly: one cell per food, tail follows otherwise.
+        rule = page.evaluate("""() => {
+            const g = new SnakeGame({ random: () => 0 });
+            g.food = { x: g.snake[0].x + 1, y: g.snake[0].y };
+            const len = g.snake.length, r = g.step();
+            const grew = g.snake.length - len, sc = g.score;
+            const len2 = g.snake.length; g.food = { x: 0, y: 0 }; g.step();
+            return { r, grew, sc, moved: g.snake.length - len2 };
+        }""")
+        check("rule: eating adds exactly one cell and one point; moving keeps length",
+              rule == {"r": "eat", "grew": 1, "sc": 1, "moved": 0}, json.dumps(rule))
+
+        # Moving into the cell the tail leaves in the same step is not a collision.
+        tail = page.evaluate("""() => {
+            const g = new SnakeGame({ random: () => 0 });
+            g.snake = [{x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: 1}, {x: 0, y: 0}];
+            g.direction = 'left'; g.food = { x: 5, y: 5 };
+            return { r: g.step(), over: g.over };
+        }""")
+        check("rule: moving into the cell the tail is leaving is not a collision",
+              tail == {"r": "move", "over": False}, json.dumps(tail))
+
+        # Two quick turns within one step are both kept (right -> up -> left),
+        # and arrow keys never scroll the page.
+        page.evaluate("""() => { window.__arrowsPrevented = [];
+            window.addEventListener('keydown', e => { if (e.key.startsWith('Arrow'))
+                window.__arrowsPrevented.push(e.defaultPrevented); }); }""")
+        page.keyboard.press("Enter")
+        wait_screen(page, "playing")
+        s0 = state(page)
+        page.keyboard.press("ArrowUp")
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(int(s0["tick"] * 3.5))
+        s = state(page)
+        h0, h = s0["snake"][0], s["snake"][0]
+        check("two quick turns within one step are both kept (right, Up+Left -> left)",
+              s["screen"] == "playing" and s["direction"] == "left" and h["y"] == h0["y"] - 1 and h["x"] < h0["x"] + 1,
+              f"{h0} -> {h}, direction {s['direction']}, screen {s['screen']}")
+        prevented = page.evaluate("window.__arrowsPrevented")
+        check("arrow keys do not scroll the page (default prevented)", prevented and all(prevented),
+              f"{prevented}")
+
+        check("no script errors during play", not errors, "; ".join(errors))
+        missing = sorted(set(u for u in failed if "favicon" not in u))
+        check("all assets load (no failed requests)", not missing, ", ".join(missing))
+        browser.close()
+    srv.shutdown()
+
+
+if __name__ == "__main__":
+    try:
+        run()
+    finally:
+        passed = sum(r["pass"] for r in results)
+        (OUT / "report.json").write_text(json.dumps({"passed": passed, "total": len(results), "results": results}, indent=2))
+        print(f"{passed}/{len(results)} checks passed")
+    sys.exit(0 if results and all(r["pass"] for r in results) else 1)

@@ -1,0 +1,26 @@
+# Acceptance record — Pong
+
+**Conclusion: accepted.** The delivery is the game the objective asks for and it plays as it should.
+
+## What was judged
+Delivery assembled with `ht-role delivery`:
+- game-developer `44ae1c8ff08eb4a95077946205ea39c2e0b2c8b6` (their release `build-2`): `index.html`, `src/`, docs and check material
+- artist `e3bead3114349f338d97e4400c58f23ed17d2f4b`: `assets/` (logo, favicon, 7 sound effects, manifest)
+Handed to the playtester as my release `build-44ae1c8` (same assembly).
+
+Objective (`producer`#1): Pong in the browser, one player vs a computer opponent, keyboard paddle, first to 5 wins, title screen, score during play, screen saying who won with a way to play again — R1–R9 in `brief.md`.
+
+## Evidence
+| Source | Revision | Result |
+|---|---|---|
+| My own play (`acceptance/play.py`, headless Chromium over http, keyboard only; `acceptance/44ae1c8/`) | as above | 8/8 assets; title with rules and controls; Enter -> 0-0; ArrowUp/S move the paddle; tracking player won 5-3 and lost 0-5 in two runs, idle player lost 0-5; Enter 0.4 s after the end leaves the winner screen up, after 1 s the steady prompt shows and Enter starts 0-0; no console/page errors |
+| Playtest (world/playtester `playtest/report-build-44ae1c8.md`) | `dad5f8218e79cf3cf5aacfa47dd1fcc67311b14f` | pass, R1-R9 hold; winner screen not skipped 12/12; play again 0-0 12/12; attentive player wins 6/6 conceding 0-2 per match; casual player loses 6/6 scoring 0-3 per match; no stuck ball, no errors |
+| QA (world/qa `qa/results-44ae1c8-e3bead3.md`) | `34a99f696b17a621968e59d7399d6fef6c9c4a8c` | R1-R9 all PASS (http and file://, 4 viewports); #7 verified fixed; no open defects |
+
+## History
+- Build 1 (015fd09 + e3bead3): R1-R9 passed everywhere, but sent back (game-developer#8) for F1 a winner screen skippable by input at match end (QA's game-developer#7) and F2 a computer that never scored against an attentive player (0 points in 10 matches). Both fixed in build-2 and verified by my play, the playtest and QA.
+
+## Accepted residual notes (not against the objective)
+- A skilled player still wins comfortably (computer takes ~1-3 points a match); the brief asks for beatable-but-not-trivial with the computer winning points, which holds.
+- Cosmetic: Q (pause) vs Esc (end screen) to return to the title.
+- Not covered by any check: audio heard by ear (files load, M toggles), non-Chromium browsers, touch input.

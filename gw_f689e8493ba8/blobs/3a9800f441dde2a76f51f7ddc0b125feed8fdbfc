@@ -1,0 +1,4 @@
+# Checks
+- Static review of index.html (single file, no external URLs): Space jumps (key repeat ignored), obstacles scroll right-to-left, collision -> game over, Space restarts, score and best shown.
+- localStorage reads/writes wrapped in try/catch so file:// / blocked storage cannot break the game.
+- Not run in a browser by the developer this turn; playtester to confirm in play.

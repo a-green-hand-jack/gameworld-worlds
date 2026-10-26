@@ -1,0 +1,112 @@
+import asyncio, json, sys, time
+from playwright.async_api import async_playwright
+OUT='/hutian/repo/evidence/build-1/'
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+async def st(p):
+    return await p.evaluate("()=>({s:__snake.state,score:document.getElementById('score').textContent,best:document.getElementById('best').textContent,g:__snake.game&&{len:__snake.game.snake.length,dir:__snake.game.dir,score:__snake.game.score,over:__snake.game.over,reason:__snake.game.reason,head:__snake.game.snake[0],food:__snake.game.food,body:__snake.game.snake}})")
+KEY={'up':'ArrowUp','down':'ArrowDown','left':'ArrowLeft','right':'ArrowRight'}
+OPP={'up':'down','down':'up','left':'right','right':'left'}
+async def steer_to_food(p, until_len=None, until_score=None, shots=None, timeout=90):
+    t0=time.time(); lastturn=None
+    while time.time()-t0<timeout:
+        s=await st(p)
+        if s['s']!='playing': return s
+        g=s['g']
+        if until_score is not None and g['score']>=until_score: return s
+        h,f,d=g['head'],g['food'],g['dir']
+        want=None
+        occ={(c['x'],c['y']) for c in g['body'][:-1]}
+        def ok(dr):
+            dx,dy={'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}[dr]
+            n=(h['x']+dx,h['y']+dy)
+            return 0<=n[0]<20 and 0<=n[1]<20 and n not in occ and dr!=OPP[d]
+        pref=[]
+        if f['x']>h['x']: pref.append('right')
+        if f['x']<h['x']: pref.append('left')
+        if f['y']>h['y']: pref.append('down')
+        if f['y']<h['y']: pref.append('up')
+        pref+= [d]+['up','down','left','right']
+        for dr in pref:
+            if ok(dr): want=dr;break
+        if want and want!=d:
+            await p.keyboard.press(KEY[want]); 
+        await asyncio.sleep(0.03)
+    return await st(p)
+async def main():
+    async with async_playwright() as pw:
+        b=await pw.chromium.launch()
+        ctx=await b.new_context(viewport={'width':1280,'height':800},record_video_dir=OUT+'video',record_video_size={'width':1280,'height':800})
+        p=await ctx.new_page()
+        errs=[]
+        p.on('console',lambda m: errs.append((m.type,m.text)) if m.type in('error','warning') else None)
+        p.on('pageerror',lambda e: errs.append(('pageerror',str(e))))
+        await p.goto('http://localhost:8000/'); await asyncio.sleep(1)
+        await p.screenshot(path=OUT+'01-title.png')
+        L('title state',await st(p))
+        L('scroll dims',await p.evaluate("()=>[document.documentElement.scrollHeight,innerHeight,document.getElementById('board').getBoundingClientRect().bottom]"))
+        # arrow keys on title shouldn't start
+        await p.keyboard.press('ArrowUp'); await asyncio.sleep(0.4)
+        L('after ArrowUp on title',(await st(p))['s'])
+        await p.keyboard.press('Enter'); await asyncio.sleep(0.05)
+        await p.screenshot(path=OUT+'02-play-start.png')
+        L('started',(await st(p)))
+        # reverse test: moving right, press Left
+        await p.keyboard.press('ArrowLeft'); await asyncio.sleep(0.5)
+        s=await st(p); L('after 180 reverse press: state',s['s'],'dir',s['g']['dir'],'len',s['g']['len'])
+        # steer until 1 food
+        s=await steer_to_food(p,until_score=1)
+        await p.screenshot(path=OUT+'03-after-first-food.png')
+        L('after 1st food',s['score'],s['g']['len'],s['g']['score'])
+        s=await steer_to_food(p,until_score=5)
+        await p.screenshot(path=OUT+'04-score5.png')
+        L('score5',s['score'],'len',s['g']['len'],'internal',s['g']['score'])
+        # pause
+        await p.keyboard.press('p'); await asyncio.sleep(0.2)
+        a=await st(p); await asyncio.sleep(0.6); b2=await st(p)
+        await p.screenshot(path=OUT+'05-paused.png')
+        L('paused',a['s'],'head same while paused:',a['g']['head']==b2['g']['head'])
+        await p.keyboard.press('p'); await asyncio.sleep(0.1)
+        L('resumed',(await st(p))['s'])
+        # grow to len>=7
+        s=await steer_to_food(p,until_score=8)
+        L('score8',s['score'],s['g']['len'])
+        # self-collision: clockwise tight loop; make three turns quick
+        # drive toward center region first: keep going; do a spiral in free direction
+        g=s['g']; d=g['dir']
+        loop={'right':['down','left','up'],'left':['up','right','down'],'up':['right','down','left'],'down':['left','up','right']}[d]
+        # check there's room: just try
+        for k in loop:
+            await p.keyboard.press(KEY[k]); await asyncio.sleep(0.16)
+        await asyncio.sleep(0.3)
+        s=await st(p)
+        L('after loop attempt',s['s'],s['g']['reason'],s['g']['score'] if s['g'] else None)
+        if s['s']=='gameover':
+            await p.screenshot(path=OUT+'06-gameover-self.png')
+            L('final score text',await p.inner_text('#final-score'),'hud',s['score'],'best',s['best'])
+        # play again via button click
+        if s['s']=='gameover':
+            await p.click('#play-again-button'); await asyncio.sleep(0.1)
+            s=await st(p); L('after play again click',s['s'],s['score'],s['g']['len'])
+            await p.screenshot(path=OUT+'07-playagain.png')
+        # wall death: go straight
+        for dr in ['up']:
+            await p.keyboard.press('ArrowUp')
+        await asyncio.sleep(3)
+        s=await st(p); L('wall run',s['s'],s['g']['reason'])
+        await p.screenshot(path=OUT+'08-gameover-wall.png')
+        L('final score text',await p.inner_text('#final-score'),'new best shown',await p.evaluate("getComputedStyle(document.getElementById('new-best')).display"))
+        # play again with Space
+        await p.keyboard.press('Space'); await asyncio.sleep(0.1)
+        s=await st(p); L('after Space restart',s['s'],s['score'],s['g']['len'])
+        # quick double turn within one tick: moving right, press up then left in 20ms
+        await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowLeft'); await asyncio.sleep(0.5)
+        s=await st(p); L('quick double (down,left from right):',s['s'],s['g']['dir'] if s['g'] else None,s['g']['reason'])
+        # all four sides
+        for side,keys in {'top':['ArrowUp'],'right':['ArrowRight'],'bottom':['ArrowDown'],'left':['ArrowLeft']}.items():
+            pass
+        L('console',errs)
+        await ctx.close(); await b.close()
+    open(OUT+'run1.log','w').write('\n'.join(log))
+asyncio.run(main())

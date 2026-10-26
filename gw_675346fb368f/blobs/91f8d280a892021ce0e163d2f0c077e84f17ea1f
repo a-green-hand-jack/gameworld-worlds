@@ -1,0 +1,27 @@
+# Asset contract: what the game loads from `assets/`
+
+`assets/` in the delivery comes from `artist`'s repository. The game reads it with
+relative URLs, so it works from `file://` and from any static server. The file list
+is in `src/assets.js` (`SOUNDS`, `IMAGES`, `palette`); it matches `assets/manifest.json`.
+
+| Game event (key in `src/assets.js`) | File under `assets/` | When it plays / shows |
+|---|---|---|
+| `select` | `audio/start.wav` | match starts (from title or play again) |
+| `paddleHit` | `audio/paddle_hit.wav` | ball hits either paddle (during a match only) |
+| `wallHit` | `audio/wall_hit.wav` | ball bounces off top/bottom wall (during a match only) |
+| `scorePlayer` | `audio/score.wav` | player scores a point (not the winning one) |
+| `scoreCpu` | `audio/concede.wav` | computer scores a point (not the winning one) |
+| `win` | `audio/win.wav` | player reaches 5 |
+| `lose` | `audio/lose.wav` | computer reaches 5 |
+| `title` | `img/logo.svg` | title screen logo, drawn on the canvas at 1.5x (600x180) |
+| favicon | `img/favicon.svg` | `<link rel="icon">` in `index.html` |
+
+- Audio: any format Chromium's `<audio>` plays (WAV/OGG/MP3); short one-shots, played
+  overlapping at volume 0.6. M toggles sound. Sounds play only after a key press or click (browser autoplay policy).
+- Paddles, ball and court are drawn on the canvas as flat rectangles: player paddle and
+  score in `accent`, computer paddle and score in `accent2`, ball and text in `fg`, centre
+  line in `dim`, background `bg`. Secondary text uses `#8a96b8`. The palette values are
+  built into `src/assets.js`; served over http(s), `assets/manifest.json` `palette` overrides them.
+- Text: bold `"Courier New", Courier, monospace` (system font; no font file loaded).
+- Every file is optional: a missing one is reported with `console.warn("[pong] ...")` and
+  the game falls back to built-in drawing or silence. `pong.getState().assets` lists what loaded.

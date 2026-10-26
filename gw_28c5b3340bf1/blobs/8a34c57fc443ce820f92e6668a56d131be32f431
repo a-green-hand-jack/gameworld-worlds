@@ -1,0 +1,13 @@
+# Playtest report: Snake build-2 (re-play after the grid fix)
+
+**Build played:** producer release `build-2` (`snake-build-2.zip`): artist a8aa59ba7cfe63056d7e1898edd287fe454743d2, game code from game-developer 7c1966c. I diffed the zip against build-1: only `assets/img/tile.png` and `assets/README.md` differ (apart from check outputs), so no code changed.
+**How:** same as build-1: `index.html` opened over `file://` in headless Chromium, 1366×768, real arrow-key presses (`evidence/build-2/play.py`, log in `play-log.txt`, recording `full-session.webm`). Audio not audible here.
+
+## Verdict: the grid is now clearly visible and nothing regressed.
+
+- **Grid:** tile edge pixel went from (11,17,33) on a (18,26,51) fill in build-1, which was nearly invisible, to (47,65,121) on a (13,20,40) fill. In play (`06-long-snake.png`) every cell line is readable across the whole 20×20 field.
+- **Distraction:** no. The snake (bright green, head with eyes), the red apple and the blue wall ring all still stand out clearly; the grid lines stay well below them in brightness.
+- **Overlays:** on game over (`03-gameover-wall.png`) and the title the board is dimmed, the lines are faint behind the overlay but text is fully readable.
+- **Regression checks, three full games:** growth +1 per food (3→6, 3→13), score 3 and 10 updated at once; reverse press ignored; Up+Left pressed together both applied; wall death and self death both ended the game with the right cause line; play again by Enter, click and Space each gave score 0, length 3, head (10,10) heading right; pause/resume worked; no console errors; board fits 1366×657, 1280×600 and 1024×600 without scrolling (`viewport-*.png`).
+
+The minor notes from `reports/build-1.md` still apply (arrow key doesn't start from the title; the dimmed board behind the overlays). Sound and non-Chromium browsers are not covered.

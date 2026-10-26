@@ -1,0 +1,13 @@
+STATE {"state":"play","level":"1-1","area":0,"score":0,"coins":0,"lives":3,"time":396,"px":76,"py":184,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":0,"coins":0,"lives":3,"time":389,"px":350,"py":64,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":0,"coins":0,"lives":3,"time":381,"px":612,"py":144,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":0,"coins":0,"lives":3,"time":375,"px":724,"py":147.90625,"form":"small"}
+STATE {"state":"intermission","level":"1-1","area":0,"score":0,"coins":0,"lives":2,"time":375,"px":724,"py":623.1875,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":0,"coins":0,"lives":2,"time":398,"px":130,"py":165,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":100,"coins":0,"lives":2,"time":390,"px":579,"py":192,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":100,"coins":0,"lives":2,"time":382,"px":724,"py":192,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":200,"coins":0,"lives":2,"time":374,"px":920,"py":128,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":200,"coins":0,"lives":2,"time":367,"px":1312,"py":192,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":200,"coins":1,"lives":2,"time":363,"px":1543,"py":239.1875,"form":"small"}
+STATE {"state":"intermission","level":"1-1","area":0,"score":200,"coins":1,"lives":1,"time":363,"px":1543,"py":623.1875,"form":"small"}
+STATE {"state":"play","level":"1-1","area":0,"score":200,"coins":1,"lives":1,"time":397,"px":1412,"py":241,"form":"small"}

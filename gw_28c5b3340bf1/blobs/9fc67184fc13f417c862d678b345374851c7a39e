@@ -1,0 +1,101 @@
+"""Generates all Snake assets deterministically. Run: python3 tools/gen_assets.py"""
+import math, struct, wave, random, os
+from PIL import Image, ImageDraw, ImageFont
+
+C = 32  # cell size
+PAL = dict(bg="#0b1020", grid="#0d1428", gridline="#32447f", head="#7dffb2", body="#2fd17a", body2="#27b868",
+           eye="#0b1020", food="#ff4d6d", leaf="#5be37d", wall="#3b4a8a", wallhi="#5c70c8",
+           text="#e8f0ff", accent="#ffd166")
+S = 4  # supersample
+OUT = os.path.join(os.path.dirname(__file__), "..", "assets")
+
+def canvas(w, h, bg=None):
+    return Image.new("RGBA", (w*S, h*S), bg or (0, 0, 0, 0))
+def save(im, name):
+    w, h = im.size[0]//S, im.size[1]//S
+    im.resize((w, h), Image.LANCZOS).save(os.path.join(OUT, "img", name))
+def rr(d, box, r, fill):
+    d.rounded_rectangle([v*S for v in box], r*S, fill=fill)
+
+def tile():
+    im = canvas(C, C, PAL["bg"]); d = ImageDraw.Draw(im)
+    # visible grid: 1px lighter edge line around each cell, slightly lifted fill inside
+    rr(d, (0, 0, C, C), 0, PAL["gridline"])
+    rr(d, (1, 1, C-1, C-1), 0, PAL["grid"]); save(im, "tile.png")
+def body(name, col):
+    im = canvas(C, C); d = ImageDraw.Draw(im)
+    rr(d, (2, 2, C-2, C-2), 8, col)
+    hl = canvas(C, C); rr(ImageDraw.Draw(hl), (6, 5, C-12, 10), 3, (255, 255, 255, 48))
+    im = Image.alpha_composite(im, hl); save(im, name)
+def head():
+    # faces right; rotate in code for other directions
+    im = canvas(C, C); d = ImageDraw.Draw(im)
+    rr(d, (1, 2, C-1, C-2), 10, PAL["head"])
+    for y in (9, 23):
+        d.ellipse([20*S, (y-4)*S, 28*S, (y+4)*S], fill="white")
+        d.ellipse([23*S, (y-2)*S, 27*S, (y+2)*S], fill=PAL["eye"])
+    save(im, "snake_head.png")
+def food():
+    im = canvas(C, C); d = ImageDraw.Draw(im)
+    d.ellipse([5*S, 7*S, 27*S, 29*S], fill=PAL["food"])
+    d.ellipse([10*S, 11*S, 14*S, 15*S], fill="#ffd0d8")
+    d.polygon([(16*S, 8*S), (22*S, 2*S), (25*S, 5*S), (18*S, 10*S)], fill=PAL["leaf"])
+    save(im, "food.png")
+def wall():
+    im = canvas(C, C); d = ImageDraw.Draw(im)
+    rr(d, (0, 0, C, C), 3, PAL["wall"]); rr(d, (3, 3, C-3, C-3), 2, PAL["wallhi"])
+    rr(d, (5, 5, C-5, C-5), 2, PAL["wall"]); save(im, "wall.png")
+def font(sz):
+    for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",):
+        if os.path.exists(p): return ImageFont.truetype(p, sz*S)
+    return ImageFont.load_default()
+def banner(name, text, col, w, h, sub=None):
+    im = canvas(w, h); d = ImageDraw.Draw(im)
+    rr(d, (2, 2, w-2, h-2), 18, "#0b1020e0"); d.rounded_rectangle([2*S, 2*S, (w-2)*S, (h-2)*S], 18*S, outline=col, width=3*S)
+    f = font(int(h*0.36) if not sub else h//3)
+    tw = d.textlength(text, font=f)
+    d.text(((w*S-tw)/2, (h*S)*(0.5 if not sub else 0.4)), text, font=f, fill=col, anchor="lm")
+    if sub:
+        f2 = font(h//8); tw = d.textlength(sub, font=f2)
+        d.text(((w*S-tw)/2, h*S*0.78), sub, font=f2, fill=PAL["text"], anchor="lm")
+    save(im, name)
+def logo():
+    w, h = 320, 120
+    im = canvas(w, h); d = ImageDraw.Draw(im)
+    f = font(64); t = "SNAKE"; tw = d.textlength(t, font=f)
+    d.text(((w*S-tw)/2+3*S, 48*S+3*S), t, font=f, fill="#000000a0", anchor="lm")
+    d.text(((w*S-tw)/2, 48*S), t, font=f, fill=PAL["head"], anchor="lm")
+    # little snake underline
+    for i in range(9):
+        x = 40+i*30
+        d.rounded_rectangle([x*S, 92*S, (x+24)*S, 108*S], 7*S, fill=PAL["body"] if i%2 else PAL["body2"])
+    d.ellipse([292*S, 90*S, 314*S, 110*S], fill=PAL["food"])
+    save(im, "logo.png")
+
+# ---------- audio ----------
+SR = 22050
+def write(name, samples):
+    peak = max(abs(s) for s in samples) or 1
+    g = 0.7/peak
+    with wave.open(os.path.join(OUT, "audio", name), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+        w.writeframes(b"".join(struct.pack("<h", int(s*g*32767)) for s in samples))
+def tone(f0, f1, dur, wave_="sq", vol=1.0):
+    n = int(SR*dur); out = []; ph = 0
+    for i in range(n):
+        t = i/n; f = f0+(f1-f0)*t; ph += f/SR
+        v = (1 if (ph % 1) < .5 else -1) if wave_ == "sq" else math.sin(2*math.pi*ph)
+        env = min(1, i/(0.005*SR))*(1-t)**1.5  # attack + decay, no clicks
+        out.append(v*env*vol)
+    return out
+def audio():
+    write("eat.wav", tone(520, 980, 0.12) + tone(980, 1300, 0.08))
+    write("gameover.wav", tone(440, 330, 0.18) + tone(330, 220, 0.2) + tone(220, 110, 0.45, "sq"))
+    write("start.wav", tone(392, 392, 0.09) + tone(523, 523, 0.09) + tone(659, 784, 0.2))
+    write("turn.wav", tone(300, 260, 0.04, "sin", 0.6))
+
+if __name__ == "__main__":
+    tile(); body("snake_body.png", PAL["body"]); body("snake_body_alt.png", PAL["body2"])
+    head(); food(); wall(); logo()
+    banner("gameover.png", "GAME OVER", PAL["food"], 400, 120)
+    audio()

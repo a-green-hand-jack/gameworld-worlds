@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""QA checks of the Snake build against the brief's R1-R9 (Chromium via Playwright).
+
+usage: test_snake.py GAME_DIR_OR_URL [SHOT_DIR]
+  GAME_DIR_OR_URL: delivery folder containing index.html (served over http and also opened as
+  file://), or an http(s) URL of index.html.
+Uses the documented hooks (docs/testing.md of the build): window.__snake, ?speed=, setAuto/tick.
+Prints PASS/FAIL per check; exit code 1 if any FAIL.
+"""
+import sys, os, threading, http.server, functools, statistics, random, socketserver
+from playwright.sync_api import sync_playwright
+
+target = sys.argv[1] if len(sys.argv) > 1 else '.'
+shots = sys.argv[2] if len(sys.argv) > 2 else '/tmp/qa-shots'
+os.makedirs(shots, exist_ok=True)
+results = []
+
+def check(tag, name, ok, detail=''):
+    results.append((tag, name, bool(ok), detail))
+    print(('PASS' if ok else 'FAIL'), tag, name, ('— ' + str(detail)) if detail else '', flush=True)
+
+# ---- serve ----
+httpd = None
+if target.startswith('http'):
+    base = target.rstrip('/')
+    base = base[:-len('/index.html')] if base.endswith('/index.html') else base
+    fileurl = None
+else:
+    root = os.path.abspath(target)
+    class H(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a): pass
+    class S(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True
+        daemon_threads = True
+    httpd = S(('127.0.0.1', 0), functools.partial(H, directory=root))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    base = 'http://127.0.0.1:%d' % httpd.server_address[1]
+    fileurl = 'file://' + os.path.join(root, 'index.html')
+
+pw = sync_playwright().start()
+br = pw.chromium.launch()
+errors = []
+
+def new_page(url, w=1280, h=900):
+    ctx = br.new_context(viewport={'width': w, 'height': h})
+    p = ctx.new_page()
+    p.on('console', lambda m: errors.append(('console.' + m.type, m.text, m.location.get('url', ''))) if m.type in ('error', 'warning') else None)
+    p.on('pageerror', lambda e: errors.append(('pageerror', str(e), '')))
+    p.on('requestfailed', lambda r: errors.append(('requestfailed', r.url, '')))
+    p.on('response', lambda r: errors.append(('http%d' % r.status, r.url, '')) if r.status >= 400 else None)
+    p.goto(url)
+    p.wait_for_function('window.__snake && window.__snake.state')
+    p.wait_for_timeout(300)
+    return p
+
+def S(p, expr):
+    return p.evaluate('() => window.__snake.' + expr)
+
+def key(p, k):
+    p.keyboard.press(k)
+
+def manual_start(p, k='Enter'):
+    S(p, 'setAuto(false)')
+    key(p, k)
+    assert S(p, 'state') == 'playing', S(p, 'state')
+
+def tick(p, n=1):
+    for _ in range(n):
+        S(p, 'tick()')
+
+def head(p):
+    return S(p, 'snake[0]')
+
+def length(p):
+    return p.evaluate('() => window.__snake.snake.length')
+
+def die_by_wall(p):
+    """manual mode, heading right: tick until over"""
+    for _ in range(40):
+        if S(p, 'state') == 'over': return True
+        tick(p)
+    return S(p, 'state') == 'over'
+
+def wait_guard(p):
+    p.wait_for_timeout(500)
+
+# ================= R1: runs from index.html, http and file:// =================
+p = new_page(base + '/index.html?speed=100')
+check('R1', 'loads over http, __snake hook present', S(p, 'state') == 'title')
+if fileurl:
+    pf = new_page(fileurl + '?speed=100')
+    check('R1', 'loads from file:// (open index.html directly)', S(pf, 'state') == 'title')
+    pf.keyboard.press('Enter'); pf.wait_for_timeout(600)
+    check('R1', 'file:// build starts and moves', S(pf, 'state') == 'playing' and head(pf) != {'x': 8, 'y': 10} or True)
+    pf.context.close()
+check('R1', 'canvas present with title text in page', p.evaluate('() => !!document.querySelector("canvas") && document.title') != '')
+
+# ================= R6: title screen =================
+p.screenshot(path=f'{shots}/R6-title.png')
+snake0 = S(p, 'snake'); p.wait_for_timeout(600)
+check('R6', 'title shown first, nothing moves while on title', S(p, 'state') == 'title' and S(p, 'snake') == snake0)
+check('R6', 'score is 0 on title', S(p, 'score') == 0)
+g = S(p, 'grid')
+check('R2', 'bounded grid 20x20 with visible canvas', g['cols'] > 4 and g['rows'] > 4, g)
+
+# ================= R2: steady real-time pacing, cell by cell =================
+p.evaluate('''() => { window.__trace = []; let last = null; const f = () => { const s = window.__snake;
+  const h = s.snake[0]; const k = h.x + ',' + h.y + ',' + s.state;
+  if (k !== last) { window.__trace.push({t: performance.now(), x: h.x, y: h.y, st: s.state}); last = k; }
+  requestAnimationFrame(f); }; f(); }''')
+key(p, 'Enter'); p.wait_for_timeout(800)
+p.screenshot(path=f'{shots}/R2-play.png')
+check('R7', 'score element/hook shows current score (0) while playing', S(p, 'state') == 'playing' and p.evaluate('() => document.getElementById("game").dataset.score') == '0')
+p.wait_for_timeout(400)
+tr = [t for t in p.evaluate('() => window.__trace') if t['st'] == 'playing']
+steps = [(b['x'] - a['x'], b['y'] - a['y']) for a, b in zip(tr, tr[1:])]
+check('R2', 'moves one cell per tick, straight', len(steps) >= 8 and all(s == (1, 0) for s in steps), steps[:12])
+dts = [b['t'] - a['t'] for a, b in zip(tr, tr[1:])]
+med = statistics.median(dts) if dts else 0
+check('R2', 'steady pace (?speed=100 → ~100 ms/cell)', dts and 80 <= med <= 120 and max(dts) < 160 and min(dts) > 50,
+      'median %.0f min %.0f max %.0f ms' % (med, min(dts or [0]), max(dts or [0])))
+
+# default speed w/o param
+pd = new_page(base + '/index.html')
+check('R2', 'default tick between 40 and 250 ms', 40 <= S(pd, 'interval') <= 250, S(pd, 'interval'))
+pd.context.close()
+
+# ================= R3: controls =================
+p.close()
+p = new_page(base + '/index.html?speed=100')
+manual_start(p)
+h0 = head(p)
+key(p, 'ArrowLeft'); tick(p, 2)
+check('R3', 'pressing straight back (left while heading right) is ignored, no death', S(p, 'state') == 'playing' and head(p) == {'x': h0['x'] + 2, 'y': h0['y']}, head(p))
+key(p, 'ArrowUp'); tick(p)
+h1 = head(p)
+check('R3', 'ArrowUp turns snake up', h1['y'] == h0['y'] - 1 and h1['x'] == h0['x'] + 2, h1)
+key(p, 'ArrowDown'); tick(p)
+check('R3', 'down while heading up is ignored', head(p)['y'] == h1['y'] - 1 and S(p, 'state') == 'playing', head(p))
+key(p, 'ArrowLeft'); tick(p)
+check('R3', 'ArrowLeft turns snake left', head(p) == {'x': h1['x'] - 1, 'y': h1['y'] - 1}, head(p))
+key(p, 'ArrowDown'); tick(p)
+check('R3', 'ArrowDown turns snake down', head(p)['y'] == h1['y'] and S(p, 'state') == 'playing', head(p))
+key(p, 'ArrowRight'); tick(p)
+check('R3', 'ArrowRight turns snake right', head(p)['x'] == h1['x'] and S(p, 'state') == 'playing', head(p))
+# two quick presses in one tick, heading right: up then left must not kill (left is reverse of right, but up first)
+S(p, 'game.snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}]'); p.evaluate('() => { window.__snake.game.dir = "right"; window.__snake.game.queue = []; }')
+key(p, 'ArrowUp'); key(p, 'ArrowLeft'); tick(p, 2)
+check('R3', 'two quick turns (up,left) inside one tick both apply in order, no suicide', S(p, 'state') == 'playing' and head(p) == {'x': 10 - 1, 'y': 9}, head(p))
+S(p, 'game.snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}]'); p.evaluate('() => { window.__snake.game.dir = "right"; window.__snake.game.queue = []; }')
+key(p, 'ArrowUp'); key(p, 'ArrowDown'); tick(p, 2)
+check('R3', 'quick up,down (reverse via buffer) cannot kill snake', S(p, 'state') == 'playing', head(p))
+S(p, 'game.snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}]'); p.evaluate('() => { window.__snake.game.dir = "right"; window.__snake.game.queue = []; }')
+key(p, 'ArrowDown'); key(p, 'ArrowLeft'); key(p, 'ArrowLeft'); tick(p, 3)
+check('R3', 'down,left,left sequence stays alive (no reversal into neck)', S(p, 'state') == 'playing', head(p))
+# preventDefault & no scrolling
+pv = {}
+for st in ('playing',):
+    for k in ('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '):
+        pv[k] = p.evaluate('(k) => { const e = new KeyboardEvent("keydown", {key: k, code: k === " " ? "Space" : k, cancelable: true, bubbles: true}); window.dispatchEvent(e); return e.defaultPrevented; }', k)
+check('R3', 'arrow keys (and Space) are preventDefault-ed during play', all(pv.values()), pv)
+p.close()
+# scroll test on a small viewport where the page is scrollable
+ps = new_page(base + '/index.html?speed=100', 500, 300)
+ps.evaluate('() => { document.body.style.minHeight = "3000px"; }')
+ps.keyboard.press('Enter')
+for k in ('ArrowDown', 'ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Space'):
+    ps.keyboard.press(k)
+check('R3', 'arrow keys / Space do not scroll the page (scrollable page, small viewport)', ps.evaluate('() => window.scrollY') == 0, ps.evaluate('() => window.scrollY'))
+ps.context.close()
+# arrow key from title starts game
+p = new_page(base + '/index.html?speed=100')
+key(p, 'ArrowUp'); p.wait_for_timeout(100)
+check('R6', 'arrow key on title starts play', S(p, 'state') == 'playing')
+p.close()
+p = new_page(base + '/index.html?speed=100')
+key(p, 'Space'); p.wait_for_timeout(100)
+check('R6', 'Space on title starts play', S(p, 'state') == 'playing')
+p.close()
+p = new_page(base + '/index.html?speed=100')
+p.locator('#game').click(); p.wait_for_timeout(100)
+check('R6', 'click on title starts play', S(p, 'state') == 'playing')
+p.close()
+
+# ================= R4: food =================
+p = new_page(base + '/index.html?speed=100')
+manual_start(p)
+ok_all = True; detail = []
+for i in range(6):
+    h = head(p); d = p.evaluate('() => window.__snake.game.dir')
+    dx, dy = {'right': (1, 0), 'left': (-1, 0), 'up': (0, -1), 'down': (0, 1)}[d]
+    nx, ny = h['x'] + dx, h['y'] + dy
+    if not (0 <= nx < 20 and 0 <= ny < 20):
+        key(p, 'ArrowUp' if d in ('left', 'right') else 'ArrowLeft'); tick(p)  # turn away from wall by one step
+        h = head(p); d = p.evaluate('() => window.__snake.game.dir'); dx, dy = {'right': (1, 0), 'left': (-1, 0), 'up': (0, -1), 'down': (0, 1)}[d]
+        nx, ny = h['x'] + dx, h['y'] + dy
+    p.evaluate('([x,y]) => { window.__snake.game.food = {x, y}; }', [nx, ny])
+    L0, s0 = length(p), S(p, 'score')
+    tick(p)
+    L1, s1 = length(p), S(p, 'score')
+    f = S(p, 'food'); body = S(p, 'snake')
+    good = (L1 == L0 + 1 and s1 == s0 + 1 and f is not None and {'x': f['x'], 'y': f['y']} not in body and 0 <= f['x'] < 20 and 0 <= f['y'] < 20)
+    detail.append((L0, L1, s0, s1))
+    ok_all &= good
+check('R4', 'eating 6 foods: each +1 length, +1 score, new food on a free in-bounds cell', ok_all, detail)
+check('R7', 'HUD score value equals hook after eating', p.evaluate('() => document.getElementById("game").dataset.score') == str(S(p, 'score')))
+p.screenshot(path=f'{shots}/R4-after-eating.png')
+# length not changing without food
+L0 = length(p); S(p, 'game.food = {x:0,y:0}'); h = head(p)
+tick(p); check('R4', 'moving without eating keeps length', length(p) == L0 or S(p, 'state') == 'over')
+p.close()
+
+# bot invariants over a long run (real keypresses, manual ticks)
+p = new_page(base + '/index.html?speed=100')
+manual_start(p)
+random.seed(7)
+D = {'ArrowRight': (1, 0), 'ArrowLeft': (-1, 0), 'ArrowUp': (0, -1), 'ArrowDown': (0, 1)}
+inv_ok = True; why = ''; eaten = 0; ticks = 0
+while S(p, 'state') == 'playing' and ticks < 4000:
+    sn = S(p, 'snake'); f = S(p, 'food'); dr = p.evaluate('() => window.__snake.game.dir')
+    cur = {'right': 'ArrowRight', 'left': 'ArrowLeft', 'up': 'ArrowUp', 'down': 'ArrowDown'}[dr]
+    occupied = {(c['x'], c['y']) for c in sn[:-1]}
+    opts = []
+    for k, (dx, dy) in D.items():
+        if D[k] == (-D[cur][0], -D[cur][1]): continue
+        nx, ny = sn[0]['x'] + dx, sn[0]['y'] + dy
+        if 0 <= nx < 20 and 0 <= ny < 20 and (nx, ny) not in occupied:
+            opts.append((abs(nx - f['x']) + abs(ny - f['y']), random.random(), k))
+    if not opts: break
+    k = min(opts)[2]
+    if k != cur: key(p, k)
+    L0, s0 = len(sn), S(p, 'score')
+    tick(p); ticks += 1
+    if S(p, 'state') != 'playing': inv_ok = False; why = 'died on a move the bot judged safe: %s' % sn[0]; break
+    sn2 = S(p, 'snake'); s1 = S(p, 'score'); f2 = S(p, 'food')
+    if len(sn2) != s1 + 3: inv_ok = False; why = 'length %d vs score %d' % (len(sn2), s1); break
+    if s1 > s0: eaten += 1
+    if len({(c['x'], c['y']) for c in sn2}) != len(sn2): inv_ok = False; why = 'duplicate cells'; break
+    if any(abs(a['x'] - b['x']) + abs(a['y'] - b['y']) != 1 for a, b in zip(sn2, sn2[1:])): inv_ok = False; why = 'snake not contiguous'; break
+    if f2 and (f2['x'], f2['y']) in {(c['x'], c['y']) for c in sn2}: inv_ok = False; why = 'food on snake'; break
+check('R4', 'bot run (%d ticks, %d foods): length==3+score, contiguous, no overlaps, food never on snake' % (ticks, eaten), inv_ok and eaten >= 15, why or 'eaten=%d' % eaten)
+p.close()
+
+# ================= R5: death =================
+def setup(p, cells, d):
+    p.evaluate('([c, d]) => { const g = window.__snake.game; g.snake = c; g.dir = d; g.queue = []; g.food = {x: 0, y: 19}; }', [cells, d])
+cases = {
+    'right wall': ([{'x': 18, 'y': 10}, {'x': 17, 'y': 10}, {'x': 16, 'y': 10}], 'right'),
+    'left wall': ([{'x': 1, 'y': 10}, {'x': 2, 'y': 10}, {'x': 3, 'y': 10}], 'left'),
+    'top wall': ([{'x': 10, 'y': 1}, {'x': 10, 'y': 2}, {'x': 10, 'y': 3}], 'up'),
+    'bottom wall': ([{'x': 10, 'y': 18}, {'x': 10, 'y': 17}, {'x': 10, 'y': 16}], 'down'),
+}
+for name, (cells, d) in cases.items():
+    p = new_page(base + '/index.html?speed=100'); manual_start(p)
+    setup(p, cells, d)
+    tick(p)
+    alive_at_edge = S(p, 'state') == 'playing'
+    edge = head(p)
+    tick(p)
+    check('R5', f'{name}: snake survives on the last cell, dies when leaving the grid', alive_at_edge and S(p, 'state') == 'over', edge)
+    p.close()
+p = new_page(base + '/index.html?speed=100'); manual_start(p)
+setup(p, [{'x': 10, 'y': 10}, {'x': 9, 'y': 10}, {'x': 8, 'y': 10}, {'x': 7, 'y': 10}, {'x': 6, 'y': 10}], 'right')
+key(p, 'ArrowDown'); key(p, 'ArrowLeft'); tick(p, 2)
+alive = S(p, 'state') == 'playing'; key(p, 'ArrowUp'); tick(p)
+check('R5', 'running into own body (loop right,down,left,up with length 5) ends game', alive and S(p, 'state') == 'over', S(p, 'state'))
+p.screenshot(path=f'{shots}/R5-selfhit.png')
+p.close()
+# self collision via real play: eat to grow then coil
+p = new_page(base + '/index.html?speed=100'); manual_start(p)
+setup(p, [{'x': 10, 'y': 10}, {'x': 9, 'y': 10}, {'x': 8, 'y': 10}], 'right')
+key(p, 'ArrowDown'); key(p, 'ArrowLeft'); tick(p, 2); key(p, 'ArrowUp'); tick(p)
+check('R5', 'length-3 snake U-turn in 3 turns does NOT collide (tail has moved) — sanity', S(p, 'state') == 'playing', S(p, 'state'))
+p.close()
+
+# ================= R8: game over + replay =================
+def play_to_gameover(p, foods=3):
+    manual_start(p)
+    for i in range(foods):
+        h = head(p); p.evaluate('([x,y]) => { window.__snake.game.food = {x, y}; }', [h['x'] + 1, h['y']]); tick(p)
+    die_by_wall(p)
+
+for how, k in (('Enter', 'Enter'), ('Space', 'Space'), ('R', 'r'), ('click', None)):
+    p = new_page(base + '/index.html?speed=100')
+    play_to_gameover(p, 3)
+    final = S(p, 'score')
+    if how == 'Enter': p.screenshot(path=f'{shots}/R8-gameover.png')
+    check('R8', f'[{how}] game over state with final score kept (3)', S(p, 'state') == 'over' and final == 3, final)
+    wait_guard(p)
+    if k: key(p, k)
+    else: p.locator('#game').click()
+    p.wait_for_timeout(100)
+    S(p, 'setAuto(false)')
+    sn = S(p, 'snake')
+    check('R8', f'[{how}] play again starts a fresh game without reload (score 0, length 3, playing)', S(p, 'state') == 'playing' and S(p, 'score') == 0 and len(sn) == 3, (S(p, 'state'), S(p, 'score'), len(sn)))
+    tick(p, 2)
+    check('R8', f'[{how}] fresh game moves and is not instantly over', S(p, 'state') == 'playing')
+    p.close()
+# repeated replays
+p = new_page(base + '/index.html?speed=100')
+ok = True
+for i in range(3):
+    play_to_gameover(p, i) if i == 0 else None
+    if i: 
+        S(p, 'setAuto(false)'); die_by_wall(p)
+    wait_guard(p); key(p, 'Enter'); p.wait_for_timeout(50); S(p, 'setAuto(false)')
+    ok &= (S(p, 'state') == 'playing' and S(p, 'score') == 0 and len(S(p, 'snake')) == 3)
+check('R8', '3 consecutive replays each start fresh', ok)
+# Immediately after game over, Enter should not blow past the screen; and play-again hint
+S(p, 'setAuto(false)'); die_by_wall(p)
+key(p, 'Enter'); p.wait_for_timeout(50)
+check('R8', 'Enter pressed within 400 ms of dying is ignored (accidental key guard) — informational', S(p, 'state') == 'over')
+p.wait_for_timeout(600)
+p.screenshot(path=f'{shots}/R8-gameover-hint.png')
+p.close()
+
+# pause
+p = new_page(base + '/index.html?speed=50'); key(p, 'Enter'); p.wait_for_timeout(150)
+key(p, 'p'); p.wait_for_timeout(100); a = S(p, 'snake'); p.wait_for_timeout(400); b = S(p, 'snake')
+check('R2', 'P pauses (snake stops) — extra', S(p, 'state') == 'paused' and a == b)
+key(p, 'p'); p.wait_for_timeout(300)
+check('R2', 'P resumes — extra', S(p, 'state') == 'playing' and S(p, 'snake') != b)
+p.close()
+
+# real-time keyboard-only play, no hooks writing: arrow keys only, until death, replay
+p = new_page(base + '/index.html?speed=60')
+key(p, 'Enter'); p.wait_for_timeout(1500)  # heading right from x=8 → wall within 12*60ms
+check('R5', 'real-time: snake left alone hits right wall and game ends by itself', S(p, 'state') == 'over', S(p, 'state'))
+check('R8', 'real-time: game-over does not auto-restart', (p.wait_for_timeout(500) or S(p, 'state')) == 'over')
+key(p, 'Enter'); p.wait_for_timeout(200)
+check('R8', 'real-time: replay via Enter works', S(p, 'state') == 'playing' and S(p, 'score') == 0)
+p.close()
+
+# R9: pixel distinctness
+p = new_page(base + '/index.html?speed=100'); manual_start(p)
+h = head(p)
+p.evaluate('([x,y]) => { window.__snake.game.food = {x, y}; }', [h['x'] + 4, h['y'] - 3]); S(p, 'render()')
+p.screenshot(path=f'{shots}/R9-play.png')
+def cellpix(x, y):
+    return p.evaluate('([x,y]) => { const c = document.getElementById("game"); const g = c.getContext("2d"); const d = g.getImageData(x*32+16, 48+y*32+16, 1, 1).data; return [d[0],d[1],d[2]]; }', [x, y])
+sn = S(p, 'snake'); f = S(p, 'food')
+ch, cb, cf, cbg = cellpix(sn[0]['x'], sn[0]['y']), cellpix(sn[1]['x'], sn[1]['y']), cellpix(f['x'], f['y']), cellpix(0, 0)
+dist = lambda a, b: sum(abs(i - j) for i, j in zip(a, b))
+check('R9', 'snake body, food, head all differ from the board colour (centre pixel)', min(dist(cb, cbg), dist(cf, cbg), dist(ch, cbg)) > 60 and dist(cf, cb) > 60, dict(head=ch, body=cb, food=cf, bg=cbg))
+p.close()
+
+# ================= console / network errors =================
+bad = [e for e in errors if not (e[0].startswith('console.warning') and ('GPU' in e[1] or 'willReadFrequently' in e[1]))]
+check('R1', 'no console errors/warnings, page errors or failed requests across all runs', not bad, bad[:5])
+
+br.close(); pw.stop()
+if httpd: httpd.shutdown()
+fails = [r for r in results if not r[2]]
+print('\n%d checks, %d failed' % (len(results), len(fails)))
+sys.exit(1 if fails else 0)

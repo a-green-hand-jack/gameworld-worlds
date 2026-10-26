@@ -1,0 +1,2 @@
+# Acceptance
+Inspected the assembled delivery (index.html from game-developer f8fa2426d1e4, release v1). Headless Chromium: counter 0->10 with one click each, "You did it!" and Play again at 10, Play again resets to 0 and play resumes. Single file, inline CSS/JS, no assets/libraries. Accepted.

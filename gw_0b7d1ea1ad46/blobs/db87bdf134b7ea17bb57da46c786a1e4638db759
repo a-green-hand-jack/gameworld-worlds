@@ -1,0 +1,29 @@
+# Playtest report
+
+## Build played
+
+- Assembled delivery from producer handoff `c2693e428ba55d21e05be08478220bccd6a36057`.
+- Playable entry: game-developer `index.html` from `b0d8f801917ea3f6a05645ad57a3cb7097bfa14c`.
+- Art: artist `assets/` from `98c75df1704fb4e815a905affff054eabe21520b`.
+- Tested by opening the assembled `index.html` directly with a `file://` URL in headless Chromium (Playwright 1.64.0, Chromium 156.0.8078.4, Linux, viewport 1000x760).
+
+## Steps and observations
+
+1. Opened `index.html`. The title screen appeared with a star field, ship/meteor art, score and best-score counters, movement instructions, and the Enter/Space start instruction. Initial state was `title`, score `0`, high score `0`.
+2. Pressed Enter. State changed to `play`. Held ArrowLeft for 400 ms: ship x changed from `400` to `279.97` while y remained `520`, confirming keyboard movement.
+3. Pressed `P`: state changed to `pause` and the pause overlay appeared. Pressed `P` again: state changed back to `play`.
+4. Continued playing with alternating ArrowRight/ArrowLeft holds until collision. A collision ended the run after about 3.9 seconds of wall time; observed state was `over`, score `46`, high score `46`, and five meteors remained visible. The game-over screen showed `GAME OVER`, `Score: 46`, `New best!`, and the restart instruction.
+5. Pressed Enter on the game-over screen. State changed to `play`, score reset to `2`, and high score stayed `46`.
+6. Reloaded the same `file://` page. State was `title`, score `0`, and high score remained `46`, confirming persistence across reload.
+
+No browser console errors or page errors were observed. The screenshots and machine-readable event log are in `evidence-ad596e09/`:
+
+- `01-title.png`
+- `02-paused.png`
+- `03-game-over.png`
+- `04-reload.png`
+- `playtest.json`
+
+## Result
+
+The delivered build was playable from a directly opened `index.html`. In this run I observed the requested arrow-key ship control, meteor collision/game-over, score increase, restart, and persisted high score. The pause control and visual assets also worked during play. No playtest defect found in this build.

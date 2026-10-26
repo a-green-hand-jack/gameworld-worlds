@@ -1,0 +1,47 @@
+import json, shutil
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+root=Path('/hutian/qa-build2')
+evidence=Path('/hutian/qa-evidence'); evidence.mkdir(exist_ok=True)
+def snapshot(page, label):
+    game=page.evaluate('''() => { let g=window.__game; return {state:g.state,won:g.won,source:g.levelSource,error:g.error,player:{...g.player},flag:{...g.flag},ticks:g.ticks,grid:g.level.grid}; }''')
+    print(label,json.dumps({key:value for key,value in game.items() if key!='grid'}))
+    page.screenshot(path=str(evidence/(label+'.png')))
+    return game
+def steps(page, count):
+    page.evaluate('(count) => {for(let i=0;i<count;i++)window.__game.step()}',count)
+def start(browser, file=root/'index.html'):
+    page=browser.new_page(viewport={'width':1200,'height':500})
+    errors=[]
+    page.on('console',lambda msg: errors.append('console '+msg.text) if msg.type=='error' else None)
+    page.on('pageerror',lambda err: errors.append('pageerror '+str(err)))
+    page.on('requestfailed',lambda req: errors.append('requestfailed '+req.url+' '+(req.failure or '')))
+    page.goto(file.as_uri())
+    page.wait_for_function('window.__game && window.__game.level')
+    return page,errors
+with sync_playwright() as playwright:
+    browser=playwright.chromium.launch(args=['--no-sandbox'])
+    print('browser',browser.version)
+    page,errors=start(browser)
+    initial=snapshot(page,'initial')
+    print('layout',{'gapColumns': [i for i in range(30) if initial['grid'][10][i]=='.'], 'canvas':page.locator('canvas').bounding_box(), 'bodyScroll':page.evaluate('document.documentElement.scrollWidth > innerWidth || document.documentElement.scrollHeight > innerHeight')})
+    page.keyboard.down('ArrowRight'); steps(page,15); page.keyboard.up('ArrowRight')
+    moving=snapshot(page,'moving'); steps(page,5); stopped=snapshot(page,'stopped')
+    page.keyboard.down('ArrowLeft'); steps(page,5);page.keyboard.up('ArrowLeft');snapshot(page,'left')
+    page.reload();page.wait_for_function('window.__game && window.__game.level')
+    page.keyboard.down('ArrowRight');steps(page,68);page.keyboard.up('ArrowRight');snapshot(page,'walk-into-gap-1');steps(page,42);snapshot(page,'fall-gap-1')
+    page.reload();page.wait_for_function('window.__game && window.__game.level')
+    page.keyboard.down('ArrowRight');steps(page,64);snapshot(page,'approach-gap-1')
+    page.keyboard.down(' ');steps(page,1);page.keyboard.up(' ');steps(page,35);snapshot(page,'cross-gap-1')
+    steps(page,59);snapshot(page,'approach-gap-2')
+    page.keyboard.down(' ');steps(page,1);page.keyboard.up(' ');steps(page,35);snapshot(page,'cross-gap-2')
+    steps(page,56);snapshot(page,'approach-flag')
+    page.keyboard.down(' ');steps(page,1);page.keyboard.up(' ');steps(page,25);end=snapshot(page,'flag')
+    page.keyboard.up('ArrowRight');print('controls',{'movingX':moving['player']['x'],'stoppedX':stopped['player']['x'],'won':end['won']})
+    print('diagnostics',errors)
+    page.close()
+    mutated=Path('/hutian/qa-mutated');shutil.copytree(root,mutated,dirs_exist_ok=True)
+    level=json.loads((mutated/'level.json').read_text());level['flag']['col']=5;(mutated/'level.json').write_text(json.dumps(level))
+    probe,errors=start(browser,mutated/'index.html');print('json-mutation-probe',{'fileFlagCol':5,'renderedFlagX':probe.evaluate('window.__game.flag.x'),'levelSource':probe.evaluate('window.__game.levelSource'),'diagnostics':errors});probe.close()
+    browser.close()

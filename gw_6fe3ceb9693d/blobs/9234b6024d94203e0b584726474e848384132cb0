@@ -1,0 +1,12 @@
+# Acceptance record
+
+Delivery: game-developer a21e7b8db428 (index.html and level.json byte-identical to release build-2, source 1a6508b9818d; only README.md changed since).
+
+- Objective re-read: one screen, player square, two gaps, flag, single index.html with inline JS loading level.json, runs in a headless browser. Delivery has all of it (plus README.md, smoke.mjs).
+- Me: ran `node smoke.mjs` at 1a6508b9818d in headless Chromium: all 14 checks passed (start, both directions, jump, gap deadly, both gaps crossed, flag reached).
+- qa (world/qa#2, tests/qa_test.py at 247a5e5025f8): build-2, 36 checks passed, flag reachable, state `won`; build-1 flag confirmed unreachable (known deliberate defect). Quoted `since_turn_start`.
+- playtester (world/playtester#2, report at 98717b30): played build-2 in real time, flag reachable, state `won`; quoted `requests` and `owed`.
+- Notes, not blockers: under file:// Chromium blocks fetch of level.json so the page uses an identical built-in copy (level.json loads over http); win triggers on mid-air flag contact.
+- Process: build-1 -> qa request -> README/smoke -> build-2 -> comment on same request, followed; I handed build-2 to playtester.
+
+Conclusion: approve.

@@ -1,0 +1,978 @@
+// The game: title, intermissions, play, the rules of SMB1 and the HUD.
+// One call of step() is one NES frame (1/60 s).
+import { SCREEN_W, TILE, ROWS, PHYS, RULES, HALFWAY } from './consts.js';
+import { Area } from './world.js';
+import { drawArea, shimmer } from './render.js';
+import { Player, SMALL, BIG, FIRE } from './player.js';
+import * as E from './entities.js';
+import { LEVELS, ORDER } from './levels/index.js';
+
+const MUSIC = { overworld: 'overworld', underground: 'underground', underwater: 'underwater', castle: 'castle', sky: 'overworld' };
+const NO_INPUT = { state: {}, pressed: {} };
+const WALK_RIGHT = { state: { right: true }, pressed: {} };
+const FIREWORK_SPOTS = [[-40, 56], [24, 40], [-8, 72], [-48, 32], [32, 64], [-16, 24]];
+
+function pad(n, len) { return String(Math.max(0, Math.floor(n))).padStart(len, '0'); }
+
+export class Game {
+  constructor({ ctx, assets, audio, font, input }) {
+    this.ctx = ctx;
+    this.assets = assets;
+    this.audio = audio;
+    this.font = font;
+    this.input = input;
+    this.frame = 0;
+    this.state = 'title';
+    this.stateT = 0;
+    this.top = 0;
+    try { this.top = Number(localStorage.getItem('smb.top')) || 0; } catch (e) { /* storage blocked */ }
+    this.continueWorld = 0;
+    this.ents = [];
+    this.camX = 0;
+    this.camY = 0;
+    this.seq = null;
+    this.paused = false;
+    this.resetSession();
+    this.loadLevel('1-1');
+    this.enterLocation(0);
+  }
+
+  resetSession() {
+    this.score = 0;
+    this.coins = 0;
+    this.lives = RULES.startLives;
+    this.form = SMALL;
+    this.levelId = '1-1';
+    this.halfway = false;
+    // the hidden 1-UP block appears while this is set: at the start of a
+    // game, after a warp zone, or after collecting enough coins in x-3; it
+    // is used up when the block comes into view (SMB1 Hidden1UpFlag)
+    this.hidden1up = true;
+  }
+
+  // ------------------------------------------------------------ helpers
+
+  sfx(id) {
+    if (id === 'swim' && !this.audio.entries.swim) id = 'stomp';
+    this.audio.play(id);
+  }
+
+  addEnt(e) {
+    if (Array.isArray(e)) for (const x of e) this.ents.push(x);
+    else if (e) this.ents.push(e);
+  }
+
+  addScore(n, x, y, popup = true) {
+    this.score += n;
+    if (popup && x !== undefined) this.addEnt(new E.ScorePopup(this, x, y, String(n)));
+  }
+
+  oneUp(x, y) {
+    this.lives = Math.min(this.lives + 1, 128);
+    this.sfx('oneup');
+    if (x !== undefined) this.addEnt(new E.ScorePopup(this, x, y, '1up'));
+  }
+
+  // Score of the n-th enemy in a chain; past the end of the chain each is a 1-UP.
+  chainScore(list, i, x, y) {
+    if (i >= list.length) this.oneUp(x, y);
+    else this.addScore(list[i], x, y);
+  }
+
+  addCoin() {
+    this.coins++;
+    this.coinTally++;
+    this.sfx('coin');
+    if (this.coins >= RULES.coinsForLife) {
+      this.coins -= RULES.coinsForLife;
+      this.oneUp();
+    }
+  }
+
+  fireballCount() { return this.ents.filter((e) => e.fireball && !e.dead).length; }
+
+  throwFireball(p) {
+    const dir = p.facing;
+    this.addEnt(new E.Fireball(this, dir > 0 ? p.x + p.w : p.x - 8, p.y + 6, dir));
+  }
+
+  get worldNum() { return Number(this.levelId.split('-')[0]); }
+
+  // ------------------------------------------------------------ levels
+
+  loadLevel(id) {
+    this.levelId = id;
+    this.level = LEVELS[id];
+  }
+
+  // Puts Mario in the level at one of its locations (entrances).
+  enterLocation(index, opts = {}) {
+    if (opts.halfway) index = this.mainLocation();
+    const loc = this.level.locations[index] || this.level.locations[0];
+    this.locIndex = index;
+    this.area = new Area(this.level, loc.area);
+    this.coinTally = 0;
+    for (const [key, what] of Object.entries(this.area.contents)) {
+      const [c, r] = key.split(',').map(Number);
+      if (what !== 'oneup' || this.area.get(c, r) !== 'h') continue;
+      if (this.hidden1up) this.area.hidden1up = c * TILE;
+      else { this.area.set(c, r, ' '); delete this.area.contents[key]; }
+    }
+    this.ents = [];
+    this.seq = null;
+    const p = (this.player = new Player(40, 208, this.form));
+    p.x = 42;
+    let camX = 0;
+    const entry = opts.halfway ? 'halfway' : loc.entry;
+    if (entry === 'halfway') {
+      const page = HALFWAY[this.levelId] || 0;
+      camX = page * 256;
+      p.x = camX + 40;
+      p.y = this.groundUnder(p.x + p.w / 2) - p.h;
+    } else if (entry === 'fall') {
+      if (loc.x !== undefined) { camX = loc.x; p.x = loc.x + 40; }
+      p.y = 0;
+      p.onGround = false;
+    } else if (entry === 'castle') {
+      p.x = 32;
+      p.y = 112 - p.h;
+    } else if (entry === 'pipeUp' && loc.pipe) {
+      const { col, row } = loc.pipe;
+      camX = Math.max(0, (loc.x ?? col * 16) - 32);
+      p.x = col * 16 + 16 - p.w / 2;
+      p.y = row * 16;
+      this.seq = { kind: 'pipeUp', t: 0, top: row * 16 };
+      p.clip = [col * 16 - 8, 0, 48, row * 16];
+      p.mode = 'auto';
+      this.sfx('powerdown');
+    } else if (entry === 'walk') {
+      p.mode = 'auto';
+      this.seq = { kind: 'introWalk', t: 0 };
+    } else {
+      if (loc.x !== undefined) { camX = loc.x; p.x = loc.x + 40; }
+    }
+    const maxCam = Math.max(0, this.area.width - SCREEN_W);
+    this.camX = Math.min(Math.max(0, camX), maxCam);
+    // things already behind the screen never appear
+    for (const s of this.area.spawns) if (s.x + 16 < this.camX) s.spawned = true;
+    this.spawn();
+    this.startMusic();
+  }
+
+  // Top of the floor under level x, for restarting at the halfway point.
+  groundUnder(x) {
+    for (let dc = 0; dc < 8; dc++) {
+      const c = Math.floor(x / TILE) + dc;
+      for (let r = ROWS - 1; r > 0; r--) {
+        if (this.area.solid(c, r) && !this.area.solid(c, r - 1)) {
+          if (dc) this.player.x += dc * TILE;
+          return r * TILE;
+        }
+        if (!this.area.solid(c, r)) break;
+      }
+    }
+    return 208;
+  }
+
+  // The location a death restarts from (after the walk into the pipe of x-2 openings).
+  mainLocation() {
+    return this.level.locations[0].entry === 'walk' ? 1 : 0;
+  }
+
+  startMusic() {
+    if (this.state !== 'play') return;
+    const p = this.player;
+    if (p && p.star > RULES.starMusicEnd) return this.audio.music('star');
+    let id = MUSIC[this.area.theme] || 'overworld';
+    if (this.time <= RULES.hurryAt && this.audio.entries[id + '_hurry']) id += '_hurry';
+    this.audio.music(id);
+  }
+
+  toTitle() {
+    this.state = 'title';
+    this.stateT = 0;
+    this.audio.stopAll();
+    const keep = { score: this.score };
+    this.resetSession();
+    this.score = keep.score;
+    this.loadLevel('1-1');
+    this.enterLocation(0);
+  }
+
+  startGame(world = 1) {
+    this.resetSession();
+    this.toIntermission(`${world}-1`);
+  }
+
+  toIntermission(id, halfway = false) {
+    this.loadLevel(id);
+    this.halfway = halfway;
+    this.state = 'intermission';
+    this.stateT = 0;
+    this.audio.stopAll();
+  }
+
+  beginLevel() {
+    this.state = 'play';
+    this.stateT = 0;
+    this.time = this.level.time || 400;
+    this.timeT = 0;
+    this.hurried = false;
+    this.paused = false;
+    this.enterLocation(0, { halfway: this.halfway });
+  }
+
+  // ------------------------------------------------------------ main step
+
+  step() {
+    this.input.update();
+    this.frame++;
+    this.stateT++;
+    const inp = this.input;
+    switch (this.state) {
+      case 'title':
+        if (inp.pressed.start) {
+          const w = inp.state.a && this.continueWorld ? this.continueWorld : 1;
+          this.startGame(w);
+        }
+        break;
+      case 'intermission':
+        if (this.stateT >= 160) this.beginLevel();
+        break;
+      case 'timeup':
+        if (this.stateT >= 150) this.afterDeath();
+        break;
+      case 'gameover':
+        if (this.stateT >= 300) this.toTitle();
+        break;
+      case 'play':
+        this.updatePlay();
+        break;
+    }
+  }
+
+  updatePlay() {
+    const inp = this.input;
+    if (inp.pressed.start && (!this.seq || this.seq.kind === 'introWalk') && this.player.mode !== 'dead') {
+      this.paused = !this.paused;
+      if (this.paused) { this.sfx('pause'); this.pauseT = 30; } else { this.audio.setPaused(false); this.sfx('pause'); }
+    }
+    if (this.paused) {
+      if (this.pauseT > 0 && --this.pauseT === 0) this.audio.setPaused(true);
+      return;
+    }
+    if (this.seq && this.runSeq()) return;
+    const p = this.player;
+    // timer
+    if (!this.seq || this.seq.kind === 'introWalk') this.tickTimer();
+    if (this.state !== 'play') return;
+    if (this.hurryT > 0 && --this.hurryT === 0) this.startMusic();
+    if (p.mode === 'dead') return;
+    // things come to life as they scroll into view
+    this.spawn();
+    for (const e of this.ents) if (!e.dead) e.update();
+    // the area music comes back a little before the star runs out
+    if (p.star > 0 && --p.star === RULES.starMusicEnd) this.startMusic();
+    if (p.invuln > 0) p.invuln--;
+    const x0 = p.x;
+    // ride lifts
+    if (p.ride && !p.ride.dead) { p.x += p.ride.dx; p.y += p.ride.dy; }
+    p.ride = null;
+    p.lastBottom = p.bottom;
+    const control = p.mode === 'auto' ? this.autoInput : inp;
+    p.control(this, control || NO_INPUT);
+    this.collectCoins(p);
+    this.checkPipes(p, control || inp);
+    this.interact(p);
+    this.enemyContacts();
+    this.checkLevelObjects(p);
+    if (p.y > 240 && p.mode !== 'dead') this.die(true);
+    this.updateCamera(Math.floor(p.x) - Math.floor(x0));
+    // the level is drawn 128 px ahead of the screen's right edge
+    if (this.area.hidden1up < this.camX + SCREEN_W + 128) this.hidden1up = false;
+    this.area.update();
+    this.ents = this.ents.filter((e) => !e.dead && !e.gone());
+    // halfway point
+    const hw = HALFWAY[this.levelId];
+    if (hw && this.area.index === this.level.locations[this.mainLocation()].area && p.x >= hw * 256) this.halfway = true;
+  }
+
+  tickTimer() {
+    if (++this.timeT < RULES.frameUnitsPerTimeUnit) return;
+    this.timeT = 0;
+    if (this.time <= 0) return;
+    this.time--;
+    if (this.time === RULES.hurryAt && !this.hurried) {
+      this.hurried = true;
+      this.audio.stopMusic();
+      this.audio.music('warning');
+      this.hurryT = 150;
+    }
+    if (this.time === 0) {
+      this.timeUp = true;
+      this.die(false);
+    }
+  }
+
+  spawn() {
+    const right = this.camX + SCREEN_W + 16;
+    for (const s of this.area.spawns) {
+      if (s.spawned || s.x > right) continue;
+      s.spawned = true;
+      this.addEnt(E.makeEnt(this, s));
+    }
+  }
+
+  // The screen scrolls only by Mario's own rightward movement: not at all
+  // while he is in the left 80 px, one pixel less than he moved while he is
+  // between 80 and 112 px, and by all of it beyond (SMB1 ScrollHandler).
+  updateCamera(moved) {
+    const p = this.player;
+    let max = this.area.width - SCREEN_W;
+    for (const t of this.area.triggers) if (t.kind === 'scrollStop' && p.x < t.x) max = Math.min(max, t.x - SCREEN_W);
+    const pos = Math.floor(p.x) - this.camX;
+    if (moved <= 0 || pos < 80) return;
+    const amt = pos >= 112 || moved < 2 ? moved : moved - 1;
+    this.camX = Math.min(this.camX + amt, Math.max(this.camX, max));
+  }
+
+  // ------------------------------------------------------------ blocks
+
+  hitBlock(c, r, p) {
+    const area = this.area;
+    const ch = area.get(c, r);
+    const key = `${c},${r}`;
+    if (area.bumps.some((b) => b.c === c && b.r === r)) return;
+    const content = area.contents[key];
+    if (ch === '?' || ch === 'h' || (ch === 'B' && content)) {
+      area.bumps.push({ c, r, t: 0 });
+      if (content === 'coins') {
+        if (!area.multiCoin.has(key)) area.multiCoin.set(key, RULES.multiCoinFrames);
+        this.blockCoin(c, r);
+        if (area.multiCoin.get(key) <= 0) { area.set(c, r, 'U'); delete area.contents[key]; }
+      } else {
+        area.set(c, r, 'U');
+        delete area.contents[key];
+        if (!content) this.blockCoin(c, r);
+        else if (content === 'power') this.addEnt(new E.PowerUp(this, c, r, p.form === SMALL ? 'mushroom' : 'flower'));
+        else if (content === 'oneup') this.addEnt(new E.PowerUp(this, c, r, 'oneup'));
+        else if (content === 'star') this.addEnt(new E.PowerUp(this, c, r, 'star'));
+        else if (content.startsWith('vine')) this.addEnt(new Vine(this, c, r, content));
+      }
+      this.bumpFrom(c, r);
+    } else if (ch === 'B') {
+      if (p.big) {
+        area.set(c, r, ' ');
+        const x = c * TILE, y = r * TILE;
+        this.addEnt([new E.Debris(this, x, y, -1, -6), new E.Debris(this, x + 8, y, 1, -6), new E.Debris(this, x, y + 8, -1, -4), new E.Debris(this, x + 8, y + 8, 1, -4)]);
+        this.addScore(RULES.brickScore);
+        this.sfx('brick_break');
+      } else {
+        area.bumps.push({ c, r, t: 0 });
+        this.sfx('bump');
+      }
+      this.bumpFrom(c, r);
+    } else {
+      this.sfx('bump');
+    }
+  }
+
+  blockCoin(c, r) {
+    this.addEnt(new E.BlockCoin(this, c, r));
+    this.addCoin();
+  }
+
+  // A block knocked from below kills enemies on it, knocks items up and
+  // collects a coin sitting on it.
+  bumpFrom(c, r) {
+    const top = r * TILE, x0 = c * TILE, x1 = x0 + TILE;
+    for (const e of this.ents) {
+      if (e.dead || e.x + e.w <= x0 || e.x >= x1) continue;
+      if (Math.abs(e.bottom - top) > 4) continue;
+      if (e.enemy && !e.starImmune && e.stompable !== undefined && !(e instanceof E.Piranha)) e.flip(100, e.cx < x0 + 8 ? -1 : 1);
+      else if (e.item && e.hop) e.hop(x0 + 8);
+    }
+    if (this.area.get(c, r - 1) === 'o') {
+      this.area.set(c, r - 1, ' ');
+      this.addEnt(new E.BlockCoin(this, c, r - 1));
+      this.addCoin();
+    }
+  }
+
+  collectCoins(p) {
+    const c0 = Math.floor(p.x / TILE), c1 = Math.floor((p.x + p.w - 1) / TILE);
+    const r0 = Math.floor(p.y / TILE), r1 = Math.floor((p.bottom - 1) / TILE);
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+      if (this.area.get(c, r) === 'o') {
+        this.area.set(c, r, ' ');
+        this.addCoin();
+        this.addScore(RULES.coinScore);
+      }
+    }
+  }
+
+  landOnLifts(p) {
+    if (p.vy < 0) return;
+    for (const l of this.ents) {
+      if (!l.platform || l.dead) continue;
+      if (p.x + p.w <= l.x || p.x >= l.x + l.w) continue;
+      const last = p.lastBottom ?? p.bottom;
+      if (last <= l.y - l.dy + 3 && p.bottom >= l.y) {
+        p.y = l.y - p.h;
+        p.vy = 0;
+        p.onGround = true;
+        p.ride = l;
+        l.rider = true;
+        return;
+      }
+    }
+  }
+
+  // ------------------------------------------------------------ pipes
+
+  checkPipes(p, inp) {
+    if (!p.onGround || (this.seq && this.seq.kind !== 'introWalk')) return;
+    for (const pipe of this.area.pipes) {
+      if (pipe.to === undefined) continue;
+      if (pipe.dir === 'down') {
+        const x0 = pipe.col * TILE;
+        if (inp.state.down && p.bottom === pipe.row * TILE && p.x >= x0 + 2 && p.x + p.w <= x0 + 30) {
+          this.seq = { kind: 'pipeDown', t: 0, pipe };
+          p.clip = [x0 - 8, 0, 48, pipe.row * TILE];
+          p.vx = 0;
+          p.setCrouch(false);
+          this.sfx('powerdown');
+          return;
+        }
+      } else if (pipe.dir === 'right') {
+        const x0 = pipe.col * TILE;
+        if (inp.state.right && p.hitWall === 1 && Math.abs(p.x + p.w - x0) <= 1 && p.bottom === (pipe.row + 2) * TILE) {
+          this.seq = { kind: 'pipeRight', t: 0, pipe };
+          p.clip = [x0 - 64, 0, 64, 240];
+          p.mode = 'auto';
+          this.sfx('powerdown');
+          return;
+        }
+      }
+    }
+  }
+
+  goTo(to) {
+    this.form = this.player.form;
+    if (typeof to === 'object' && to.map) {
+      // warp pipe or end of level: a new level, from its start
+      if (to.map.split('-')[0] !== String(this.worldNum)) this.hidden1up = true;
+      this.toIntermission(to.map);
+      return;
+    }
+    this.enterLocation(to);
+  }
+
+  // ------------------------------------------------------------ contacts
+
+  playerBox(p) {
+    return { x: p.x + 1, y: p.y + (p.big && !p.crouch ? 4 : 2), w: p.w - 2, h: p.h - (p.big && !p.crouch ? 4 : 2) };
+  }
+
+  interact(p) {
+    const box = this.playerBox(p);
+    for (const e of this.ents) {
+      if (e.dead || p.mode === 'dead') continue;
+      if (e.item) {
+        if (e.rise > 16) continue;
+        if (overlap(box, e)) this.collect(e, p);
+        continue;
+      }
+      if (!e.enemy || e.harmless) continue;
+      if (e instanceof E.Firebar) {
+        if (e.touches(box)) this.hurt(p, e);
+        continue;
+      }
+      const hb = e.hitBox();
+      if (!hb || !overlap(box, hb)) continue;
+      if (p.star > 0) {
+        if (!e.starImmune) {
+          e.flip(0, p.cx < e.cx ? 1 : -1);
+          this.chainScore(RULES.stompChain, p.starChain = (p.starChain || 0) + 1, e.cx, e.y);
+          this.sfx('kick');
+        }
+        continue;
+      }
+      if (e instanceof E.Koopa && e.shell && e.kick === 0) {
+        // touching a resting shell kicks it (stomping it too)
+        e.kickShell(p.cx < e.cx ? 1 : -1);
+        if (p.vy > 0 && p.bottom - hb.y < 10) p.bounce(this.input);
+        continue;
+      }
+      if (e instanceof E.Koopa && e.moving && e.kickGrace > 0) continue;
+      const fromAbove = p.vy > 0 && p.bottom - hb.y < Math.max(10, p.vy + 6);
+      if (fromAbove && e.stompable) {
+        e.stomp();
+        this.chainScore(RULES.stompChain, p.stompChain, e.cx, e.y);
+        p.stompChain++;
+        p.bounce(this.input);
+        continue;
+      }
+      this.hurt(p, e);
+    }
+    // fireballs
+    for (const f of this.ents) {
+      if (!f.fireball || f.dead) continue;
+      for (const e of this.ents) {
+        if (!e.enemy || e.dead || e.harmless) continue;
+        if (e instanceof E.Firebar || e instanceof E.Podoboo) continue;
+        const hb = e.hitBox();
+        if (!hb || !overlap(f, hb)) continue;
+        f.burst();
+        if (e.fireImmune) break;
+        if (e instanceof E.Bowser) { e.fireHit(); break; }
+        const type = e instanceof E.Koopa ? (e.beetle ? 'beetle' : 'koopa') : e instanceof E.Piranha ? 'piranha' : 'goomba';
+        e.flip(RULES.fireScore[type] ?? 100, f.dir);
+        this.sfx('kick');
+        break;
+      }
+    }
+  }
+
+  // Shells knock down what they hit; walking enemies turn back from each other.
+  enemyContacts() {
+    const list = this.ents.filter((e) => e.enemy && !e.dead && !e.harmless && !(e instanceof E.Firebar));
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      for (let j = i + 1; j < list.length; j++) {
+        const b = list[j];
+        if (a.dead || b.dead || !a.overlaps(b)) continue;
+        const shellA = a instanceof E.Koopa && a.moving, shellB = b instanceof E.Koopa && b.moving;
+        if (shellA || shellB) {
+          const [s, v] = shellA ? [a, b] : [b, a];
+          if (v instanceof E.Bowser || v instanceof E.Piranha && v.harmless) continue;
+          v.flip(0, s.kick);
+          this.chainScore(RULES.shellChain, s.shellChain++, v.cx, v.y);
+          this.sfx('kick');
+          continue;
+        }
+        const walkers = (e) => (e instanceof E.Goomba && !e.flat) || (e instanceof E.Koopa && !e.shell && !e.fly);
+        if (walkers(a) && walkers(b)) {
+          if (a.cx < b.cx) { a.dir = -1; b.dir = 1; } else { a.dir = 1; b.dir = -1; }
+        }
+      }
+    }
+  }
+
+  collect(item, p) {
+    item.dead = true;
+    if (item.kind === 'oneup') { this.oneUp(item.cx, item.y); return; }
+    this.addScore(RULES.powerupScore, item.cx, item.y);
+    if (item.kind === 'star') {
+      p.star = RULES.starFrames;
+      p.starChain = 0;
+      this.audio.music('star');
+      this.sfx('powerup');
+      return;
+    }
+    this.sfx('powerup');
+    if (p.form === SMALL) this.seq = { kind: 'grow', t: 0 };
+    else if (item.kind === 'flower' && p.form === BIG) this.seq = { kind: 'fire', t: 0 };
+  }
+
+  hurt(p, by) {
+    if (p.invuln > 0 || p.star > 0 || p.mode === 'dead' || this.seq) return;
+    if (p.form !== SMALL) {
+      this.seq = { kind: 'shrink', t: 0 };
+      this.sfx('powerdown');
+      return;
+    }
+    this.die(false);
+    void by;
+  }
+
+  die(pit) {
+    const p = this.player;
+    if (p.mode === 'dead') return;
+    p.mode = 'dead';
+    p.star = 0;
+    p.setForm(SMALL);
+    this.form = SMALL;
+    this.audio.stopMusic();
+    this.audio.music('death');
+    this.seq = { kind: 'death', t: 0, pit };
+  }
+
+  afterDeath() {
+    this.lives--;
+    if (this.lives <= 0) {
+      this.state = 'gameover';
+      this.stateT = 0;
+      this.continueWorld = this.worldNum;
+      this.audio.stopAll();
+      this.audio.music('gameover');
+      this.saveTop();
+      return;
+    }
+    this.toIntermission(this.levelId, this.halfway);
+  }
+
+  saveTop() {
+    if (this.score > this.top) {
+      this.top = this.score;
+      try { localStorage.setItem('smb.top', String(this.top)); } catch (e) { /* storage blocked */ }
+    }
+  }
+
+  checkLevelObjects(p) {
+    const box = this.playerBox(p);
+    for (const e of this.ents) {
+      if (e.pole && !this.seq && p.mode !== 'dead') {
+        // the pole is reached a few px before its centre line; on the ground
+        // Mario grabs it as he runs into the base block
+        const reach = p.bottom > e.y + e.h ? e.x - 1 : e.poleX - 4;
+        if (p.x + p.w >= reach && p.x <= e.poleX + 1 && p.bottom > e.y) this.grabPole(p, e);
+      }
+      if (e.axe && !this.seq && overlap(box, e)) this.takeAxe(e);
+    }
+  }
+
+  // ------------------------------------------------------------ sequences
+
+  grabPole(p, pole) {
+    // score by the height of Mario's top on the screen when he grabs
+    let score = 0;
+    for (const [s, minY] of RULES.flagScores) if (p.y >= minY) score = s;
+    this.addScore(score, pole.poleX + 12, Math.min(p.y, 176));
+    this.audio.stopMusic();
+    this.sfx('flagpole');
+    p.mode = 'pole';
+    p.vx = 0; p.vy = 0;
+    p.star = 0;
+    p.facing = 1;
+    p.x = pole.poleX - p.w - 1;
+    pole.flagDown = true;
+    const castle = this.area.triggers.find((t) => t.kind === 'castle' && t.x > pole.x);
+    this.seq = { kind: 'flag', t: 0, phase: 'slide', pole, castle, digit: this.time % 10 };
+  }
+
+  takeAxe(axe) {
+    const p = this.player;
+    axe.dead = true;
+    this.audio.stopMusic();
+    p.vx = 0; p.vy = 0;
+    const bridge = [];
+    const r0 = Math.floor(axe.y / TILE) + 2;
+    for (let r = r0 - 1; r <= r0 + 1; r++) {
+      for (let c = Math.floor(axe.x / TILE) - 1; c >= 0 && this.area.get(c, r) === 'X'; c--) bridge.push([c, r]);
+    }
+    for (const e of this.ents) if (e instanceof E.Chain) e.dead = true;
+    const bowser = this.ents.find((e) => e instanceof E.Bowser && !e.dead);
+    this.seq = { kind: 'bridge', t: 0, bridge, bowser };
+  }
+
+  // Returns true when the sequence holds the rest of the world still.
+  runSeq() {
+    const s = this.seq;
+    const p = this.player;
+    s.t++;
+    switch (s.kind) {
+      case 'grow': case 'shrink': case 'fire': {
+        // the world stops while Mario changes size
+        const steps = s.kind === 'grow' ? ['s', 'm', 's', 'm', 's', 'm', 'b', 'm', 'b', 's', 'b'] : s.kind === 'shrink' ? ['b', 'm', 'b', 'm', 'b', 'm', 's', 'm', 's', 'b', 's'] : null;
+        if (steps) {
+          const k = steps[Math.min(steps.length - 1, Math.floor(s.t / 6))];
+          const pose = p.pose(this).replace(/^(small|big|fire)_/, '');
+          const f = s.kind === 'grow' ? 'big' : p.form === FIRE ? 'fire' : 'big';
+          const smallPose = /^(idle|walk\d|skid|jump|climb\d|swim\d)$/.test(pose) ? pose : 'idle';
+          const bigPose = /^(idle|walk\d|skid|jump|crouch|climb\d|swim\d)$/.test(pose) ? pose : 'idle';
+          p.growFrame = k === 's' ? `small_${smallPose}` : k === 'm' ? `${f}_grow` : `${f}_${bigPose}`;
+        } else {
+          p.growFrame = (s.t >> 2) & 1 ? `fire_${p.pose(this).replace(/^(big|fire)_/, '')}` : null;
+        }
+        if (s.t >= 64) {
+          p.growFrame = null;
+          if (s.kind === 'grow') p.setForm(BIG);
+          else if (s.kind === 'fire') p.setForm(FIRE);
+          else { p.setForm(SMALL); p.invuln = RULES.invulnFrames; }
+          this.form = p.form;
+          this.seq = null;
+        }
+        return true;
+      }
+      case 'death': {
+        if (!s.pit) {
+          if (s.t === 32) p.vy = -4;
+          if (s.t > 32) { p.vy = Math.min(p.vy + PHYS.deathForce / 256, PHYS.maxFall); p.y += p.vy; }
+        }
+        if (s.t >= 190) {
+          this.seq = null;
+          if (this.timeUp) { this.timeUp = false; this.state = 'timeup'; this.stateT = 0; this.audio.stopAll(); return true; }
+          this.afterDeath();
+        }
+        return true;
+      }
+      case 'pipeDown': {
+        p.y += 1;
+        if (s.t >= 32) { p.clip = null; this.goTo(s.pipe.to); }
+        return true;
+      }
+      case 'pipeRight': {
+        p.x += 1;
+        p.vx = 1; p.onGround = true;
+        p.animate();
+        if (s.t >= 24) { p.clip = null; this.goTo(s.pipe.to); }
+        return true;
+      }
+      case 'pipeUp': {
+        if (s.t > 16) p.y -= 1;
+        if (p.bottom <= s.top) {
+          p.y = s.top - p.h;
+          p.clip = null;
+          p.mode = 'play';
+          p.onGround = true;
+          this.seq = null;
+        }
+        return true;
+      }
+      case 'introWalk': {
+        // x-2 openings: Mario walks into the pipe by himself
+        this.autoInput = { state: { right: true }, pressed: {} };
+        return false;
+      }
+      case 'flag': return this.runFlag(s, p);
+      case 'bridge': return this.runBridge(s, p);
+      case 'toad': return this.runToad(s, p);
+    }
+    return false;
+  }
+
+  runFlag(s, p) {
+    const pole = s.pole;
+    pole.update();
+    if (s.phase === 'slide') {
+      if (p.bottom < pole.y + pole.h) { p.y = Math.min(pole.y + pole.h - p.h, p.y + 2); p.poleFrame = 1 + ((s.t >> 3) & 1); }
+      if (p.bottom >= pole.y + pole.h && pole.flagY >= pole.y + pole.h - 16) {
+        s.phase = 'turn'; s.t = 0;
+        p.facing = -1;
+        p.x = pole.poleX + 1;
+        p.poleFrame = 1;
+      }
+    } else if (s.phase === 'turn') {
+      if (s.t >= 24) {
+        s.phase = 'walk'; s.t = 0;
+        p.mode = 'auto';
+        p.facing = 1;
+        p.x = pole.poleX + 4;
+        this.audio.music('stage_clear');
+      }
+    } else if (s.phase === 'walk') {
+      // the original walks Mario to the castle by holding right for him
+      const x0 = p.x;
+      p.control(this, WALK_RIGHT);
+      this.updateCamera(Math.floor(p.x) - Math.floor(x0));
+      const doorX = s.castle ? s.castle.x : pole.x + 104;
+      if (p.cx >= doorX) {
+        p.mode = 'hidden';
+        s.phase = 'tally'; s.t = 0;
+      }
+    } else if (s.phase === 'tally') {
+      if (this.time > 0) {
+        const n = Math.min(this.time, 1);
+        this.time -= n;
+        this.addScore(RULES.timeBonus * n);
+        if (s.t % 4 === 1) this.sfx('beep');
+      } else {
+        s.phase = 'castleFlag'; s.t = 0;
+      }
+    } else if (s.phase === 'castleFlag') {
+      if (s.t >= 32) {
+        s.phase = 'fireworks'; s.t = 0;
+        s.fireworks = RULES.fireworksFor[s.digit] || 0;
+      }
+    } else if (s.phase === 'fireworks') {
+      const i = Math.floor(s.t / 32);
+      if (s.t % 32 === 1 && i < s.fireworks) {
+        const [dx, y] = FIREWORK_SPOTS[i % FIREWORK_SPOTS.length];
+        const cx = s.castle ? s.castle.x : pole.x + 104;
+        this.addEnt(new E.Firework(this, cx + dx - 8, y));
+        this.addScore(RULES.fireworkScore);
+      }
+      for (const e of this.ents) if (e instanceof E.Firework || e instanceof E.ScorePopup) e.update();
+      this.ents = this.ents.filter((e) => !e.dead);
+      if (s.t >= s.fireworks * 32 + 60) {
+        this.saveTop();
+        const to = s.castle?.to?.map || ORDER[ORDER.indexOf(this.levelId) + 1];
+        this.form = p.form;
+        if (this.levelId.endsWith('-3') && this.coinTally >= RULES.hidden1upCoins[this.worldNum - 1]) this.hidden1up = true;
+        if (to) this.toIntermission(to); else this.finishGame();
+      }
+      return true;
+    }
+    for (const e of this.ents) if (e instanceof E.ScorePopup) e.update();
+    this.ents = this.ents.filter((e) => !e.dead);
+    return true;
+  }
+
+  runBridge(s, p) {
+    // the bridge falls away under Bowser, segment by segment
+    if (s.t % 4 === 0 && s.bridge.length) {
+      const [c, r] = s.bridge.shift();
+      this.area.set(c, r, ' ');
+      if (!s.bridge.length) this.sfx('brick_break');
+    }
+    if (s.bowser && !s.bowser.falling && !s.bridge.length) s.bowser.drop();
+    if (s.bowser && !s.bowser.dead) s.bowser.update();
+    if (s.t >= 120 && (!s.bowser || s.bowser.dead || s.bowser.y > 240)) {
+      this.ents = this.ents.filter((e) => !(e instanceof E.Bowser) && !e.enemy);
+      this.audio.music('castle_clear');
+      this.seq = { kind: 'toad', t: 0 };
+      p.mode = 'auto';
+    }
+    return true;
+  }
+
+  runToad(s, p) {
+    const npc = this.ents.find((e) => e instanceof E.Npc) || this.area.spawns.filter((x) => x.type === 'toad' || x.type === 'princess').map((x) => { x.spawned = true; const n = E.makeEnt(this, x); this.addEnt(n); return n; })[0];
+    if (!s.stopX) s.stopX = npc ? npc.x - 24 : p.x + 64;
+    const x0 = p.x;
+    if (p.x < s.stopX) p.control(this, WALK_RIGHT);
+    else {
+      p.vx = 0; p.anim = 0;
+      s.msgT = (s.msgT || 0) + 1;
+    }
+    this.updateCamera(Math.floor(p.x) - Math.floor(x0));
+    s.npc = npc;
+    if ((s.msgT || 0) >= 300) {
+      this.saveTop();
+      const to = npc?.opts?.to?.map || ORDER[ORDER.indexOf(this.levelId) + 1];
+      this.form = p.form;
+      if (to && this.levelId !== '8-4') this.toIntermission(to); else this.finishGame();
+    }
+    return true;
+  }
+
+  finishGame() {
+    this.saveTop();
+    this.state = 'gameover';
+    this.stateT = 0;
+    this.continueWorld = 0;
+  }
+
+  // ------------------------------------------------------------ drawing
+
+  draw() {
+    const ctx = this.ctx;
+    ctx.imageSmoothingEnabled = false;
+    if (this.state === 'play' || this.state === 'title') {
+      drawArea(ctx, this.assets, this.area, this.camX, this.state === 'title' ? 0 : this.frame);
+      this.drawCastleFlag(ctx);
+      // things behind pipes (piranhas) first
+      for (const e of this.ents) if (e instanceof E.Piranha) e.draw(ctx);
+      for (const e of this.ents) if (!(e instanceof E.Piranha)) e.draw(ctx);
+      this.player.draw(ctx, this);
+      if (this.seq?.kind === 'toad' && this.seq.msgT > 0) this.drawToadMessage(ctx);
+      if (this.state === 'title') this.drawTitle(ctx);
+    } else {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, 256, 240);
+      if (this.state === 'intermission') this.drawIntermission(ctx);
+      if (this.state === 'gameover') this.font.draw(ctx, this.continueWorld === 0 && this.lives > 0 ? 'THANK YOU MARIO!' : 'GAME OVER', this.continueWorld === 0 && this.lives > 0 ? 64 : 88, 120);
+      if (this.state === 'timeup') this.font.draw(ctx, 'TIME UP', 100, 120);
+    }
+    this.drawHud(ctx);
+  }
+
+  drawCastleFlag(ctx) {
+    const s = this.seq;
+    if (!s || s.kind !== 'flag' || !['castleFlag', 'fireworks'].includes(s.phase)) return;
+    const castle = this.area.scenery.filter((x) => x[0] === 'castle_small' || x[0] === 'castle_large').filter((x) => x[1] < (s.castle?.x ?? Infinity)).pop();
+    if (!castle) return;
+    const [name, left, bottom] = castle;
+    const [w, h] = this.assets.size('scenery', name);
+    const top = bottom - h;
+    const rise = s.phase === 'castleFlag' ? Math.min(16, s.t / 2) : 16;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, 256, top);
+    ctx.clip();
+    this.assets.drawTL(ctx, 'items', 'castle_flag', Math.round(left + w / 2 - 8 - this.camX), Math.round(top - rise), {});
+    ctx.restore();
+  }
+
+  drawToadMessage(ctx) {
+    const s = this.seq;
+    if (s.msgT > 30) this.font.draw(ctx, 'THANK YOU MARIO!', 64, 80);
+    if (s.msgT > 90) {
+      if (this.levelId === '8-4') {
+        this.font.draw(ctx, 'YOUR QUEST IS OVER.', 48, 112);
+      } else {
+        this.font.draw(ctx, 'BUT OUR PRINCESS IS IN', 40, 112);
+        this.font.draw(ctx, 'ANOTHER CASTLE!', 40, 128);
+      }
+    }
+  }
+
+  drawHud(ctx) {
+    const f = this.font;
+    f.draw(ctx, 'MARIO', 24, 16);
+    f.draw(ctx, pad(this.score, 6), 24, 24);
+    this.assets.drawTL(ctx, 'items', 'hud_coin' + shimmer(this.frame), 88, 24, {});
+    f.draw(ctx, '×', 96, 24);
+    f.draw(ctx, pad(this.coins, 2), 104, 24);
+    f.draw(ctx, 'WORLD', 144, 16);
+    f.draw(ctx, this.levelId, 152, 24);
+    f.draw(ctx, 'TIME', 200, 16);
+    if (this.state === 'play') f.draw(ctx, pad(this.time, 3), 208, 24);
+  }
+
+  drawTitle(ctx) {
+    const title = this.assets.manifest.title;
+    const img = title ? this.assets.images.get(title.file) : null;
+    if (img) ctx.drawImage(img, Math.round((256 - img.width) / 2), 32);
+    else { this.assets.reportMissing('title'); ctx.fillStyle = '#ff00ff'; ctx.fillRect(40, 32, 176, 88); }
+    const f = this.font;
+    this.assets.drawTL(ctx, 'items', 'mushroom_cursor', 72, 120, {});
+    f.draw(ctx, '1 PLAYER GAME', 88, 120);
+    f.draw(ctx, 'TOP- ' + pad(this.top, 6), 96, 136);
+    // the controls, centred under the menu
+    for (const [text, y] of [['ARROWS  MOVE', 152], ['X  JUMP     Z  RUN/FIRE', 164], ['ENTER  START/PAUSE', 176]]) f.draw(ctx, text, (256 - text.length * 8) / 2, y);
+  }
+
+  drawIntermission(ctx) {
+    const f = this.font;
+    f.draw(ctx, 'WORLD ' + this.levelId, 88, 80);
+    this.assets.draw(ctx, 'player', 'small_idle', 104, 128, {});
+    f.draw(ctx, '×  ' + String(this.lives).padStart(2, ' '), 120, 112);
+  }
+
+  // ------------------------------------------------------------ test hook
+
+  snapshot() {
+    const p = this.player;
+    return {
+      state: this.state, level: this.levelId, area: this.area?.index, location: this.locIndex, frame: this.frame,
+      paused: this.paused, seq: this.seq ? (this.seq.phase ? `${this.seq.kind}:${this.seq.phase}` : this.seq.kind) : null,
+      score: this.score, coins: this.coins, lives: this.lives, time: this.time, top: this.top, camX: this.camX,
+      player: p && { x: p.x, y: p.y, w: p.w, h: p.h, vx: p.vx, vy: p.vy, form: ['small', 'big', 'fire'][p.form], onGround: p.onGround, mode: p.mode, star: p.star, invuln: p.invuln, facing: p.facing, crouch: p.crouch },
+      ents: this.ents.map((e) => ({ type: e.constructor.name, x: Math.round(e.x), y: Math.round(e.y), dead: e.dead, shell: e.shell || undefined, kind: e.kind })),
+      halfway: this.halfway,
+    };
+  }
+}
+
+function overlap(a, b) {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+// Vine growing out of a block (leads to a coin heaven: 'vine:N' = location N).
+class Vine extends E.Ent {
+  constructor(game, c, r, content) {
+    super(game, c * TILE, r * TILE, 16, 0);
+    this.base = r * TILE;
+    this.to = content.includes(':') ? Number(content.split(':')[1]) : undefined;
+    this.vine = true;
+    game.sfx('vine');
+  }
+  update() { if (this.y > -32) { this.y -= 1; this.h = this.base - this.y; } }
+  gone() { return this.x + 16 < this.game.camX - 48; }
+  draw(ctx) {
+    const g = this.game;
+    for (let y = this.base - 16; y >= this.y; y -= 16) g.assets.drawTL(ctx, 'items', y - 16 < this.y ? 'vine_top' : 'vine', Math.round(this.x - g.camX), Math.round(y), { variant: g.area.spriteVariant });
+  }
+}

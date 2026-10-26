@@ -1,0 +1,35 @@
+import functools,http.server,threading,json,wave,hashlib,platform
+from pathlib import Path
+import numpy as np
+from playwright.sync_api import sync_playwright
+root=Path('/hutian/qa-build-1')
+p=root/'sound/beep.wav'
+with wave.open(str(p)) as w:
+ rate=w.getframerate(); frames=w.getnframes(); channels=w.getnchannels(); width=w.getsampwidth(); x=np.frombuffer(w.readframes(frames),dtype='<i2').astype(float)
+freq=np.fft.rfftfreq(13230,1/rate)[np.argmax(abs(np.fft.rfft(x[:13230])))]
+results={'build':{'game-developer':'8063df5ac6b6aaa38f6a40c086216b4b7068cfee','artist':'d75a5b6e61b86b06a6889c944e9743450844cba4'},'wav':{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'rate':rate,'frames':frames,'duration':frames/rate,'channels':channels,'sample_width':width,'dominant_frequency':float(freq),'rms_per_50ms':[float(np.sqrt(np.mean(a*a))) for a in np.array_split(x[:13230],6)],'trailing_silence_nonzero_samples':int(np.count_nonzero(x[13230:]))}}
+assert rate==44100 and frames==22050 and freq==660 and np.count_nonzero(x[13230:])==0
+server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(root)))
+threading.Thread(target=server.serve_forever,daemon=True).start()
+with sync_playwright() as pw:
+ browser=pw.chromium.launch()
+ page=browser.new_page(); errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
+ page.goto(f'http://127.0.0.1:{server.server_port}/')
+ assert page.locator('button').count()==1
+ assert page.locator('#c').inner_text()=='0'
+ page.evaluate("window.events=[];for(const ev of ['playing','ended','error'])document.querySelector('audio').addEventListener(ev,()=>events.push(ev))")
+ page.get_by_role('button',name='Beep').click()
+ page.wait_for_function("events.includes('ended')")
+ assert page.locator('#c').inner_text()=='1'
+ for _ in range(9):page.get_by_role('button',name='Beep').click()
+ assert page.locator('#c').inner_text()=='10'
+ page.get_by_role('button',name='Beep').focus();page.keyboard.press('Enter');page.keyboard.press('Space')
+ assert page.locator('#c').inner_text()=='12'
+ page.wait_for_timeout(600)
+ results['browser']={'version':browser.version,'count_after_10_clicks_and_2_keyboard_activations':page.locator('#c').inner_text(),'audio':page.evaluate("({duration:a.duration,ended:a.ended,error:a.error,events:window.events})"),'page_errors':errors}
+ page.screenshot(path='qa-evidence/page.png')
+ assert not errors and results['browser']['audio']['error'] is None
+ browser.close()
+server.shutdown()
+Path('qa-evidence/check-results.json').write_text(json.dumps(results,indent=2))
+print(json.dumps(results,indent=2))

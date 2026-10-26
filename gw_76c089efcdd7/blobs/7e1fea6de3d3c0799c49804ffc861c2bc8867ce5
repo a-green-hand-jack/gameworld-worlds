@@ -1,0 +1,14 @@
+# Brief: Beep
+
+Input (quoted): "Beep", a web page with one button that plays a short sound when clicked, and shows how many times it was clicked. The sound is `sound/beep.wav`, made with code or ffmpeg: 0.3 s of a 660 Hz tone that fades out, then 0.2 s of silence, at 44.1 kHz. Before acceptance, QA and the playtester each hand `sound/beep.wav` to `audio-understanding`, and keep the request, the answer as it came, and whether it matches, in `listening.md` in their own repository.
+
+## Focus
+1. `index.html` (game-developer): one button, plays the wav, shows click count.
+2. `sound/beep.wav` (artist): exact spec above.
+3. `listening.md` from qa and playtester (their repos, not delivered paths).
+
+## Acceptance
+Page works in a browser, count increments, wav matches spec, both listening.md exist and honestly report the match.
+
+## Unknown
+Nothing beyond the above.

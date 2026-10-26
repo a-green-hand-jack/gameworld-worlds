@@ -1,0 +1,15 @@
+"""Generate sound/hit.wav: a short percussive 'bonk' (0.25 s, 44.1 kHz, mono, 16-bit).
+A fast-decaying thump whose pitch falls from ~220 Hz to ~60 Hz, with a faint wooden overtone."""
+import wave, numpy as np
+sr = 44100
+dur = 0.25
+t = np.arange(int(sr * dur)) / sr
+f = 60 + 160 * np.exp(-t * 30)
+phase = 2 * np.pi * np.cumsum(f) / sr
+x = np.sin(phase) * np.exp(-t * 14) + 0.15 * np.sin(2 * np.pi * 330 * 2.76 * t) * np.exp(-t * 60)
+x[: int(0.001 * sr)] *= np.linspace(0, 1, int(0.001 * sr))
+x[-int(0.03 * sr):] *= np.linspace(1, 0, int(0.03 * sr))
+x = 0.9 * x / np.abs(x).max()
+with wave.open("sound/hit.wav", "wb") as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+    w.writeframes((x * 32767).astype("<i2").tobytes())

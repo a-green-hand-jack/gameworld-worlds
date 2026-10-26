@@ -1,0 +1,48 @@
+# QA report: build-3 (acceptance candidate), cross-checked on w1-rc2 and w1-rc3
+
+**Builds tested** (each run from its own unzipped contents, headless Chromium 1280x960, Playwright):
+- `build-3` (producer release, sha256 ebdbc462...3623): game-developer 1eea70ba6c82 + artist 608fc6d2cf34. Same game code as `w1-rc2`.
+- `w1-rc2` (game-developer): game-developer 1eea70ba6c82 + artist c042385d0076.
+- `w1-rc3` (game-developer): game-developer 6fefbbda1906 + artist 144b1149ff7a (facing fix, real big castle, redrawn Bowser). Newer than build-3; not yet republished by producer.
+
+## Result
+| Suite | build-3 | w1-rc3 |
+|---|---|---|
+| `smoke.py`: console errors / off-origin requests / canvas | 0 / 0 / 256x240 shown 4x crisp | same |
+| `check_build.py`: P1 (1-1), 83 checks | 83/83 | 83/83 |
+| `check_p2.py`: lifts, 1-2, 1-3, 1-4, flow, 43 checks | 43/43 | 43/43 |
+| `audio_check.py`: every .ogg decodes, no clipping | 0 bad | (not rerun, assets unchanged for audio) |
+| `bot_playthrough.py` (fair 1-1, enemies on) | flag at frame 1591, 3 lives, 0 deaths, goes on into 1-2 | not rerun |
+
+(`smoke.py` lists 6 aborted music `.ogg` requests under a static server: media-element preload aborts; audio decodes and plays.)
+
+## Previously reported, now verified fixed
+- game-developer#7 (4-high pipes blocked 1-1): fixed, the 1-1 bot passes every pipe, stairs and the flag.
+- game-developer#8 (sub-frame key press dropped): fixed, check G4 passes.
+- 1-3 big castle placeholder (artist#5): fixed in build-3 and rc3 (real brick castle drawn, screenshot checked).
+
+## New defect
+- game-developer#11 (minor): 1-2, jumping off the right end of the ceiling route leaves Mario running forever offscreen at y=-14. Reproduced on build-3, w1-rc2, w1-rc3.
+
+## What was checked in P2 (all pass unless listed)
+- Lifts: every lift of 1-2 (2 down, 2 up), 1-3 (1 vertical, 3 horizontal), 1-4 (1 horizontal): Mario lands on it from above, rides with a gap under 2 px, and it moves; fall-lifts fall. (An earlier "up lift fails" result from my placing Mario 1 px above a lift already moving up was a test artifact; landing on it from above works.)
+- 1-2: auto-walk intro, timer starts at 400, coin room, exit pipe, Piranha Plants, warp zone (three pipes leading to the end screen since worlds 2-8 do not exist), flag, on to 1-3.
+- 1-3: Koopa and red Paratroopa, checkpoint, flag, castle walk-in, time tally, fireworks, on to 1-4.
+- 1-4: rotating firebars hurt Mario, lava kills, Bowser (fireball kill, flame), axe, bridge collapse, Toad message, end screen.
+- Flow: lives, score, power carry between levels; game over returns to the title.
+- Traversability (`search_bot.py`, macro search in god mode, enemies ignored): 1-3 reaches the flag and 1-4 reaches the axe using run-jumps and lifts, so neither has a gap that cannot be crossed.
+
+## Observations (not claimed as defects)
+- 1-4 has no Podoboo in the level data (the class exists); the level looks simpler and more linear than the original.
+- The axe sits on a pillar, so small Mario has to jump to reach it.
+- build-3 shows Koopas, Paratroopas and Bowser walking backwards (artist's finding, game-developer#10); `w1-rc3` fixes it, so the acceptance candidate should be rc3 or later.
+- 1-1 staircase at cols 138-139 has a 2-tile gap (from build-1; not re-checked against the original).
+
+## Not checked
+Audio fidelity and music loop feel by ear; real-keyboard feel (inputs are scripted); a fair full play-through of 1-2..1-4 with all enemies (playtester's job); firebar timing against the original; pixel-accuracy against the original game.
+
+## Scripts (this repo, `qa/`)
+`harness.py`, `smoke.py`, `check_build.py`, `check_p2.py`, `bot_playthrough.py`, `bot_level.py`, `search_bot.py`, `audio_check.py`. Run as `BUILD_DIR=<unzipped build dir> python3 qa/<script>.py <outdir>`.
+
+## Addendum: mute fix (game-developer#9), checked on build-3 and w1-rc3
+`qa/mute_check.py`: mute during 1-1, switch to hurry-up music and then to the underground track while muted, un-mute. Result on both builds: after un-mute the current track is `underground`, `muted=false`, `paused=false` (music is not left silent); a mute/pause/un-mute cycle also leaves it playing. PASS. (Checks the audio element state, not what is audible.)

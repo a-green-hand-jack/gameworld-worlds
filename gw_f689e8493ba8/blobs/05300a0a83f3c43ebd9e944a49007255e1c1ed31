@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8"><title>跳方块</title>
+<style>html,body{margin:0;background:#111;color:#eee;font-family:sans-serif;text-align:center}canvas{background:#1b1f2a;margin-top:20px;max-width:100%}</style></head>
+<body><canvas id="c" width="800" height="300"></canvas>
+<script>
+const c=document.getElementById('c'),g=c.getContext('2d'),GY=250;
+let best=0;try{best=+localStorage.getItem('best')||0}catch(e){}
+let s,state='ready';
+function reset(){s={y:GY-30,vy:0,obs:[],t:0,score:0,speed:5,next:60};}
+reset();
+function jump(){
+  if(state==='ready'||state==='over'){reset();state='play';return;}
+  if(s.y>=GY-30){s.vy=-13;}
+}
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();if(!e.repeat)jump();}});
+c.addEventListener('pointerdown',jump);
+function step(){
+  s.t++;s.vy+=0.7;s.y+=s.vy;if(s.y>GY-30){s.y=GY-30;s.vy=0;}
+  s.speed=5+s.score/300;
+  if(--s.next<=0){const h=25+Math.random()*30;s.obs.push({x:800,w:20+Math.random()*15,h});s.next=55+Math.random()*60+s.speed*5;}
+  for(const o of s.obs)o.x-=s.speed;
+  s.obs=s.obs.filter(o=>o.x+o.w>0);
+  s.score=Math.floor(s.t/5);
+  for(const o of s.obs)if(60<o.x+o.w&&90>o.x&&s.y+30>GY-o.h){state='over';best=Math.max(best,s.score);try{localStorage.setItem('best',best)}catch(e){}}
+}
+function draw(){
+  g.clearRect(0,0,800,300);g.fillStyle='#444';g.fillRect(0,GY,800,3);
+  g.fillStyle='#4fd1c5';g.fillRect(60,s.y,30,30);
+  g.fillStyle='#f56565';for(const o of s.obs)g.fillRect(o.x,GY-o.h,o.w,o.h);
+  g.fillStyle='#eee';g.font='20px sans-serif';g.textAlign='left';g.fillText('分数 '+s.score,20,30);
+  g.textAlign='right';g.fillText('最高分 '+best,780,30);g.textAlign='center';
+  if(state==='ready')g.fillText('按空格键开始并跳跃',400,140);
+  if(state==='over'){g.font='32px sans-serif';g.fillText('游戏结束',400,120);g.font='18px sans-serif';g.fillText('按空格键重新开始',400,155);}
+}
+setInterval(()=>{if(state==='play')step();draw();},1000/60);
+</script></body></html>

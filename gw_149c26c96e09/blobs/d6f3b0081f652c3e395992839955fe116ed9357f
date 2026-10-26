@@ -1,0 +1,187 @@
+[
+ [
+  "R8 title screen shown, game not running",
+  true,
+  ""
+ ],
+ [
+  "R8 title says how to start",
+  true,
+  "SNAKE |  | Arrow keys turn the snake. Eat food to grow and score. | Don't hit the walls or yourself. |  | Start |  | or press Enter / Space"
+ ],
+ [
+  "R9 score hidden on title (ok either way) / info",
+  true,
+  "hud hidden=True"
+ ],
+ [
+  "R2 snake moves by itself, cell by cell, on grid",
+  true,
+  "{'x': 7, 'y': 10}->{'x': 13, 'y': 10}"
+ ],
+ [
+  "R9 score visible during play",
+  true,
+  ""
+ ],
+ [
+  "R8 Start button starts game",
+  true,
+  ""
+ ],
+ [
+  "start via Enter",
+  true,
+  ""
+ ],
+ [
+  "R3 ArrowDown turns snake",
+  true,
+  "{'x': 10, 'y': 10}->{'x': 10, 'y': 11}"
+ ],
+ [
+  "R3 ArrowLeft turns snake",
+  true,
+  "{'x': 10, 'y': 11}->{'x': 9, 'y': 11}"
+ ],
+ [
+  "R3 ArrowUp turns snake",
+  true,
+  "{'x': 9, 'y': 11}->{'x': 9, 'y': 10}"
+ ],
+ [
+  "R3 ArrowRight turns snake",
+  true,
+  "{'x': 9, 'y': 10}->{'x': 10, 'y': 10}"
+ ],
+ [
+  "P3 single 180 reversal ignored",
+  true,
+  ""
+ ],
+ [
+  "P3 two quick turns in one tick both applied (up then left)",
+  true,
+  "{'x': 10, 'y': 9},{'x': 9, 'y': 9}"
+ ],
+ [
+  "P3 up+down in one tick not a self-reversal",
+  true,
+  ""
+ ],
+ [
+  "P3 three quick turns (info): third not lost",
+  false,
+  "head={'x': 8, 'y': 9} dir={'x': -1, 'y': 0}"
+ ],
+ [
+  "R4 eating grows by exactly 1",
+  true,
+  ""
+ ],
+ [
+  "R5 eating scores exactly 1 (model)",
+  true,
+  ""
+ ],
+ [
+  "R9 HUD score updates",
+  true,
+  "1"
+ ],
+ [
+  "R4 length stays +1 after moving on",
+  true,
+  ""
+ ],
+ [
+  "P3 food never placed on snake (300 eats, 60-cell snake)",
+  true,
+  "bad=0"
+ ],
+ [
+  "R6 left wall ends game",
+  true,
+  ""
+ ],
+ [
+  "R6 right wall ends game",
+  true,
+  ""
+ ],
+ [
+  "R6 top wall ends game",
+  true,
+  ""
+ ],
+ [
+  "R6 bottom wall ends game",
+  true,
+  ""
+ ],
+ [
+  "R10 game over shown with final score",
+  true,
+  "Game Over |  | Final score: 2 |  | Best: 301 |  | Play again |  | or press Enter / Space"
+ ],
+ [
+  "R11 game over says how to play again",
+  true,
+  ""
+ ],
+ [
+  "R11 Play again (click) starts fresh: score 0, length 3",
+  true,
+  ""
+ ],
+ [
+  "R11 Play again (Space) starts fresh",
+  true,
+  ""
+ ],
+ [
+  "R7 running into own body ends game",
+  true,
+  ""
+ ],
+ [
+  "edge: moving into the vacating tail cell is not death",
+  true,
+  ""
+ ],
+ [
+  "P3 arrow keys do not scroll page (small viewport, scrollable=True)",
+  true,
+  "0"
+ ],
+ [
+  "P4 board fits viewport 1024x640",
+  true,
+  "[580, 768]"
+ ],
+ [
+  "P4 board fits viewport 1366x768",
+  true,
+  "[652, 947]"
+ ],
+ [
+  "P4 board fits viewport 1920x1080",
+  true,
+  "[808, 1224]"
+ ],
+ [
+  "pause (extra) works",
+  true,
+  ""
+ ],
+ [
+  "no console errors/warnings, no 4xx on load+play",
+  false,
+  "logs=[('error', 'Failed to load resource: the server responded with a status of 404 (File not found)'), ('error', 'Failed to load resource: the server responded with a status of 404 (File not found)'), ('error', 'Failed to load resource: the server responded with a status of 404 (File not found)'), ('error', 'Failed to load resource: the server responded with a status of 404 (File not found)'), ('error', 'Failed to load resource: the server responded with a status of 404 (File not found)')] failed=['http://127.0.0.1:43945/assets/audio/turn.wav', 'http://127.0.0.1:43945/assets/img/bg_a.png', 'http://127.0.0.1:43945/assets/img/bg_b.png', 'http://127.0.0.1:43945/assets/img/body.png', 'http://127.0.0.1:43945/assets/img/food.png', 'http://127.0.0.1:43945/assets/img/head_down.png', 'http://127.0.0.1:43945/assets/img/head_left.png', 'http://127.0.0.1:43945/assets/img/head_right.png', 'http://127.0.0.1:43945/assets/img/head_up.png', 'http://127.0.0.1:43945/assets/img/logo.png', 'http://127.0.0.1:43945/assets/img/wall.png'] (n=11)"
+ ],
+ [
+  "P3 speed (tickMs)",
+  true,
+  "120"
+ ]
+]

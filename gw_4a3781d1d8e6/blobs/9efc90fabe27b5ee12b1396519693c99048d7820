@@ -1,0 +1,129 @@
+// Pure Snake rules: no DOM, no timers. Shared by the game and the tests.
+(function (root) {
+  'use strict';
+
+  var DIRS = {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+  var OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+  // Small seedable PRNG (mulberry32) so tests can reproduce food placement.
+  function makeRng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function createGame(opts) {
+    opts = opts || {};
+    var cols = opts.cols || 20;
+    var rows = opts.rows || 20;
+    var rng = opts.rng || Math.random;
+    var len = opts.length || 3;
+    var hx = Math.floor(cols / 2);
+    var hy = Math.floor(rows / 2);
+    var snake = [];
+    for (var i = 0; i < len; i++) snake.push({ x: hx - i, y: hy });
+    var game = {
+      cols: cols,
+      rows: rows,
+      rng: rng,
+      snake: snake, // snake[0] is the head
+      dir: 'right',
+      queue: [], // buffered turns, applied one per tick
+      food: null,
+      score: 0,
+      over: false,
+      won: false,
+      reason: null // 'wall' | 'self' | 'full'
+    };
+    game.food = placeFood(game);
+    return game;
+  }
+
+  function placeFood(game) {
+    var taken = {};
+    game.snake.forEach(function (s) { taken[s.x + ',' + s.y] = true; });
+    var free = [];
+    for (var y = 0; y < game.rows; y++) {
+      for (var x = 0; x < game.cols; x++) {
+        if (!taken[x + ',' + y]) free.push({ x: x, y: y });
+      }
+    }
+    if (free.length === 0) return null;
+    return free[Math.floor(game.rng() * free.length)];
+  }
+
+  // Queue a turn. Reversing onto the snake's own neck and repeating the same
+  // direction are ignored; at most two turns are buffered between ticks.
+  function turn(game, dir) {
+    if (!DIRS[dir] || game.over) return false;
+    var last = game.queue.length ? game.queue[game.queue.length - 1] : game.dir;
+    if (dir === last || dir === OPPOSITE[last]) return false;
+    if (game.queue.length >= 2) return false;
+    game.queue.push(dir);
+    return true;
+  }
+
+  // Advance one tick. Returns { ate, died } for sound and screen changes.
+  function step(game) {
+    var result = { ate: false, died: false };
+    if (game.over) return result;
+    if (game.queue.length) game.dir = game.queue.shift();
+    var d = DIRS[game.dir];
+    var head = game.snake[0];
+    var next = { x: head.x + d.x, y: head.y + d.y };
+
+    if (next.x < 0 || next.y < 0 || next.x >= game.cols || next.y >= game.rows) {
+      game.over = true;
+      game.reason = 'wall';
+      result.died = true;
+      return result;
+    }
+
+    var eating = game.food && next.x === game.food.x && next.y === game.food.y;
+    // The tail cell is vacated this tick unless the snake grows.
+    var body = eating ? game.snake : game.snake.slice(0, -1);
+    for (var i = 0; i < body.length; i++) {
+      if (body[i].x === next.x && body[i].y === next.y) {
+        game.over = true;
+        game.reason = 'self';
+        result.died = true;
+        return result;
+      }
+    }
+
+    game.snake.unshift(next);
+    if (eating) {
+      game.score += 1;
+      result.ate = true;
+      game.food = placeFood(game);
+      if (!game.food) {
+        game.over = true;
+        game.won = true;
+        game.reason = 'full';
+      }
+    } else {
+      game.snake.pop();
+    }
+    return result;
+  }
+
+  root.SnakeLogic = {
+    DIRS: DIRS,
+    OPPOSITE: OPPOSITE,
+    makeRng: makeRng,
+    createGame: createGame,
+    placeFood: placeFood,
+    turn: turn,
+    step: step
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

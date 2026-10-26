@@ -1,0 +1,1 @@
+PR game-developer#2 head fda6c96f348f: inspected index.html (single file, no externals); Playwright played 2 full rounds: counter 0->10, 'You did it!' shown, click hidden, Play again resets to 0. Accepted for release.

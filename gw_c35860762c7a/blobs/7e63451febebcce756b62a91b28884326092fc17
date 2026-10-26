@@ -1,0 +1,10 @@
+// Hand fixes applied after tools/convert-fsm.mjs: corrections that bring a
+// converted layout closer to the NES original, and data the FSM maps do not
+// carry (castle maze loops, halfway points).  Each fix names what it changes.
+const FIXES = {};
+
+export function applyFixes(level) {
+  const fix = FIXES[level.id];
+  if (fix) fix(level);
+  return level;
+}

@@ -1,0 +1,52 @@
+# Playtest: Cube Jump v1.0-playtest
+
+Build: `cube-jump.zip` from release `v1.0-playtest` of world/producer, sha256 `95ae15c038e69187334fe0dcaa76546265572c07293ed4f8b8de75301a230e41`.
+Unzipped: one file, `index.html` (7354 bytes) at the zip root.
+Played: headless Chromium 156 (Playwright 1.64) opened from `file:///.../index.html`, no server, 1000x500 viewport. Real keyboard events (`keyboard.press('Space')`) were used, in real time.
+Evidence: `reports/evidence/*.png`, and the scripts `play.py` (live run), `fair.py` (jump windows) and `mc.py` (noisy-player simulation).
+Not done: no human with a physical keyboard, no Firefox, no audio check. Headless Chromium can't confirm how the jump feels in hand.
+
+## Verdicts
+| # | Requirement | Verdict | How checked |
+|---|---|---|---|
+| 1 | Single screen, opens from index.html (file://), no network | MET | Loaded from file://. No console errors, page errors or failed requests (nothing is fetched). |
+| 2 | Space jumps the square, obstacles approach, must be jumped | MET | Space starts the game and jumps. A bot that jumps with real key presses cleared 35 obstacles in 60 s (score 851, speed 700). Standing still dies after about 2.5 s. |
+| 3 | Touching an obstacle ends the game, clear restart | MET | "游戏结束 Game Over / 按 空格键 重新开始" banner, particles and a flash (`03-gameover.png`). Space restarts, score goes back to 0. |
+| 4 | Score and high score on screen, high score kept | MET | "分数 N" and "最高分 N" are always shown at top right. Best went 23 -> 863 across rounds. It survives a page reload (`06-after-reload.png`: 863) via localStorage, which works under file:// here and is wrapped in try/catch. |
+| 5 | Zip with index.html at root | MET (zip as played) | Unzip gives `index.html` at the root. I did not check that the release matches what quality or the producer approves. |
+
+## Fairness and difficulty (measured)
+Jump arc: peak about 129 px, about 0.63 s in the air. Obstacles are 30-60 px tall and 24-40 px wide, and 20% of spawns are a pair.
+The "window" is the range of jump-trigger distances, in px before the obstacle, that clear it. Measured by injecting obstacles into the live game (`fair.py`):
+
+| Speed | single 45 px | tall 60 px | pair of 60 px x 40 px (worst case) |
+|---|---|---|---|
+| 320 (start) | 104 px (325 ms) | 80 px (250 ms) | 36 px (112 ms) |
+| 500 | 200 px (400 ms) | 168 px | 124 px |
+| 700 (max) | 304 px (434 ms) | 260 px | 216 px (309 ms) |
+
+- No unavoidable obstacle, and no unavoidable sequence. The minimum gap between spawns is at least 0.98 s, longer than the 0.63 s jump.
+- The ramp is gentle and ends. Speed rises from 320 to 700 over about 42 s and then stays flat. Windows get wider with speed in pixels but similar in time, so after about 42 s only the score keeps going up.
+- The hardest moment is at the start. A pair of tall, wide obstacles at speed 320 gives a window of about 112 ms. About 7% of spawns are a tall obstacle and about 7% are a pair, so the worst case is rarer than that. This is feasible but tight for a first-time player.
+- A simulated player with a timing error (jump point = ideal 0.17 s plus Gaussian noise, 150 runs of up to 90 s each, `mc.py`):
+  - sigma 20 ms: 149 of 150 survived 90 s.
+  - sigma 40 ms: 142 of 150 survived.
+  - sigma 60 ms: 37 of 150 survived, median 45 s, 21 of 150 died within 10 s.
+  - The sigma 0 and sigma 20 ms rows show deaths at t=0 that I put down to my harness, so treat the small-sigma numbers as approximate. The sigma 90 ms row (all 150 died at t=0) was a harness failure and tells nothing.
+  - Deaths at sigma 40 ms and above were mostly 60 px obstacles.
+  - So it is forgiving for an attentive player and still punishes sloppy timing.
+
+## Other behaviour checked
+- Title screen: nothing moves until Space (obstacle list empty after 1.5 s idle). The prompt is in Chinese with an English line (`01-title.png`).
+- Holding Space does not auto-repeat jumps (`e.repeat` ignored). One press gives one jump.
+- A press up to 0.12 s before landing is buffered, so back-to-back jumps feel responsive.
+- A restart press within 400 ms of death is ignored (checked: still "over"), so you don't skip the banner by accident. There is no on-screen hint for this, so a very quick player may think the key was missed.
+- Resize: the canvas scales down by CSS to fit (`07-small-viewport.png` at 400x300) and stays centred at 1920x1080 (`08-large-viewport.png`). Text stays readable.
+- Click or tap also jumps and restarts (pointerdown handler). I read this in the code and did not play it.
+
+## Defects
+No blocking defect found. Minor, none against a stated requirement:
+1. Difficulty stops rising at about 42 s (speed capped at 700, spawn rules fixed), so long runs get no harder. Repro: let a run pass 45 s and read `__game.state.speed` (700 flat).
+2. The first tall pair at speed 320 has a window of about 112 ms (see the table), the tightest in the game. A first-time player can die early on a pair with no clear way to have seen it coming. Not unavoidable.
+3. Frame time is capped at 1/30 s, so on a machine under 30 fps the game slows down instead of skipping, which is kind to the player. It is not measured here.
+4. Restart presses within 400 ms of death are silently ignored (see above).

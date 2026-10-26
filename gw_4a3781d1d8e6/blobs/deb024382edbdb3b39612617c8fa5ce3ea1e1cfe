@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake</title>
+  <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+  <main id="game" class="state-title">
+    <header id="hud" aria-live="polite">
+      <span>Score <strong id="score">0</strong></span>
+      <span>Best <strong id="best">0</strong></span>
+    </header>
+    <div id="board-wrap">
+      <canvas id="board" width="640" height="640" aria-label="Snake board"></canvas>
+
+      <section id="title-screen" class="screen">
+        <img id="title-logo" src="assets/images/title.png" alt="SNAKE" onerror="this.classList.add('missing')">
+        <h1 id="title-text">SNAKE</h1>
+        <p>Steer with the <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> arrow keys.</p>
+        <p>Eat food to grow and score. Don't hit the walls or yourself.</p>
+        <button id="start-button" type="button">Start</button>
+        <p class="hint">or press <kbd>Enter</kbd> / <kbd>Space</kbd> &middot; <kbd>P</kbd> pauses</p>
+      </section>
+
+      <section id="pause-screen" class="screen">
+        <div class="panel">
+          <h2>Paused</h2>
+          <p>Press <kbd>P</kbd>, <kbd>Enter</kbd> or <kbd>Space</kbd>, or click, to continue</p>
+        </div>
+      </section>
+
+      <section id="gameover-screen" class="screen">
+        <div class="panel">
+          <h2 id="gameover-title">Game Over</h2>
+          <p class="final">Final score <strong id="final-score">0</strong></p>
+          <p id="new-best" class="hint">New best!</p>
+          <button id="play-again-button" type="button">Play again</button>
+          <p class="hint">or press <kbd>Enter</kbd> / <kbd>Space</kbd></p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="src/logic.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Headless check: python3 tests/smoke.py  (needs playwright + chromium)
+import os, sys
+from playwright.sync_api import sync_playwright
+url = 'file://' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'index.html'))
+errs = []
+with sync_playwright() as p:
+    b = p.chromium.launch(); ctx = b.new_context(); pg = ctx.new_page()
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto(url)
+    g = lambda e: pg.evaluate(e)
+    assert g('__game.state') == 'title'
+    pg.screenshot(path='/tmp/title.png')
+    pg.keyboard.press('Enter'); assert g('__game.state') == 'play'
+    x0 = g('__game.ship.x'); pg.keyboard.down('ArrowLeft'); pg.wait_for_timeout(300); pg.keyboard.up('ArrowLeft')
+    assert g('__game.ship.x') < x0 - 30, 'ship did not move left'
+    pg.keyboard.press('p'); assert g('__game.state')=='pause'; pg.keyboard.press('p'); assert g('__game.state')=='play'
+    pg.wait_for_timeout(1500); pg.screenshot(path='/tmp/play.png')
+    # force collision: stay put until a rock hits (spawn is random) -- place a rock on ship
+    pg.evaluate('__game.rocks.push({x:__game.ship.x,y:__game.ship.y,r:20,vx:0,vy:0,rot:0,vr:0,shape:[1,1,1,1,1,1,1,1,1]})')
+    pg.wait_for_timeout(200); assert g('__game.state') == 'over', 'collision did not end game'
+    s = g('__game.score'); h = g('__game.high'); assert h == s and h >= 0
+    pg.screenshot(path='/tmp/over.png')
+    pg.reload(); assert g('__game.high') == h, 'high score not persisted'
+    # survive long enough to score >0 then compare
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(100); assert g('__game.state') == 'play'
+    b.close()
+assert not errs, errs
+print('OK high=', h)

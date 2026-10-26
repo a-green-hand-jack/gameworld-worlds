@@ -1,0 +1,356 @@
+World 1 areas decoded from smbdis.asm (layout reference only).
+Tiles: .=empty / background scenery  #=ground / floor block  B=brick  ?=question block  U=used/empty block  X=hard stair block  F=flagpole base block  [=vertical pipe top left  ]=vertical pipe top right  {=vertical pipe body left  }=vertical pipe body right  m=sideways pipe mouth top  n=sideways pipe mouth bottom  s=sideways pipe body top  t=sideways pipe body bottom  j=sideways pipe joint top  k=sideways pipe joint bottom  o=coin  h=hidden block  P=flagpole ball  |=flagpole shaft  <=treetop/mushroom top left  ==treetop/mushroom top middle  >=treetop/mushroom top right  T=tree trunk / mushroom stem  b=bridge  c=chain  a=axe  L=lava surface  l=lava  W=water  *=EXTRA: invisible solid stop block in the castle doorway  g=EXTRA: bridge guard rail  r=EXTRA: rope  (=EXTRA: pulley left  )=EXTRA: pulley right  -=EXTRA: pulley rope  K=EXTRA: bullet bill cannon top  Q=EXTRA: bullet bill cannon body  J=EXTRA: jumpspring  @=EXTRA: cloud block  C=EXTRA: sea plant
+Overlay (txt only): G goomba, K green koopa, R red koopa, V green hopping paratroopa, Y red flying paratroopa, v green flying paratroopa, p piranha, Z bowser, ~ lift (width shown), f firebar pivot, A toad, M Mario start, $ warp-zone trigger
+
+================================================================================
+2-1/main  theme=overworld bg=sky scenery=trees_fence style=tree width=224 x0=0 time=400 scrollLock=False
+start: {"x": 2.5, "y": 12, "py": 176, "entranceCtrl": 2, "altEntrance": 0, "mode": "normal"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": [{"x": 6, "fg": 0, "bgColorCtrl": 0}]}
+    0         1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0         1         2   
+    01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123
+ 0  ................................................................................................................................................................................................................................
+ 1  ................................................................................................................................................................................................................................
+ 2  ........................................................................................................................................................................................................P.......................
+ 3  ..............................................................................................................................................................................................XX........|.......................
+ 4  ..............................................................................................................................................................................................XX........|.......................
+ 5  ............................hBBB.....................?????...........BBBB........BBBBB......BBBB.............................BBBB...................................BBBBB...B.............h...XX........|.......................
+ 6  ........................G.....................................................................................................................................................................XX........|.......................
+ 7  ..................................................................................................................................p...........................................................XX........|.......................
+ 8  ........................X.....................p........K..................p............................p..................p.......[]..........................................................XX........|.......................
+ 9  ...............BBB.....XX...h.....X...........[].....?????..........B.....[]...????..???...............[].................[]..p...{}.............................B........?.....p........BB...XX........|.......................
+10  ......................XXX.........X...........{}..........................{}...........................{}..........pG.....{}..[]..{}......................X.....................[]............XX........|.......................
+11  .....................XXXX.........XX..........{}..........................{}...........................{}..........[].....{}..{}..{}......................X.....................{}..........J.XX........|.......................
+12  ..M.................XXXXX.......KKXX......GG..{}...........GG.....K.GG.G..{}...........GG.G............{}..........{}...G.{}..{}..{}.....K.............V..X.......GG.....V.V....{}.......K..J.XX........F......*................
+13  ############################################################################################....##########...##############################...##########..######################################################################
+14  ############################################################################################....##########...##############################...##########..######################################################################
+contents: (16,9)power, (28,5)1up, (28,9)coin, (53,5)coin, (53,9)power, (54,5)coin, (54,9)coin, (55,5)coin, (55,9)coin, (56,5)coin, (56,9)coin, (57,5)coin, (57,9)coin, (69,5)star, (79,9)coin, (80,9)coin, (81,9)coin, (82,9)coin, (83,5)vine, (85,9)coin, (86,9)coin, (87,9)coin, (125,5)power, (161,9)multicoin, (170,9)coin, (172,5)power, (186,5)coin
+pipes:
+  {"x": 103, "y": 9, "dir": "down", "to": "2-1/coinroom", "entryPage": 0, "entry": {"x": 1.5, "y": 3, "mode": "fall"}}
+objects:
+  {"type": "castle", "x": 0, "y": 2, "size": "big", "doorX": 2, "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"}
+  {"type": "hidden_1up", "x": 28, "y": 5, "rendered": true, "note": "only exists while Hidden1UpFlag is set (game start / after a warp / enough coins in the previous x-3); consumed once rendered"}
+  {"type": "pipe_piranha", "x": 46.5, "y": 9, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 74.5, "y": 9, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 103.5, "y": 9, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 115.5, "y": 11, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 122.5, "y": 9, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 126.5, "y": 10, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 130.5, "y": 8, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "pipe_piranha", "x": 176.5, "y": 10, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "jumpspring", "x": 188, "y": 11}
+  {"type": "flagpole", "x": 200, "flagX": 199.5}
+  {"type": "castle", "x": 204, "y": 8, "size": "small", "doorX": 206, "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"}
+  {"type": "castle_star_flag", "x": 206, "y": 9}
+enemies:
+  {"hard": false, "type": "goomba", "x": 24.0, "y": 6, "hardModeType": "buzzy"}
+  {"hard": false, "type": "koopa", "x": 32.0, "y": 12}
+  {"hard": false, "type": "koopa", "x": 33.0, "y": 12}
+  {"hard": false, "type": "goomba", "x": 42.0, "y": 12, "group": true, "dataX": 45.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 43.5, "y": 12, "group": true, "dataX": 45.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "koopa", "x": 55.0, "y": 8}
+  {"hard": false, "type": "goomba", "x": 59.0, "y": 12, "group": true, "dataX": 62.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 60.5, "y": 12, "group": true, "dataX": 62.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "koopa", "x": 66.0, "y": 12}
+  {"hard": false, "type": "goomba", "x": 68.0, "y": 12, "group": true, "dataX": 71.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 69.5, "y": 12, "group": true, "dataX": 71.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 71.0, "y": 12, "group": true, "dataX": 71.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 87.0, "y": 12, "group": true, "dataX": 90.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 88.5, "y": 12, "group": true, "dataX": 90.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 90.0, "y": 12, "group": true, "dataX": 90.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 103.0, "y": 8, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 116.0, "y": 10, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 120.0, "y": 12, "hardModeType": "buzzy"}
+  {"hard": false, "type": "koopa", "x": 137.0, "y": 12}
+  {"hard": false, "type": "paratroopa_green_hop", "x": 151.0, "y": 12}
+  {"hard": false, "type": "goomba", "x": 162.0, "y": 12, "group": true, "dataX": 165.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "goomba", "x": 163.5, "y": 12, "group": true, "dataX": 165.0, "hardModeType": "buzzy"}
+  {"hard": false, "type": "paratroopa_green_hop", "x": 169.0, "y": 12}
+  {"hard": false, "type": "paratroopa_green_hop", "x": 171.0, "y": 12}
+  {"hard": false, "type": "koopa", "x": 185.0, "y": 12}
+area pointers in enemy data:
+  {"kind": "area_pointer", "x": 63.0, "ptr": "$2b", "world": 2, "entryPage": 0, "usedInWorld1": true, "raw": ["$fe", "$2b", "$20"]}
+  {"kind": "area_pointer", "x": 111.0, "ptr": "$42", "world": 2, "entryPage": 0, "usedInWorld1": true, "raw": ["$fe", "$42", "$20"]}
+
+================================================================================
+2-2/intro  theme=overworld bg=sky scenery=clouds style=tree width=32 x0=0 time=None scrollLock=False
+start: {"x": 2.5, "y": 12, "py": 176, "entranceCtrl": 7, "altEntrance": 0, "mode": "autowalk_into_pipe", "note": "walks right into the intro pipe, then NextArea"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": []}
+    0         1         2         3 
+    01234567890123456789012345678901
+ 0  ................................
+ 1  ................................
+ 2  ................................
+ 3  ................................
+ 4  ................................
+ 5  ................................
+ 6  ................................
+ 7  ................................
+ 8  ................................
+ 9  ............[]..................
+10  ............{}..................
+11  ..........msj}..................
+12  ..M.......ntk}..................
+13  ################################
+14  ################################
+contents: 
+pipes:
+  {"x": 10, "y": 11, "dir": "right", "intro": true, "to": "2-2/main", "how": "intro auto-walk; NextArea (AreaNumber+1)", "entryPage": 0}
+objects:
+  {"type": "castle", "x": 0, "y": 8, "size": "small", "doorX": 2, "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"}
+  {"type": "scroll_lock_toggle", "x": 19, "warp": false}
+enemies:
+area pointers in enemy data:
+
+================================================================================
+2-2/main  theme=water bg=sky scenery=none style=tree width=208 x0=0 time=400 scrollLock=False
+start: {"x": 2.5, "y": 1, "py": 0, "entranceCtrl": 0, "altEntrance": 0, "mode": "fall", "note": "drops in from the top without control until Y >= $30"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": [{"x": 77, "terrain": 7, "bgScenery": 0, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14]}, {"x": 79, "terrain": 1, "bgScenery": 0, "solidRows": [13, 14]}, {"x": 187, "terrain": 11, "bgScenery": 0, "solidRows": [2, 3, 4, 5, 9, 10, 11, 12, 13, 14]}, {"x": 189, "terrain": 15, "bgScenery": 0, "solidRows": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}]}
+    0         1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0       
+    0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+ 0  ................................................................................................................................................................................................................
+ 1  ..M.............................................................................................................................................................................................................
+ 2  WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW##WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW####################
+ 3  WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW##WWWCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWWWW####################
+ 4  WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW##WWWCWWWWWWWWWWEWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#########WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWWWW####################
+ 5  WWWWWWWWWWWWWWWWWWWWWWWWWWWoooWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW###WWWWWWWWWWWWWWWWWCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW###WWW###WWWWWWW#####WWW####WWWW####################
+ 6  WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWoooWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#WWWWWWW#WWWWWWWWWWWWWWWWWWWWWWWWW##################
+ 7  WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWEWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#WWWWWWW#WWWWWWWWWWWWWWWWWWWWWWWWm##################
+ 8  WWWWWWWWWWWWWWWWWWWWWWWWWEWWWWWWWCWWWWWWWWCWWWWWWWWWEWWWWWWWWWWWW#WWWWW#WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWW##WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#WWWWWWW#WWWWWWWWWWWWWWWWWWWWWWWWn##################
+ 9  WWWWWWWWWWWWWWWWWW###WWWWWWWWWWWWCWWWWWWWW##WWWWWWCWWWWWWWWWWWWWW#WWWWWEWWWWWWWWWWWEWWWWWWWWWWWWWWWWWW##WWWWWWWWWWWWWWWWCWWWWWWWW#WWWWWWWWWWW#WWWWWWWWEWWWWW#WWoooWW#WWWWWWW#####WWW####WWWW####################
+10  WWWWWWWWWWWCWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWWEWWWCWWWWWWWWWWWWW##WoooW##WWWWW##WWWWWWWWWCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCWWWWWWWW#WWWWWWWWWWW#WWWWWWWCWWWWWW#WWWWWWW#WWWWWWWWWWWWWWWWWWWWWW#####################
+11  WWWWWWWWWWWCWWWWWWWWWWWWWWWWWWWWWCWWWWWWWWWWWWWWWWCWWWWEWWWWWWWW##WWWWW##WWWWW##WWWWWWWWWCWWWWWWWWWWWoooWWWWWWWWWWWWWWWWCWWWWWWWW##WWoWWWoWW##WWWWWCWCWWWWWW#WWWWWWW#WWWWWWWWWWWWWWWWWWWWW######################
+12  WWWWWWWWWWWCWWooWWWWWWEWWWWWWWWWWCWWoooWWWWWWWWWWWCWWWWWWWWWWWWW##WWWWW##WWWWW##WWWWWWWWWCEWWWWWWWWWWWWWWEWWWWWWWWWWWWWWCWWWWWWWW##WWWoooWWW##WWWWWCWCWWWWWW#WWoooWW#WWWWWWWWEWWWWWEWWWWW#######################
+13  ##################################################################WWWWW############################################################WWWWWWWWW#################WWWWWWW############################################
+14  ##################################################################WWWWW############################################################WWWWWWWWW#################WWWWWWW############################################
+contents: 
+pipes:
+objects:
+  {"type": "frenzy", "x": 80, "frenzy": "bullet_bill_or_cheep"}
+  {"type": "frenzy", "x": 96, "frenzy": "bullet_bill_or_cheep"}
+  {"type": "frenzy", "x": 192, "frenzy": "stop"}
+  {"type": "scroll_lock_toggle", "x": 199, "warp": false}
+enemies:
+  {"hard": false, "type": "blooper", "x": 22.0, "y": 12}
+  {"hard": true, "type": "blooper", "x": 25.0, "y": 8}
+  {"hard": false, "type": "blooper", "x": 46.0, "y": 10}
+  {"hard": true, "type": "blooper", "x": 52.0, "y": 8}
+  {"hard": false, "type": "blooper", "x": 55.0, "y": 11}
+  {"hard": true, "type": "blooper", "x": 77.0, "y": 7}
+  {"hard": false, "type": "blooper", "x": 71.0, "y": 9}
+  {"hard": false, "type": "blooper", "x": 83.0, "y": 9}
+  {"hard": true, "type": "blooper", "x": 90.0, "y": 12}
+  {"hard": false, "type": "blooper", "x": 94.0, "y": 4}
+  {"hard": false, "type": "blooper", "x": 105.0, "y": 12}
+  {"hard": true, "type": "blooper", "x": 150.0, "y": 9}
+  {"hard": true, "type": "blooper", "x": 173.0, "y": 12}
+  {"hard": true, "type": "blooper", "x": 179.0, "y": 12}
+area pointers in enemy data:
+  {"kind": "area_pointer", "x": 18.0, "ptr": "$25", "world": 2, "entryPage": 11, "usedInWorld1": true, "raw": ["$2e", "$25", "$2b"]}
+  {"kind": "area_pointer", "x": 18.0, "ptr": "$25", "world": 3, "entryPage": 11, "usedInWorld1": false, "raw": ["$2e", "$25", "$4b"]}
+  {"kind": "area_pointer", "x": 20.0, "ptr": "$25", "world": 7, "entryPage": 11, "usedInWorld1": false, "raw": ["$4e", "$25", "$cb"]}
+
+================================================================================
+2-3/main  theme=overworld bg=sky scenery=clouds style=tree width=240 x0=0 time=300 scrollLock=False
+start: {"x": 2.5, "y": 12, "py": 176, "entranceCtrl": 2, "altEntrance": 0, "mode": "normal"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": [{"x": 6, "terrain": 0, "bgScenery": 1, "solidRows": []}, {"x": 206, "terrain": 1, "bgScenery": 1, "solidRows": [13, 14]}, {"x": 227, "fg": 2, "bgColorCtrl": 0}]}
+    0         1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0         1         2         3         
+    012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+ 0  ................................................................................................................................................................................................................................................
+ 1  ................................................................................................................................................................................................................................................
+ 2  .................................................................................................................................................................................................................................P..............
+ 3  .................................................................................................................................................................................................................................|..............
+ 4  .........................................................................oo......................................................................................................................................................|..............
+ 5  ....................................oooo...............o.o.o............o..o.....................ooo..?.....ooo......................oooooo............................................................................XX........|..............
+ 6  ........................................................o.o..................................................................................................................oooooo...................................XXX........|..............
+ 7  ............................................................................................................................................v........................................................................XXXX........|..............
+ 8  ....................................................................................................ggggg............................................oooo...........................................................XXXXX........|..............
+ 9  ...............gggggggggggggggg.gggggggKggggggg.ggggVggggggggggg.....ggggggggggR.....ggggggggggR...XbbbbbX................ggg...ggggggggggggggg.............v...gggggggg...gg..gg..gg...ggggggggg..................XXXXXX........|..............
+10  ............XXXbbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbX....XbbbbbbbbbbX....XbbbbbbbbbbX...X.....X................bbb..XbbbbbbbbbbbbbbbX...............XbbbbbbbbX..bb..bb..bb..XbbbbbbbbbXX...............XXXXXXX........|..............
+11  ...........XXXX................X...............X...............X....X..........X....X..........X...X.....X.....................X...............X...gggggggg....X........X..............X.........XXX.............XXXXXXXX........|..............
+12  ..M.......XXXXX................X...............X...............X....X..........X....X..........X...X.....X.............R.......X...............X..XbbbbbbbbX...X........X..............X.........XXXX...........XXXXXXXXX........F.....*.*......
+13  #######.<======>...............X...............X...............X....X..........X....X..........X...X.....X......<======>.......X...............X..X........X...X........X..............X........<===========>..#################################
+14  #######..TTTTTT................X...............X...............X....X..........X....X..........X...X.....X.......TTTTTT........X...............X..X........X...X........X..............X.........TTTTTTTTTTT...#################################
+contents: (102,5)power
+pipes:
+objects:
+  {"type": "castle", "x": 0, "y": 8, "size": "small", "doorX": 2, "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"}
+  {"type": "frenzy", "x": 26, "frenzy": "flying_cheep"}
+  {"type": "frenzy", "x": 137, "frenzy": "flying_cheep"}
+  {"type": "frenzy", "x": 197, "frenzy": "stop"}
+  {"type": "flagpole", "x": 225, "flagX": 224.5}
+  {"type": "castle", "x": 230, "y": 2, "size": "big", "doorX": 232, "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"}
+  {"type": "castle_star_flag", "x": 232, "y": 9}
+enemies:
+  {"hard": true, "type": "koopa", "x": 39.0, "y": 9}
+  {"hard": true, "type": "paratroopa_green_hop", "x": 52.0, "y": 9}
+  {"hard": true, "type": "koopa_red", "x": 79.0, "y": 9}
+  {"hard": true, "type": "koopa_red", "x": 95.0, "y": 9}
+  {"hard": true, "type": "koopa_red", "x": 119.0, "y": 12}
+  {"hard": true, "type": "paratroopa_green_fly", "x": 140.0, "y": 7}
+  {"hard": false, "type": "cheep_grey", "x": 144.0, "y": 16}
+  {"hard": true, "type": "paratroopa_green_fly", "x": 156.0, "y": 9}
+area pointers in enemy data:
+
+================================================================================
+2-4/main  theme=castle bg=black scenery=none style=tree width=160 x0=0 time=300 scrollLock=False
+start: {"x": 2.5, "y": 6, "py": 80, "entranceCtrl": 3, "altEntrance": 0, "mode": "normal"}
+floor: {"terrainCtrl": 7, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14], "changes": [{"x": 15, "terrain": 0, "bgScenery": 0, "solidRows": []}, {"x": 33, "terrain": 4, "bgScenery": 0, "solidRows": [2, 3, 4, 5, 13, 14]}, {"x": 79, "terrain": 8, "bgScenery": 0, "solidRows": [2, 3, 4, 5, 10, 11, 12, 13, 14]}, {"x": 82, "terrain": 0, "bgScenery": 0, "solidRows": []}, {"x": 83, "fg": 0, "bgColorCtrl": 0}, {"x": 91, "fg": 3, "bgColorCtrl": 0}, {"x": 92, "terrain": 7, "bgScenery": 0, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14]}, {"x": 95, "terrain": 7, "bgScenery": 0, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14]}, {"x": 98, "terrain": 1, "bgScenery": 0, "solidRows": [13, 14]}, {"x": 107, "terrain": 0, "bgScenery": 0, "solidRows": []}, {"x": 114, "terrain": 7, "bgScenery": 0, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14]}, {"x": 119, "terrain": 3, "bgScenery": 0, "solidRows": [2, 3, 4, 13, 14]}, {"x": 121, "terrain": 7, "bgScenery": 0, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14]}, {"x": 123, "terrain": 3, "bgScenery": 0, "solidRows": [2, 3, 4, 13, 14]}, {"x": 125, "terrain": 7, "bgScenery": 0, "solidRows": [2, 3, 4, 10, 11, 12, 13, 14]}, {"x": 127, "terrain": 10, "bgScenery": 0, "solidRows": [2]}, {"x": 140, "terrain": 9, "bgScenery": 0, "solidRows": [2, 9, 10, 11, 12, 13, 14]}, {"x": 141, "terrain": 11, "bgScenery": 0, "solidRows": [2, 3, 4, 5, 9, 10, 11, 12, 13, 14]}, {"x": 143, "terrain": 2, "bgScenery": 0, "solidRows": [2, 13, 14]}]}
+    0         1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         
+    0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+ 0  ..................................................................................................E.............................................................
+ 1  ................................................................................................................................................................
+ 2  ################..................#################################################...r..r...######................#############################################
+ 3  ################.......?..........#################################################...r..r...######................#############..............##................
+ 4  ################..................#################################################...r..r...######................#############..............##................
+ 5  ..................................#####################f###########################...r..r......................................BBBBBB........##................
+ 6  ..M...............................................................................f...r..r................................................~~....................
+ 7  ###...................#f#.............................................................r..r......................................................................
+ 8  ####..................................................................................r..r............ooo....................................a..................
+ 9  #####.............##.......##........############f###########f###########f............r..r.............................................Z....c###................
+10  ################................##..............................................####.~~.~~..f######.........#..##..#####..##..##bbbbbbbbbbbbb###................
+11  ################................##..............................................####..r..r..#######....f....#..##..#####..##..##.............###................
+12  ################d...d.........d.##..............................................####..r..r..#######...ooo...#d.##d.#####..##..##...d.........###.........A......
+13  ################LLLLLLLLLLLLLLLL###########f###########f###########f################..r..r..#################LL##LL#############LLLLLLLLLLLLL###################
+14  ################llllllllllllllll####################################################..r..r..#################ll##ll#############lllllllllllll###################
+contents: (23,3)power
+pipes:
+objects:
+  {"type": "bowser_bridge", "x0": 128, "x1": 140, "y": 10}
+  {"type": "axe", "x": 141, "y": 8}
+  {"type": "scroll_lock_toggle", "x": 149, "warp": false}
+  {"hard": true, "type": "firebar", "x": 23.0, "y": 7, "length": "long", "balls": 12, "dir": "cw", "speed": 40}
+  {"hard": true, "type": "firebar", "x": 43.0, "y": 13, "length": "short", "balls": 6, "dir": "cw", "speed": 40}
+  {"hard": false, "type": "firebar", "x": 49.0, "y": 9, "length": "short", "balls": 6, "dir": "ccw", "speed": 40}
+  {"hard": false, "type": "firebar", "x": 55.0, "y": 5, "length": "short", "balls": 6, "dir": "ccw", "speed": 40}
+  {"hard": true, "type": "firebar", "x": 55.0, "y": 13, "length": "short", "balls": 6, "dir": "cw", "speed": 40}
+  {"hard": false, "type": "firebar", "x": 61.0, "y": 9, "length": "short", "balls": 6, "dir": "ccw", "speed": 40}
+  {"hard": true, "type": "firebar", "x": 67.0, "y": 13, "length": "short", "balls": 6, "dir": "ccw", "speed": 40}
+  {"hard": false, "type": "firebar", "x": 73.0, "y": 9, "length": "short", "balls": 6, "dir": "ccw", "speed": 40}
+  {"hard": false, "type": "firebar", "x": 82.0, "y": 6, "length": "short", "balls": 6, "dir": "ccw", "speed": 40}
+  {"hard": false, "type": "lift", "kind": "small_up", "x": 85.75, "y": 10.0, "width": 1.5, "movement": "moves up continuously, wraps"}
+  {"hard": false, "type": "lift", "kind": "small_down", "x": 88.75, "y": 10.0, "width": 1.5, "movement": "moves down continuously, wraps"}
+  {"hard": false, "type": "firebar", "x": 92.0, "y": 10, "length": "short", "balls": 6, "dir": "cw", "speed": 40}
+  {"hard": true, "type": "firebar", "x": 103.0, "y": 11, "length": "short", "balls": 6, "dir": "cw", "speed": 56}
+  {"hard": false, "type": "lift", "kind": "horizontal", "x": 138.0, "y": 6.0, "width": 2, "movement": "oscillates left/right (XMovingPlatform)", "rangeX": [134.72, 138.0]}
+  {"hard": false, "type": "toad", "x": 153.0, "y": 12, "py": 184}
+enemies:
+  {"hard": false, "type": "podoboo", "x": 16.0, "y": 12}
+  {"hard": true, "type": "podoboo", "x": 20.0, "y": 12}
+  {"hard": false, "type": "podoboo", "x": 30.0, "y": 12}
+  {"hard": false, "type": "bowser_flame", "x": 98.0, "y": 0}
+  {"hard": true, "type": "podoboo", "x": 109.0, "y": 12}
+  {"hard": true, "type": "podoboo", "x": 113.0, "y": 12}
+  {"hard": true, "type": "podoboo", "x": 131.0, "y": 12}
+  {"hard": false, "type": "bowser", "x": 135.0, "y": 9, "py": 128, "hardModeNote": "throws hammers from 6-4 on (not in W1)"}
+area pointers in enemy data:
+
+================================================================================
+2-1/exit  theme=overworld bg=sky scenery=none style=cloud width=96 x0=0 time=None scrollLock=False
+start: {"x": 3.5, "y": 10, "py": 240, "entranceCtrl": 0, "altEntrance": 2, "mode": "rise_from_pipe", "note": "rises from below the screen until Y < $91"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": [{"x": 61, "terrain": 0, "bgScenery": 0, "solidRows": []}]}
+    0         1         2         3         4         5         6         7         8         9     
+    012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345
+ 0  ................................................................................................
+ 1  ................................................................................................
+ 2  ................................................................................................
+ 3  ................................................................................................
+ 4  ................................ooo..................ooo........................................
+ 5  ....................................oooooooooooooooo............................................
+ 6  ...............oooooooooooooooo.................................................................
+ 7  ................................................................................................
+ 8  ................................................................................................
+ 9  ................................................................................................
+10  ...M............~~~.............................................................................
+11  ................................................................................................
+12  .....................................................................ooo........................
+13  @@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@..................................
+14  ................................................................................................
+contents: 
+pipes:
+objects:
+  {"type": "scroll_lock_toggle", "x": 84, "warp": false}
+  {"hard": false, "type": "lift", "kind": "right", "x": 16.0, "y": 10.0, "width": 3, "movement": "moves right once stood on"}
+enemies:
+area pointers in enemy data:
+  {"kind": "area_pointer", "x": 16.0, "ptr": "$28", "world": 2, "entryPage": 10, "usedInWorld1": true, "raw": ["$0e", "$28", "$2a"]}
+  {"kind": "area_pointer", "x": 16.0, "ptr": "$31", "world": 5, "entryPage": 8, "usedInWorld1": false, "raw": ["$0e", "$31", "$88"]}
+
+================================================================================
+2-1/coinroom  theme=underground bg=black scenery=none style=tree width=16 x0=0 time=400 scrollLock=True
+start: {"x": 1.5, "y": 3, "py": 32, "entranceCtrl": 1, "altEntrance": 1, "mode": "fall", "note": "drops in from the top without control until Y >= $30"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": [{"x": 0, "terrain": 1, "bgScenery": 0, "solidRows": [13, 14]}, {"x": 3, "terrain": 6, "bgScenery": 0, "solidRows": [2, 10, 11, 12, 13, 14]}, {"x": 10, "terrain": 1, "bgScenery": 0, "solidRows": [13, 14]}]}
+    0         1     
+    0123456789012345
+ 0  ................
+ 1  ................
+ 2  B...BBBBBBB....{
+ 3  BM.............{
+ 4  B..............{
+ 5  B....ooooo.....{
+ 6  B..............{
+ 7  B...ooooooo....{
+ 8  B..............{
+ 9  B...ooooooo....{
+10  B...BBBBBBB....{
+11  B...BBBBBBB..msj
+12  B...BBBBBBB..ntk
+13  ################
+14  ################
+contents: 
+pipes:
+  {"x": 13, "y": 11, "dir": "right", "intro": false, "to": "2-1/main", "entryPage": 7, "entry": {"x": 115.5, "y": 10, "mode": "rise_from_pipe"}}
+objects:
+enemies:
+area pointers in enemy data:
+  {"kind": "area_pointer", "x": 17.0, "ptr": "$a5", "world": 1, "entryPage": 10, "usedInWorld1": false, "raw": ["$1e", "$a5", "$0a"]}
+  {"kind": "area_pointer", "x": 18.0, "ptr": "$28", "world": 2, "entryPage": 7, "usedInWorld1": true, "raw": ["$2e", "$28", "$27"]}
+  {"kind": "area_pointer", "x": 18.0, "ptr": "$33", "world": 7, "entryPage": 7, "usedInWorld1": false, "raw": ["$2e", "$33", "$c7"]}
+  {"kind": "area_pointer", "x": 49.0, "ptr": "$40", "world": 1, "entryPage": 7, "usedInWorld1": false, "raw": ["$1e", "$40", "$07"]}
+  {"kind": "area_pointer", "x": 50.0, "ptr": "$30", "world": 8, "entryPage": 7, "usedInWorld1": false, "raw": ["$2e", "$30", "$e7"]}
+  {"kind": "area_pointer", "x": 81.0, "ptr": "$24", "world": 3, "entryPage": 4, "usedInWorld1": false, "raw": ["$1e", "$24", "$44"]}
+  {"kind": "area_pointer", "x": 113.0, "ptr": "$22", "world": 4, "entryPage": 10, "usedInWorld1": false, "raw": ["$1e", "$22", "$6a"]}
+  {"kind": "area_pointer", "x": 114.0, "ptr": "$23", "world": 6, "entryPage": 11, "usedInWorld1": false, "raw": ["$2e", "$23", "$ab"]}
+  {"kind": "area_pointer", "x": 145.0, "ptr": "$41", "world": 4, "entryPage": 8, "usedInWorld1": false, "raw": ["$1e", "$41", "$68"]}
+  {"kind": "area_pointer", "x": 145.0, "ptr": "$2a", "world": 5, "entryPage": 10, "usedInWorld1": false, "raw": ["$1e", "$2a", "$8a"]}
+  {"kind": "area_pointer", "x": 146.0, "ptr": "$23", "world": 6, "entryPage": 2, "usedInWorld1": false, "raw": ["$2e", "$23", "$a2"]}
+  {"kind": "area_pointer", "x": 146.0, "ptr": "$32", "world": 8, "entryPage": 10, "usedInWorld1": false, "raw": ["$2e", "$32", "$ea"]}
+
+================================================================================
+2-2/exit  theme=overworld bg=sky scenery=hills style=tree width=32 x0=176 time=400 scrollLock=False
+start: {"x": 3.5, "y": 10, "py": 240, "entranceCtrl": 2, "altEntrance": 2, "mode": "rise_from_pipe", "note": "rises from below the screen until Y < $91"}
+floor: {"terrainCtrl": 1, "solidRows": [13, 14], "changes": []}
+    0         1         2         3 
+    01234567890123456789012345678901
+ 0  ................................
+ 1  ................................
+ 2  ......................P.........
+ 3  ......................|.........
+ 4  ......................|.........
+ 5  ............XX........|.........
+ 6  ...........XXX........|.........
+ 7  ..........XXXX........|.........
+ 8  .........XXXXX........|.........
+ 9  ........XXXXXX........|.........
+10  ...M...XXXXXXX........|.........
+11  ...[].XXXXXXXX........|.........
+12  G..{}XXXXXXXXX........F......*..
+13  ################################
+14  ################################
+contents: 
+pipes:
+objects:
+  {"type": "pipe_piranha", "x": 3.5, "y": 11, "note": "spawned by the pipe object (AreaNumber|WorldNumber != 0)"}
+  {"type": "flagpole", "x": 22, "flagX": 21.5}
+  {"type": "castle", "x": 26, "y": 8, "size": "small", "doorX": 28, "note": "x/y = top-left of the 5-wide castle; y row 2 = big, 8 = small"}
+  {"type": "castle_star_flag", "x": 28, "y": 9}
+enemies:
+  {"hard": false, "neverSpawns": true, "type": "goomba", "x": -2.0, "y": 12, "group": true, "dataX": 1.0, "hardModeType": "buzzy"}
+  {"hard": false, "neverSpawns": true, "type": "goomba", "x": -0.5, "y": 12, "group": true, "dataX": 1.0, "hardModeType": "buzzy"}
+area pointers in enemy data:
+  {"kind": "area_pointer", "x": -159.0, "ptr": "$c2", "world": 1, "entryPage": 0, "usedInWorld1": false, "raw": ["$1e", "$c2", "$00"]}
+
+levels:
+  2-1: {"areas": ["2-1/main", "2-1/exit", "2-1/coinroom"], "start": "2-1/main", "main": "2-1/main", "time": 400, "halfwayPage": 6, "halfwayStart": {"area": "2-1/main", "x": 98.5, "y": 12}, "next": "2-2", "entries": [{"area": "2-1/exit", "from": "2-1/main", "pointer": ["$fe", "$2b", "$20"], "entryPage": 0}, {"area": "2-1/coinroom", "from": "2-1/main", "pointer": ["$fe", "$42", "$20"], "entryPage": 0}]}
+  2-2: {"areas": ["2-2/intro", "2-2/main", "2-2/exit"], "start": "2-2/intro", "main": "2-2/main", "time": 400, "halfwayPage": 5, "halfwayStart": {"area": "2-2/main", "x": 82.5, "y": 12}, "next": "2-3", "entries": [{"area": "2-2/exit", "from": "2-2/main", "pointer": ["$2e", "$25", "$2b"], "entryPage": 11}]}
+  2-3: {"areas": ["2-3/main"], "start": "2-3/main", "main": "2-3/main", "time": 300, "halfwayPage": 7, "halfwayStart": {"area": "2-3/main", "x": 114.5, "y": 12}, "next": "2-4", "entries": []}
+  2-4: {"areas": ["2-4/main"], "start": "2-4/main", "main": "2-4/main", "time": 300, "halfwayPage": 0, "halfwayStart": null, "next": "3-1", "entries": []}

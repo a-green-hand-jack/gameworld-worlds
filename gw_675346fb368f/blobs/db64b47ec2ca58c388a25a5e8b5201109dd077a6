@@ -1,0 +1,8 @@
+Revision 2 checks (end-screen input lock for #7, aimed computer shots for producer #8 F2), game code as
+committed with this file + artist e3bead3114349f338d97e4400c58f23ed17d2f4b assets, headless Chromium.
+- `log.txt` + screenshots: checks/run_check.py, ALL CHECKS PASSED, no page errors (incl. Enter+click right after
+  the match ends are ignored; Enter after the 1 s lock starts 0-0).
+- qa's edge_over.py: click 150 ms after the end -> still `over` 0-5.
+- `qa-full_checks.log`: qa's full_checks.py; no console errors/warnings. Its 3 FAILs press Space/click 300 ms
+  after the end screen appears, i.e. inside the requested 1 s lock (the pause FAIL follows from the ignored click).
+- `sim-difficulty.txt`: checks/sim.js, src/game.js run in Node with simulated time, 20 matches per line.

@@ -1,0 +1,49 @@
+import time
+from playwright.sync_api import sync_playwright
+EV='/hutian/repo/playtest/evidence/pt4/'
+import os; os.makedirs(EV,exist_ok=True)
+S="()=>{const g=SnakeGame.game;return {state:g.state,len:g.snake.length,score:g.score,cause:g.deathCause}}"
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    ctx=b.new_context(viewport={'width':1280,'height':800},record_video_dir=EV+'v',record_video_size={'width':640,'height':400})
+    pg=ctx.new_page(); errs=[]
+    pg.on('console',lambda m: errs.append(m.text) if m.type in('error','warning') else None); pg.on('pageerror',lambda e: errs.append(str(e))); pg.on('requestfailed',lambda r: errs.append(r.url)); pg.on('response',lambda r: errs.append((r.status,r.url)) if r.status>=400 else None)
+    pg.add_init_script("window.__plays=[];const _p=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.__plays.push(this.src.split('/').pop());return _p.apply(this,arguments)}")
+    pg.goto('http://localhost:8004/'); pg.wait_for_timeout(600); pg.screenshot(path=EV+'01-title.png')
+    # Run A: mash keys (Enter/Space alternating, every 30 ms) through death
+    for mode in ['Enter','Space','click']:
+        pg.keyboard.press('Enter') if mode=='Enter' else None
+        if pg.evaluate(S)['state']!='playing': pg.evaluate("SnakeGame.start()")
+        pg.wait_for_timeout(100)
+        tdeath=None; t0=time.time(); shot=False
+        while time.time()-t0<8:
+            st=pg.evaluate(S)
+            if st['state']=='over' and tdeath is None: tdeath=time.time(); L(f'[{mode}] died at {tdeath-t0:.2f}s cause',st['cause'],'score',st['score'])
+            if mode=='click':
+                if tdeath: 
+                    try: pg.click('#restart-button',timeout=50,force=True)
+                    except Exception as e: pass
+            else: pg.keyboard.press('Enter' if mode=='Enter' else ' ')
+            if st['state']=='playing' and tdeath: 
+                L(f'[{mode}] restarted {time.time()-tdeath:.3f}s after death'); break
+            if st['state']=='over' and not shot and time.time()-tdeath>0.2:
+                pg.screenshot(path=EV+f'02-gameover-held-{mode}.png'); shot=True; L(f'[{mode}] at +0.2s: screen visible', pg.inner_text('#gameover-screen').replace('\n',' | '), 'btn disabled', pg.evaluate("document.getElementById('restart-button').disabled"))
+            pg.wait_for_timeout(30)
+        s=pg.evaluate(S); L(f'[{mode}] after: state',s['state'],'score',s['score'],'len',s['len'],'hud',pg.inner_text('#score'))
+        # let it die again for next mode
+        if mode!='click':
+            pg.keyboard.up('Enter')
+    # Run B: single press after waiting 700ms
+    t0=time.time()
+    while pg.evaluate(S)['state']=='playing' and time.time()-t0<8: pg.wait_for_timeout(50)
+    L('B: died, state',pg.evaluate(S)['state']); pg.wait_for_timeout(700)
+    L('B: button disabled after 700ms',pg.evaluate("document.getElementById('restart-button').disabled"),'focus on',pg.evaluate("document.activeElement.id"))
+    pg.screenshot(path=EV+'03-gameover-after-guard.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(100); s=pg.evaluate(S); L('B: Space after guard ->',s['state'],'score',s['score'],'len',s['len'])
+    pg.screenshot(path=EV+'04-fresh-play.png')
+    L('console/network errors:',errs); L('plays tail',pg.evaluate('window.__plays')[-6:])
+    ctx.close(); b.close()
+open(EV+'guard.log','w').write('\n'.join(log))

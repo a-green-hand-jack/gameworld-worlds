@@ -1,0 +1,1 @@
+{"assignment_schema": 1, "items": [{"owner": "artist", "paths": ["sound/"], "work": "beep.wav"}, {"owner": "qa", "paths": ["listening.md", "qa-report.md", "qa-evidence/"], "work": "QA listening and verification"}]}

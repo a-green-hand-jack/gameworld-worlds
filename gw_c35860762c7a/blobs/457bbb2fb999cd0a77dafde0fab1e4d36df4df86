@@ -1,0 +1,137 @@
+// More 1-1 checks (secrets, power-ups, shells, deaths and game over), run
+// through tools/smoke.mjs:  node tools/smoke.mjs <site> <out> tools/check11b.mjs
+export default async function ({ page, st, step, hold, shot, result }) {
+  const checks = (result.checks = []);
+  const ev = (fn, arg) => page.evaluate(fn, arg);
+  const check = (name, pass, observed) => checks.push({ name, pass: !!pass, observed });
+  const start = (level = '1-1', loc = 0) => ev(([l, n]) => window.smb.start(l, n), [level, loc]);
+  const put = (o) => ev((o) => Object.assign(window.smb.game.player, o), o);
+  const release = () => hold({ left: false, right: false, up: false, down: false, a: false, b: false, start: false });
+  const until = async (pred, max, buttons) => {
+    for (let i = 0; i < max; i++) {
+      if (buttons) await hold(buttons);
+      const s = await step(1);
+      if (pred(s)) return { s, frames: i + 1 };
+    }
+    return { s: await st(), frames: -1 };
+  };
+  // starts 1-1 with the camera at camX and no enemies
+  const setup = async (camX) => {
+    await start(); await release(); await step(1);
+    await ev((camX) => { const g = window.smb.game; for (const s of g.area.spawns) s.spawned = true; g.ents = []; g.camX = camX; }, camX);
+  };
+  const jumpUnder = async (col, form) => {
+    if (form) await ev((f) => window.smb.game.player.setForm(f), form);
+    await put({ x: col * 16 + 2, y: 208 - (await st()).player.h, vx: 0, vy: 0 });
+    await hold({ a: true }); await step(40); await release(); await step(20);
+  };
+
+  // hidden 1UP block above col 64
+  await setup(64 * 16 - 100);
+  const lives0 = (await st()).lives;
+  await jumpUnder(64);
+  const tile = await ev(() => window.smb.game.area.get(64, 8));
+  const up = (await st()).ents.find((e) => e.type === 'PowerUp');
+  check('jumping under col 64 reveals the hidden block with a 1UP mushroom', tile === 'U' && up && up.kind === 'oneup', { tile, ent: up });
+  const got = await until((s) => s.lives > lives0, 300, { right: true });
+  await release();
+  check('touching the 1UP mushroom gives a life', got.frames > 0, { lives: got.s.lives, frames: got.frames });
+
+  // multi-coin brick at col 94: coins until 231 frames after the first hit
+  await setup(94 * 16 - 100);
+  const c0 = (await st()).coins;
+  let hits = 0, t = 0;
+  await put({ x: 94 * 16 + 2, y: 192, vx: 0, vy: 0 });
+  while (t < 400 && (await ev(() => window.smb.game.area.get(94, 9))) === 'B') {
+    const up = await until((s) => s.player.vy > 0, 60, { a: true });
+    await release();
+    const r = await until((s) => s.player.onGround, 60);
+    t += up.frames + r.frames; hits++;
+  }
+  const c1 = (await st()).coins;
+  check('the col 94 brick gives a coin per hit until about 231 frames after the first (then used)', c1 - c0 === hits && hits >= 5 && t >= 200 && t < 300, { coins: c1 - c0, hits, frames: t, tile: await ev(() => window.smb.game.area.get(94, 9)) });
+
+  // star from the brick at col 101
+  await setup(101 * 16 - 100);
+  await jumpUnder(101);
+  const star = (await st()).ents.find((e) => e.type === 'PowerUp');
+  check('the col 101 brick holds a star', star && star.kind === 'star', { ent: star });
+  let st1 = { frames: -1, s: await st() };
+  for (let i = 0; i < 60 && st1.frames < 0; i++) {
+    const it = (await st()).ents.find((e) => e.type === 'PowerUp');
+    if (it) await put({ x: it.x, y: it.y, vx: 0, vy: 0 });
+    const s1 = await step(1);
+    if (s1.player.star > 0) st1 = { frames: i + 1, s: s1 };
+  }
+  const music = await ev(() => window.smb.game.audio.musicId);
+  check('touching the star makes Mario invincible', st1.frames > 0, { star: st1.s.player.star, music });
+  await shot('check-star');
+
+  // fire flower: big Mario hits the col 78 block
+  await setup(78 * 16 - 100);
+  await jumpUnder(78, 1);
+  const fl = (await st()).ents.find((e) => e.type === 'PowerUp');
+  check('big Mario gets a fire flower from a power-up block', fl && fl.kind === 'flower', { ent: fl });
+  await put({ x: fl ? fl.x : 0, y: 144 - 32, vx: 0, vy: 0 });
+  const fire = await until((s) => s.player.form === 'fire', 200);
+  await step(80);
+  await hold({ b: true }); await step(2); await release(); await step(2);
+  const balls = (await st()).ents.filter((e) => e.type === 'Fireball').length;
+  check('the flower makes Mario fire Mario, and B throws a fireball', fire.frames > 0 && balls === 1, { form: fire.s.player.form, fireballs: balls });
+  await shot('check-fire');
+
+  // koopa at x 1712: stomp to a shell, kick it
+  await start(); await release(); await step(1);
+  await ev(() => { const g = window.smb.game; g.camX = 1550; for (const s of g.area.spawns) if (s.x < 1700) s.spawned = true; g.spawn(); g.ents = g.ents.filter((e) => e.constructor.name === 'Koopa'); });
+  await step(1);
+  const k = (await st()).ents.find((e) => e.type === 'Koopa');
+  await put({ x: (k?.x ?? 1712) - 2, y: (k?.y ?? 184) - 30, vx: 0, vy: 1, onGround: false });
+  const stomped = await until((s) => s.ents.some((e) => e.type === 'Koopa' && e.shell), 60);
+  check('stomping the koopa leaves a shell (+100)', stomped.frames > 0 && stomped.s.score === 100, { score: stomped.s.score, frames: stomped.frames });
+  await step(30);
+  const sh = (await st()).ents.find((e) => e.type === 'Koopa');
+  await put({ x: sh.x - 14, y: 192, vx: 0, vy: 0 });
+  await until((s) => s.score > 100, 60, { right: true });
+  await release();
+  const x1 = (await st()).ents.find((e) => e.type === 'Koopa')?.x;
+  await step(20);
+  const x2 = (await st()).ents.find((e) => e.type === 'Koopa')?.x;
+  check('touching the shell kicks it (+400) and it slides away', (await st()).score === 500 && x2 > x1, { score: (await st()).score, x1, x2 });
+
+  // death in the pit at col 86 after the halfway point, restart from it
+  await start(); await release(); await step(1);
+  await ev(() => { const g = window.smb.game; g.camX = 1300; for (const s of g.area.spawns) s.spawned = true; g.ents = []; });
+  const lv = (await st()).lives;
+  await put({ x: 87 * 16, y: 150, vx: 0, vy: 1, onGround: false });
+  const died = await until((s) => s.seq === 'death' || s.state !== 'play', 120);
+  const inter = await until((s) => s.state === 'intermission', 400);
+  const back = await until((s) => s.state === 'play', 400);
+  check('falling into a pit loses a life', died.frames > 0 && inter.s.lives === lv - 1, { lives: inter.s.lives });
+  check('after the halfway point Mario starts again from it', back.frames > 0 && back.s.player.x > 1200, { x: back.s.player.x, halfway: inter.s.halfway });
+  await shot('check-halfway');
+
+  // the hidden 1-UP block is used up once it has come into view: after a
+  // death before the halfway point it is not there again
+  await start(); await release(); await step(1);
+  await ev(() => { const g = window.smb.game; g.hidden1up = true; });
+  await start(); await release(); await step(1);
+  const h0 = await ev(() => window.smb.game.area.get(64, 8));
+  await ev(() => { const g = window.smb.game; g.camX = 700; for (const s of g.area.spawns) s.spawned = true; g.ents = []; });
+  await step(1);
+  await ev(() => window.smb.game.die(true));
+  await until((s) => s.state === 'play' && s.seq === null, 600);
+  const h1 = await ev(() => window.smb.game.area.get(64, 8));
+  check('the hidden 1-UP block is there at the start and gone after a death once seen', h0 === 'h' && h1 === ' ', { before: h0, after: h1 });
+
+  // game over with the last life, then the title again
+  await ev(() => { window.smb.game.lives = 1; });
+  await put({ x: back.s.player.x, y: 192 });
+  await ev(() => window.smb.game.die(true));
+  const over = await until((s) => s.state === 'gameover', 400);
+  await shot('check-gameover');
+  const title = await until((s) => s.state === 'title', 900);
+  check('losing the last life shows GAME OVER, then the title', over.frames > 0 && title.frames > 0, { over: over.frames, title: title.frames });
+
+  result.passed = checks.filter((c) => c.pass).length;
+  result.failed = checks.filter((c) => !c.pass).map((c) => c.name);
+}

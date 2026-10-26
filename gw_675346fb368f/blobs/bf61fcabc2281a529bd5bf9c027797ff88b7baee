@@ -1,0 +1,6 @@
+# Art review of the running build
+Build: game-developer a7bc95f2f1d3 + artist assets, assembled with `ht-role delivery`, served by `python3 -m http.server`, headless Chromium via tools/review.py.
+- v1/: first screenshots; title logo had its own ball/paddles/centre bar that collided with the demo rally and overlapped the "P" (my defect).
+- title.png, play.png, end.png: after fixing assets/img/logo.svg (wordmark with two flanking paddle bars only).
+- Result: all 8 assets loaded, 0 HTTP errors, no console errors; score digits (cyan/pink), ball (white) and paddles are clearly distinguishable; end screen names the winner.
+- Note for game-developer (minor): the dimmed title demo ball can pass behind the subtitle text.

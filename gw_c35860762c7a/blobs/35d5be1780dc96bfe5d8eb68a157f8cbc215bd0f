@@ -1,0 +1,2317 @@
+{
+ "manifest_schema": 1,
+ "sheets": {
+  "player": {
+   "file": "sprites/player.png",
+   "frames": {
+    "small_idle": [
+     0,
+     0,
+     16,
+     16
+    ],
+    "small_walk1": [
+     16,
+     0,
+     16,
+     16
+    ],
+    "small_walk2": [
+     32,
+     0,
+     16,
+     16
+    ],
+    "small_walk3": [
+     48,
+     0,
+     16,
+     16
+    ],
+    "small_skid": [
+     64,
+     0,
+     16,
+     16
+    ],
+    "small_jump": [
+     80,
+     0,
+     16,
+     16
+    ],
+    "small_die": [
+     96,
+     0,
+     16,
+     16
+    ],
+    "small_climb1": [
+     112,
+     0,
+     16,
+     16
+    ],
+    "small_climb2": [
+     128,
+     0,
+     16,
+     16
+    ],
+    "small_swim1": [
+     144,
+     0,
+     16,
+     16
+    ],
+    "small_swim2": [
+     160,
+     0,
+     16,
+     16
+    ],
+    "small_swim3": [
+     176,
+     0,
+     16,
+     16
+    ],
+    "small_swim4": [
+     192,
+     0,
+     16,
+     16
+    ],
+    "big_idle": [
+     208,
+     0,
+     16,
+     32
+    ],
+    "big_walk1": [
+     224,
+     0,
+     16,
+     32
+    ],
+    "big_walk2": [
+     240,
+     0,
+     16,
+     32
+    ],
+    "big_walk3": [
+     0,
+     32,
+     16,
+     32
+    ],
+    "big_skid": [
+     16,
+     32,
+     16,
+     32
+    ],
+    "big_jump": [
+     32,
+     32,
+     16,
+     32
+    ],
+    "big_crouch": [
+     48,
+     32,
+     16,
+     32
+    ],
+    "big_climb1": [
+     64,
+     32,
+     16,
+     32
+    ],
+    "big_climb2": [
+     80,
+     32,
+     16,
+     32
+    ],
+    "big_swim1": [
+     96,
+     32,
+     16,
+     32
+    ],
+    "big_swim2": [
+     112,
+     32,
+     16,
+     32
+    ],
+    "big_swim3": [
+     128,
+     32,
+     16,
+     32
+    ],
+    "big_swim4": [
+     144,
+     32,
+     16,
+     32
+    ],
+    "big_grow": [
+     160,
+     32,
+     16,
+     32
+    ],
+    "fire_idle": [
+     176,
+     32,
+     16,
+     32
+    ],
+    "fire_walk1": [
+     192,
+     32,
+     16,
+     32
+    ],
+    "fire_walk2": [
+     208,
+     32,
+     16,
+     32
+    ],
+    "fire_walk3": [
+     224,
+     32,
+     16,
+     32
+    ],
+    "fire_skid": [
+     240,
+     32,
+     16,
+     32
+    ],
+    "fire_jump": [
+     0,
+     64,
+     16,
+     32
+    ],
+    "fire_crouch": [
+     16,
+     64,
+     16,
+     32
+    ],
+    "fire_climb1": [
+     32,
+     64,
+     16,
+     32
+    ],
+    "fire_climb2": [
+     48,
+     64,
+     16,
+     32
+    ],
+    "fire_swim1": [
+     64,
+     64,
+     16,
+     32
+    ],
+    "fire_swim2": [
+     80,
+     64,
+     16,
+     32
+    ],
+    "fire_swim3": [
+     96,
+     64,
+     16,
+     32
+    ],
+    "fire_swim4": [
+     112,
+     64,
+     16,
+     32
+    ],
+    "fire_grow": [
+     128,
+     64,
+     16,
+     32
+    ],
+    "fire_throw": [
+     144,
+     64,
+     16,
+     32
+    ],
+    "star1_small_idle": [
+     160,
+     64,
+     16,
+     16
+    ],
+    "star1_small_walk1": [
+     176,
+     64,
+     16,
+     16
+    ],
+    "star1_small_walk2": [
+     192,
+     64,
+     16,
+     16
+    ],
+    "star1_small_walk3": [
+     208,
+     64,
+     16,
+     16
+    ],
+    "star1_small_skid": [
+     224,
+     64,
+     16,
+     16
+    ],
+    "star1_small_jump": [
+     240,
+     64,
+     16,
+     16
+    ],
+    "star1_small_die": [
+     0,
+     96,
+     16,
+     16
+    ],
+    "star1_small_climb1": [
+     16,
+     96,
+     16,
+     16
+    ],
+    "star1_small_climb2": [
+     32,
+     96,
+     16,
+     16
+    ],
+    "star1_small_swim1": [
+     48,
+     96,
+     16,
+     16
+    ],
+    "star1_small_swim2": [
+     64,
+     96,
+     16,
+     16
+    ],
+    "star1_small_swim3": [
+     80,
+     96,
+     16,
+     16
+    ],
+    "star1_small_swim4": [
+     96,
+     96,
+     16,
+     16
+    ],
+    "star1_big_idle": [
+     112,
+     96,
+     16,
+     32
+    ],
+    "star1_big_walk1": [
+     128,
+     96,
+     16,
+     32
+    ],
+    "star1_big_walk2": [
+     144,
+     96,
+     16,
+     32
+    ],
+    "star1_big_walk3": [
+     160,
+     96,
+     16,
+     32
+    ],
+    "star1_big_skid": [
+     176,
+     96,
+     16,
+     32
+    ],
+    "star1_big_jump": [
+     192,
+     96,
+     16,
+     32
+    ],
+    "star1_big_crouch": [
+     208,
+     96,
+     16,
+     32
+    ],
+    "star1_big_climb1": [
+     224,
+     96,
+     16,
+     32
+    ],
+    "star1_big_climb2": [
+     240,
+     96,
+     16,
+     32
+    ],
+    "star1_big_swim1": [
+     0,
+     128,
+     16,
+     32
+    ],
+    "star1_big_swim2": [
+     16,
+     128,
+     16,
+     32
+    ],
+    "star1_big_swim3": [
+     32,
+     128,
+     16,
+     32
+    ],
+    "star1_big_swim4": [
+     48,
+     128,
+     16,
+     32
+    ],
+    "star1_big_grow": [
+     64,
+     128,
+     16,
+     32
+    ],
+    "star1_fire_throw": [
+     80,
+     128,
+     16,
+     32
+    ],
+    "star2_small_idle": [
+     96,
+     128,
+     16,
+     16
+    ],
+    "star2_small_walk1": [
+     112,
+     128,
+     16,
+     16
+    ],
+    "star2_small_walk2": [
+     128,
+     128,
+     16,
+     16
+    ],
+    "star2_small_walk3": [
+     144,
+     128,
+     16,
+     16
+    ],
+    "star2_small_skid": [
+     160,
+     128,
+     16,
+     16
+    ],
+    "star2_small_jump": [
+     176,
+     128,
+     16,
+     16
+    ],
+    "star2_small_die": [
+     192,
+     128,
+     16,
+     16
+    ],
+    "star2_small_climb1": [
+     208,
+     128,
+     16,
+     16
+    ],
+    "star2_small_climb2": [
+     224,
+     128,
+     16,
+     16
+    ],
+    "star2_small_swim1": [
+     240,
+     128,
+     16,
+     16
+    ],
+    "star2_small_swim2": [
+     0,
+     160,
+     16,
+     16
+    ],
+    "star2_small_swim3": [
+     16,
+     160,
+     16,
+     16
+    ],
+    "star2_small_swim4": [
+     32,
+     160,
+     16,
+     16
+    ],
+    "star2_big_idle": [
+     48,
+     160,
+     16,
+     32
+    ],
+    "star2_big_walk1": [
+     64,
+     160,
+     16,
+     32
+    ],
+    "star2_big_walk2": [
+     80,
+     160,
+     16,
+     32
+    ],
+    "star2_big_walk3": [
+     96,
+     160,
+     16,
+     32
+    ],
+    "star2_big_skid": [
+     112,
+     160,
+     16,
+     32
+    ],
+    "star2_big_jump": [
+     128,
+     160,
+     16,
+     32
+    ],
+    "star2_big_crouch": [
+     144,
+     160,
+     16,
+     32
+    ],
+    "star2_big_climb1": [
+     160,
+     160,
+     16,
+     32
+    ],
+    "star2_big_climb2": [
+     176,
+     160,
+     16,
+     32
+    ],
+    "star2_big_swim1": [
+     192,
+     160,
+     16,
+     32
+    ],
+    "star2_big_swim2": [
+     208,
+     160,
+     16,
+     32
+    ],
+    "star2_big_swim3": [
+     224,
+     160,
+     16,
+     32
+    ],
+    "star2_big_swim4": [
+     240,
+     160,
+     16,
+     32
+    ],
+    "star2_big_grow": [
+     0,
+     192,
+     16,
+     32
+    ],
+    "star2_fire_throw": [
+     16,
+     192,
+     16,
+     32
+    ],
+    "star3_small_idle": [
+     32,
+     192,
+     16,
+     16
+    ],
+    "star3_small_walk1": [
+     48,
+     192,
+     16,
+     16
+    ],
+    "star3_small_walk2": [
+     64,
+     192,
+     16,
+     16
+    ],
+    "star3_small_walk3": [
+     80,
+     192,
+     16,
+     16
+    ],
+    "star3_small_skid": [
+     96,
+     192,
+     16,
+     16
+    ],
+    "star3_small_jump": [
+     112,
+     192,
+     16,
+     16
+    ],
+    "star3_small_die": [
+     128,
+     192,
+     16,
+     16
+    ],
+    "star3_small_climb1": [
+     144,
+     192,
+     16,
+     16
+    ],
+    "star3_small_climb2": [
+     160,
+     192,
+     16,
+     16
+    ],
+    "star3_small_swim1": [
+     176,
+     192,
+     16,
+     16
+    ],
+    "star3_small_swim2": [
+     192,
+     192,
+     16,
+     16
+    ],
+    "star3_small_swim3": [
+     208,
+     192,
+     16,
+     16
+    ],
+    "star3_small_swim4": [
+     224,
+     192,
+     16,
+     16
+    ],
+    "star3_big_idle": [
+     240,
+     192,
+     16,
+     32
+    ],
+    "star3_big_walk1": [
+     0,
+     224,
+     16,
+     32
+    ],
+    "star3_big_walk2": [
+     16,
+     224,
+     16,
+     32
+    ],
+    "star3_big_walk3": [
+     32,
+     224,
+     16,
+     32
+    ],
+    "star3_big_skid": [
+     48,
+     224,
+     16,
+     32
+    ],
+    "star3_big_jump": [
+     64,
+     224,
+     16,
+     32
+    ],
+    "star3_big_crouch": [
+     80,
+     224,
+     16,
+     32
+    ],
+    "star3_big_climb1": [
+     96,
+     224,
+     16,
+     32
+    ],
+    "star3_big_climb2": [
+     112,
+     224,
+     16,
+     32
+    ],
+    "star3_big_swim1": [
+     128,
+     224,
+     16,
+     32
+    ],
+    "star3_big_swim2": [
+     144,
+     224,
+     16,
+     32
+    ],
+    "star3_big_swim3": [
+     160,
+     224,
+     16,
+     32
+    ],
+    "star3_big_swim4": [
+     176,
+     224,
+     16,
+     32
+    ],
+    "star3_big_grow": [
+     192,
+     224,
+     16,
+     32
+    ],
+    "star3_fire_throw": [
+     208,
+     224,
+     16,
+     32
+    ]
+   }
+  },
+  "enemies": {
+   "file": "sprites/enemies_overworld.png",
+   "frames": {
+    "goomba_walk1": [
+     0,
+     0,
+     16,
+     16
+    ],
+    "goomba_walk2": [
+     16,
+     0,
+     16,
+     16
+    ],
+    "goomba_flat": [
+     32,
+     0,
+     16,
+     16
+    ],
+    "koopa_green_walk1": [
+     48,
+     0,
+     16,
+     24
+    ],
+    "koopa_green_walk2": [
+     64,
+     0,
+     16,
+     24
+    ],
+    "koopa_green_shell": [
+     80,
+     0,
+     16,
+     16
+    ],
+    "koopa_green_shell_wake": [
+     96,
+     0,
+     16,
+     16
+    ],
+    "paratroopa_green_fly1": [
+     112,
+     0,
+     16,
+     24
+    ],
+    "paratroopa_green_fly2": [
+     128,
+     0,
+     16,
+     24
+    ],
+    "koopa_red_walk1": [
+     144,
+     0,
+     16,
+     24
+    ],
+    "koopa_red_walk2": [
+     160,
+     0,
+     16,
+     24
+    ],
+    "koopa_red_shell": [
+     176,
+     0,
+     16,
+     16
+    ],
+    "koopa_red_shell_wake": [
+     192,
+     0,
+     16,
+     16
+    ],
+    "paratroopa_red_fly1": [
+     208,
+     0,
+     16,
+     24
+    ],
+    "paratroopa_red_fly2": [
+     224,
+     0,
+     16,
+     24
+    ],
+    "beetle_walk1": [
+     240,
+     0,
+     16,
+     16
+    ],
+    "beetle_walk2": [
+     0,
+     24,
+     16,
+     16
+    ],
+    "beetle_shell": [
+     16,
+     24,
+     16,
+     16
+    ],
+    "piranha1": [
+     32,
+     24,
+     16,
+     24
+    ],
+    "piranha2": [
+     48,
+     24,
+     16,
+     24
+    ],
+    "hammerbro_walk1": [
+     64,
+     24,
+     16,
+     24
+    ],
+    "hammerbro_walk2": [
+     80,
+     24,
+     16,
+     24
+    ],
+    "hammerbro_throw1": [
+     96,
+     24,
+     16,
+     24
+    ],
+    "hammerbro_throw2": [
+     112,
+     24,
+     16,
+     24
+    ],
+    "hammer1": [
+     128,
+     24,
+     16,
+     16
+    ],
+    "hammer2": [
+     144,
+     24,
+     16,
+     16
+    ],
+    "hammer3": [
+     160,
+     24,
+     16,
+     16
+    ],
+    "hammer4": [
+     176,
+     24,
+     16,
+     16
+    ],
+    "lakitu": [
+     192,
+     24,
+     16,
+     24
+    ],
+    "lakitu_duck": [
+     208,
+     24,
+     16,
+     24
+    ],
+    "spiny_egg1": [
+     224,
+     24,
+     16,
+     16
+    ],
+    "spiny_egg2": [
+     240,
+     24,
+     16,
+     16
+    ],
+    "spiny_walk1": [
+     0,
+     48,
+     16,
+     16
+    ],
+    "spiny_walk2": [
+     16,
+     48,
+     16,
+     16
+    ],
+    "cheep_red1": [
+     32,
+     48,
+     16,
+     16
+    ],
+    "cheep_red2": [
+     48,
+     48,
+     16,
+     16
+    ],
+    "cheep_gray1": [
+     64,
+     48,
+     16,
+     16
+    ],
+    "cheep_gray2": [
+     80,
+     48,
+     16,
+     16
+    ],
+    "blooper1": [
+     96,
+     48,
+     16,
+     24
+    ],
+    "blooper2": [
+     112,
+     48,
+     16,
+     24
+    ],
+    "podoboo": [
+     128,
+     48,
+     16,
+     16
+    ],
+    "bullet": [
+     144,
+     48,
+     16,
+     16
+    ],
+    "bowser_walk1": [
+     160,
+     48,
+     32,
+     32
+    ],
+    "bowser_walk2": [
+     192,
+     48,
+     32,
+     32
+    ],
+    "bowser_breath1": [
+     224,
+     48,
+     32,
+     32
+    ],
+    "bowser_breath2": [
+     0,
+     80,
+     32,
+     32
+    ],
+    "bowser_flame1": [
+     32,
+     80,
+     24,
+     8
+    ],
+    "bowser_flame2": [
+     56,
+     80,
+     24,
+     8
+    ],
+    "toad": [
+     80,
+     80,
+     16,
+     24
+    ],
+    "princess": [
+     96,
+     80,
+     16,
+     24
+    ]
+   },
+   "anims": {
+    "goomba_walk": {
+     "frames": [
+      "goomba_walk1",
+      "goomba_walk2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "koopa_green_walk": {
+     "frames": [
+      "koopa_green_walk1",
+      "koopa_green_walk2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "paratroopa_green_fly": {
+     "frames": [
+      "paratroopa_green_fly1",
+      "paratroopa_green_fly2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "koopa_green_wake": {
+     "frames": [
+      "koopa_green_shell",
+      "koopa_green_shell_wake"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "koopa_red_walk": {
+     "frames": [
+      "koopa_red_walk1",
+      "koopa_red_walk2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "paratroopa_red_fly": {
+     "frames": [
+      "paratroopa_red_fly1",
+      "paratroopa_red_fly2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "koopa_red_wake": {
+     "frames": [
+      "koopa_red_shell",
+      "koopa_red_shell_wake"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "beetle_walk": {
+     "frames": [
+      "beetle_walk1",
+      "beetle_walk2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "piranha": {
+     "frames": [
+      "piranha1",
+      "piranha2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "hammerbro_walk": {
+     "frames": [
+      "hammerbro_walk1",
+      "hammerbro_walk2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "hammerbro_throw": {
+     "frames": [
+      "hammerbro_throw1",
+      "hammerbro_throw2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "hammer_spin": {
+     "frames": [
+      "hammer1",
+      "hammer2",
+      "hammer3",
+      "hammer4"
+     ],
+     "ms": 67,
+     "loop": true
+    },
+    "spiny_egg": {
+     "frames": [
+      "spiny_egg1",
+      "spiny_egg2"
+     ],
+     "ms": 100,
+     "loop": true
+    },
+    "spiny_walk": {
+     "frames": [
+      "spiny_walk1",
+      "spiny_walk2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "cheep_red": {
+     "frames": [
+      "cheep_red1",
+      "cheep_red2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "cheep_gray": {
+     "frames": [
+      "cheep_gray1",
+      "cheep_gray2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "blooper": {
+     "frames": [
+      "blooper1",
+      "blooper2"
+     ],
+     "ms": 267,
+     "loop": true
+    },
+    "bowser_walk": {
+     "frames": [
+      "bowser_walk1",
+      "bowser_walk2"
+     ],
+     "ms": 267,
+     "loop": true
+    },
+    "bowser_breath": {
+     "frames": [
+      "bowser_breath1",
+      "bowser_breath2"
+     ],
+     "ms": 267,
+     "loop": true
+    },
+    "bowser_flame": {
+     "frames": [
+      "bowser_flame1",
+      "bowser_flame2"
+     ],
+     "ms": 67,
+     "loop": true
+    }
+   },
+   "variants": {
+    "underground": "sprites/enemies_underground.png",
+    "castle": "sprites/enemies_castle.png"
+   }
+  },
+  "items": {
+   "file": "sprites/items_overworld.png",
+   "frames": {
+    "mushroom": [
+     0,
+     0,
+     16,
+     16
+    ],
+    "oneup": [
+     16,
+     0,
+     16,
+     16
+    ],
+    "flower1": [
+     32,
+     0,
+     16,
+     16
+    ],
+    "flower2": [
+     48,
+     0,
+     16,
+     16
+    ],
+    "flower3": [
+     64,
+     0,
+     16,
+     16
+    ],
+    "flower4": [
+     80,
+     0,
+     16,
+     16
+    ],
+    "star1": [
+     96,
+     0,
+     16,
+     16
+    ],
+    "star2": [
+     112,
+     0,
+     16,
+     16
+    ],
+    "star3": [
+     128,
+     0,
+     16,
+     16
+    ],
+    "star4": [
+     144,
+     0,
+     16,
+     16
+    ],
+    "coin1": [
+     160,
+     0,
+     16,
+     16
+    ],
+    "coin2": [
+     176,
+     0,
+     16,
+     16
+    ],
+    "coin3": [
+     192,
+     0,
+     16,
+     16
+    ],
+    "coin_spin1": [
+     208,
+     0,
+     16,
+     16
+    ],
+    "coin_spin2": [
+     224,
+     0,
+     16,
+     16
+    ],
+    "coin_spin3": [
+     240,
+     0,
+     16,
+     16
+    ],
+    "coin_spin4": [
+     0,
+     16,
+     16,
+     16
+    ],
+    "burst1": [
+     16,
+     16,
+     16,
+     16
+    ],
+    "burst2": [
+     32,
+     16,
+     16,
+     16
+    ],
+    "burst3": [
+     48,
+     16,
+     16,
+     16
+    ],
+    "flag": [
+     64,
+     16,
+     16,
+     16
+    ],
+    "castle_flag": [
+     80,
+     16,
+     16,
+     16
+    ],
+    "vine_top": [
+     96,
+     16,
+     16,
+     16
+    ],
+    "vine": [
+     112,
+     16,
+     16,
+     16
+    ],
+    "firework1": [
+     128,
+     16,
+     16,
+     16
+    ],
+    "firework2": [
+     144,
+     16,
+     16,
+     16
+    ],
+    "firework3": [
+     160,
+     16,
+     16,
+     16
+    ],
+    "axe1": [
+     176,
+     16,
+     16,
+     16
+    ],
+    "axe2": [
+     192,
+     16,
+     16,
+     16
+    ],
+    "axe3": [
+     208,
+     16,
+     16,
+     16
+    ],
+    "bowser_bridge": [
+     224,
+     16,
+     16,
+     16
+    ],
+    "chain": [
+     240,
+     16,
+     16,
+     16
+    ],
+    "spring1": [
+     0,
+     32,
+     16,
+     32
+    ],
+    "spring2": [
+     16,
+     32,
+     16,
+     32
+    ],
+    "spring3": [
+     32,
+     32,
+     16,
+     32
+    ],
+    "score_100": [
+     48,
+     32,
+     16,
+     8
+    ],
+    "score_200": [
+     64,
+     32,
+     16,
+     8
+    ],
+    "score_400": [
+     80,
+     32,
+     16,
+     8
+    ],
+    "score_500": [
+     96,
+     32,
+     16,
+     8
+    ],
+    "score_800": [
+     112,
+     32,
+     16,
+     8
+    ],
+    "score_1000": [
+     128,
+     32,
+     16,
+     8
+    ],
+    "score_2000": [
+     144,
+     32,
+     16,
+     8
+    ],
+    "score_4000": [
+     160,
+     32,
+     16,
+     8
+    ],
+    "score_5000": [
+     176,
+     32,
+     16,
+     8
+    ],
+    "score_8000": [
+     192,
+     32,
+     16,
+     8
+    ],
+    "score_1up": [
+     208,
+     32,
+     16,
+     8
+    ],
+    "fireball1": [
+     224,
+     32,
+     8,
+     8
+    ],
+    "fireball2": [
+     232,
+     32,
+     8,
+     8
+    ],
+    "fireball3": [
+     240,
+     32,
+     8,
+     8
+    ],
+    "fireball4": [
+     248,
+     32,
+     8,
+     8
+    ],
+    "brick_debris": [
+     0,
+     64,
+     8,
+     8
+    ],
+    "lift": [
+     8,
+     64,
+     8,
+     8
+    ],
+    "lift_cloud": [
+     16,
+     64,
+     8,
+     8
+    ],
+    "hud_coin1": [
+     24,
+     64,
+     8,
+     8
+    ],
+    "hud_coin2": [
+     32,
+     64,
+     8,
+     8
+    ],
+    "hud_coin3": [
+     40,
+     64,
+     8,
+     8
+    ],
+    "mushroom_cursor": [
+     48,
+     64,
+     8,
+     8
+    ]
+   },
+   "variants": {
+    "underground": "sprites/items_underground.png",
+    "castle": "sprites/items_castle.png",
+    "underwater": "sprites/items_underwater.png"
+   }
+  },
+  "tiles": {
+   "file": "tiles/overworld.png",
+   "frames": {
+    "ground": [
+     0,
+     0,
+     16,
+     16
+    ],
+    "brick": [
+     16,
+     0,
+     16,
+     16
+    ],
+    "block_q1": [
+     32,
+     0,
+     16,
+     16
+    ],
+    "block_q2": [
+     48,
+     0,
+     16,
+     16
+    ],
+    "block_q3": [
+     64,
+     0,
+     16,
+     16
+    ],
+    "block_used": [
+     80,
+     0,
+     16,
+     16
+    ],
+    "block_hard": [
+     96,
+     0,
+     16,
+     16
+    ],
+    "pipe_top_l": [
+     112,
+     0,
+     16,
+     16
+    ],
+    "pipe_top_r": [
+     128,
+     0,
+     16,
+     16
+    ],
+    "pipe_l": [
+     144,
+     0,
+     16,
+     16
+    ],
+    "pipe_r": [
+     160,
+     0,
+     16,
+     16
+    ],
+    "pipeh_mouth_t": [
+     176,
+     0,
+     16,
+     16
+    ],
+    "pipeh_mouth_b": [
+     192,
+     0,
+     16,
+     16
+    ],
+    "pipeh_t": [
+     208,
+     0,
+     16,
+     16
+    ],
+    "pipeh_b": [
+     224,
+     0,
+     16,
+     16
+    ],
+    "pipeh_join_t": [
+     240,
+     0,
+     16,
+     16
+    ],
+    "pipeh_join_b": [
+     0,
+     16,
+     16,
+     16
+    ],
+    "flagpole_top": [
+     16,
+     16,
+     16,
+     16
+    ],
+    "flagpole": [
+     32,
+     16,
+     16,
+     16
+    ],
+    "cloud_block": [
+     48,
+     16,
+     16,
+     16
+    ],
+    "bridge_rail": [
+     64,
+     16,
+     16,
+     16
+    ],
+    "bridge": [
+     80,
+     16,
+     16,
+     16
+    ],
+    "tree_top_l": [
+     96,
+     16,
+     16,
+     16
+    ],
+    "tree_top_m": [
+     112,
+     16,
+     16,
+     16
+    ],
+    "tree_top_r": [
+     128,
+     16,
+     16,
+     16
+    ],
+    "tree_trunk": [
+     144,
+     16,
+     16,
+     16
+    ],
+    "shroom_top_l": [
+     160,
+     16,
+     16,
+     16
+    ],
+    "shroom_top_m": [
+     176,
+     16,
+     16,
+     16
+    ],
+    "shroom_top_r": [
+     192,
+     16,
+     16,
+     16
+    ],
+    "shroom_stem_top": [
+     208,
+     16,
+     16,
+     16
+    ],
+    "shroom_stem": [
+     224,
+     16,
+     16,
+     16
+    ],
+    "cannon_top": [
+     240,
+     16,
+     16,
+     16
+    ],
+    "cannon_neck": [
+     0,
+     32,
+     16,
+     16
+    ],
+    "cannon_base": [
+     16,
+     32,
+     16,
+     16
+    ],
+    "coral": [
+     32,
+     32,
+     16,
+     16
+    ],
+    "water_top": [
+     48,
+     32,
+     16,
+     16
+    ],
+    "water": [
+     64,
+     32,
+     16,
+     16
+    ],
+    "lava_top": [
+     80,
+     32,
+     16,
+     16
+    ],
+    "lava": [
+     96,
+     32,
+     16,
+     16
+    ],
+    "lift_rope": [
+     112,
+     32,
+     16,
+     16
+    ],
+    "lift_pulley_l": [
+     128,
+     32,
+     16,
+     16
+    ],
+    "lift_pulley_m": [
+     144,
+     32,
+     16,
+     16
+    ],
+    "lift_pulley_r": [
+     160,
+     32,
+     16,
+     16
+    ],
+    "seabed": [
+     176,
+     32,
+     16,
+     16
+    ],
+    "castle_floor": [
+     192,
+     32,
+     16,
+     16
+    ],
+    "lava_top2": [
+     208,
+     32,
+     16,
+     16
+    ],
+    "water_top2": [
+     224,
+     32,
+     16,
+     16
+    ]
+   },
+   "anims": {
+    "block_q": {
+     "frames": [
+      "block_q1",
+      "block_q1",
+      "block_q1",
+      "block_q2",
+      "block_q3",
+      "block_q2"
+     ],
+     "ms": 133,
+     "loop": true
+    },
+    "lava_top": {
+     "frames": [
+      "lava_top",
+      "lava_top2"
+     ],
+     "ms": 267,
+     "loop": true
+    },
+    "water_top": {
+     "frames": [
+      "water_top",
+      "water_top2"
+     ],
+     "ms": 267,
+     "loop": true
+    }
+   },
+   "variants": {
+    "underground": "tiles/underground.png",
+    "underwater": "tiles/underwater.png",
+    "castle": "tiles/castle.png",
+    "snow": "tiles/snow.png"
+   }
+  },
+  "scenery": {
+   "file": "tiles/scenery_overworld.png",
+   "frames": {
+    "hill_large": [
+     0,
+     0,
+     80,
+     35
+    ],
+    "hill_small": [
+     80,
+     0,
+     48,
+     19
+    ],
+    "bush1": [
+     128,
+     0,
+     32,
+     16
+    ],
+    "bush2": [
+     160,
+     0,
+     48,
+     16
+    ],
+    "bush3": [
+     0,
+     35,
+     64,
+     16
+    ],
+    "cloud1": [
+     64,
+     35,
+     32,
+     24
+    ],
+    "cloud2": [
+     96,
+     35,
+     48,
+     24
+    ],
+    "cloud3": [
+     144,
+     35,
+     64,
+     24
+    ],
+    "castle_small": [
+     0,
+     59,
+     80,
+     80
+    ],
+    "castle_large": [
+     80,
+     59,
+     144,
+     176
+    ],
+    "fence": [
+     224,
+     59,
+     16,
+     16
+    ],
+    "tree_small": [
+     240,
+     59,
+     16,
+     32
+    ],
+    "tree_large": [
+     0,
+     235,
+     16,
+     48
+    ]
+   },
+   "variants": {
+    "snow": "tiles/scenery_snow.png"
+   }
+  }
+ },
+ "font": {
+  "file": "ui/font.png",
+  "cell": [
+   8,
+   8
+  ],
+  "columns": 16,
+  "chars": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x!.,'?\u00a9:/"
+ },
+ "title": {
+  "file": "ui/title.png"
+ },
+ "palette": {
+  "sky_day": "#6888FC",
+  "sky_night": "#000000",
+  "underground": "#000000",
+  "castle": "#000000",
+  "underwater": "#0058F8"
+ },
+ "audio": {
+  "jump_small": {
+   "files": [
+    "audio/sfx/jump_small.ogg",
+    "audio/sfx/jump_small.wav"
+   ],
+   "duration": 0.320884
+  },
+  "jump_big": {
+   "files": [
+    "audio/sfx/jump_big.ogg",
+    "audio/sfx/jump_big.wav"
+   ],
+   "duration": 0.390113
+  },
+  "stomp": {
+   "files": [
+    "audio/sfx/stomp.ogg",
+    "audio/sfx/stomp.wav"
+   ],
+   "duration": 0.148027
+  },
+  "kick": {
+   "files": [
+    "audio/sfx/kick.ogg",
+    "audio/sfx/kick.wav"
+   ],
+   "duration": 0.059819
+  },
+  "coin": {
+   "files": [
+    "audio/sfx/coin.ogg",
+    "audio/sfx/coin.wav"
+   ],
+   "duration": 0.640181
+  },
+  "bump": {
+   "files": [
+    "audio/sfx/bump.ogg",
+    "audio/sfx/bump.wav"
+   ],
+   "duration": 0.16771
+  },
+  "brick_break": {
+   "files": [
+    "audio/sfx/brick_break.ogg",
+    "audio/sfx/brick_break.wav"
+   ],
+   "duration": 0.456757
+  },
+  "powerup_appear": {
+   "files": [
+    "audio/sfx/powerup_appear.ogg",
+    "audio/sfx/powerup_appear.wav"
+   ],
+   "duration": 0.619229
+  },
+  "powerup": {
+   "files": [
+    "audio/sfx/powerup.ogg",
+    "audio/sfx/powerup.wav"
+   ],
+   "duration": 1.027302
+  },
+  "powerdown": {
+   "files": [
+    "audio/sfx/powerdown.ogg",
+    "audio/sfx/powerdown.wav"
+   ],
+   "duration": 0.706463
+  },
+  "pipe": {
+   "files": [
+    "audio/sfx/pipe.ogg",
+    "audio/sfx/pipe.wav"
+   ],
+   "duration": 0.67415
+  },
+  "oneup": {
+   "files": [
+    "audio/sfx/oneup.ogg",
+    "audio/sfx/oneup.wav"
+   ],
+   "duration": 0.706939
+  },
+  "fireball": {
+   "files": [
+    "audio/sfx/fireball.ogg",
+    "audio/sfx/fireball.wav"
+   ],
+   "duration": 0.10127
+  },
+  "flagpole": {
+   "files": [
+    "audio/sfx/flagpole.ogg",
+    "audio/sfx/flagpole.wav"
+   ],
+   "duration": 1.20619
+  },
+  "firework": {
+   "files": [
+    "audio/sfx/firework.ogg",
+    "audio/sfx/firework.wav"
+   ],
+   "duration": 0.624875
+  },
+  "bowser_fall": {
+   "files": [
+    "audio/sfx/bowser_fall.ogg",
+    "audio/sfx/bowser_fall.wav"
+   ],
+   "duration": 1.922834
+  },
+  "bowser_fire": {
+   "files": [
+    "audio/sfx/bowser_fire.ogg",
+    "audio/sfx/bowser_fire.wav"
+   ],
+   "duration": 1.039002
+  },
+  "vine": {
+   "files": [
+    "audio/sfx/vine.ogg",
+    "audio/sfx/vine.wav"
+   ],
+   "duration": 1.003628
+  },
+  "pause": {
+   "files": [
+    "audio/sfx/pause.ogg",
+    "audio/sfx/pause.wav"
+   ],
+   "duration": 0.556848
+  },
+  "beep": {
+   "files": [
+    "audio/sfx/beep.ogg",
+    "audio/sfx/beep.wav"
+   ],
+   "duration": 0.079365
+  },
+  "swim": {
+   "files": [
+    "audio/sfx/swim.ogg",
+    "audio/sfx/swim.wav"
+   ],
+   "duration": 0.160317
+  },
+  "cannon": {
+   "files": [
+    "audio/sfx/cannon.ogg",
+    "audio/sfx/cannon.wav"
+   ],
+   "duration": 0.223061
+  },
+  "overworld": {
+   "files": [
+    "audio/music/overworld.ogg",
+    "audio/music/overworld.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 38.4,
+   "duration": 38.4
+  },
+  "overworld_hurry": {
+   "files": [
+    "audio/music/overworld_hurry.ogg",
+    "audio/music/overworld_hurry.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 25.6,
+   "duration": 25.6
+  },
+  "underground": {
+   "files": [
+    "audio/music/underground.ogg",
+    "audio/music/underground.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 16.0,
+   "duration": 16.0
+  },
+  "underground_hurry": {
+   "files": [
+    "audio/music/underground_hurry.ogg",
+    "audio/music/underground_hurry.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 10.666667,
+   "duration": 10.666667
+  },
+  "underwater": {
+   "files": [
+    "audio/music/underwater.ogg",
+    "audio/music/underwater.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 24.0,
+   "duration": 24.0
+  },
+  "underwater_hurry": {
+   "files": [
+    "audio/music/underwater_hurry.ogg",
+    "audio/music/underwater_hurry.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 16.0,
+   "duration": 16.0
+  },
+  "castle": {
+   "files": [
+    "audio/music/castle.ogg",
+    "audio/music/castle.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 12.0,
+   "duration": 12.0
+  },
+  "castle_hurry": {
+   "files": [
+    "audio/music/castle_hurry.ogg",
+    "audio/music/castle_hurry.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 8.0,
+   "duration": 8.0
+  },
+  "star": {
+   "files": [
+    "audio/music/star.ogg",
+    "audio/music/star.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 4.8,
+   "duration": 4.8
+  },
+  "ending": {
+   "files": [
+    "audio/music/ending.ogg",
+    "audio/music/ending.mp3"
+   ],
+   "loop": true,
+   "loopStart": 0.0,
+   "loopEnd": 20.0,
+   "duration": 20.0
+  },
+  "warning": {
+   "files": [
+    "audio/music/warning.ogg",
+    "audio/music/warning.mp3"
+   ],
+   "duration": 2.779932
+  },
+  "stage_clear": {
+   "files": [
+    "audio/music/stage_clear.ogg",
+    "audio/music/stage_clear.mp3"
+   ],
+   "duration": 5.428707
+  },
+  "castle_clear": {
+   "files": [
+    "audio/music/castle_clear.ogg",
+    "audio/music/castle_clear.mp3"
+   ],
+   "duration": 5.853197
+  },
+  "death": {
+   "files": [
+    "audio/music/death.ogg",
+    "audio/music/death.mp3"
+   ],
+   "duration": 2.724649
+  },
+  "gameover": {
+   "files": [
+    "audio/music/gameover.ogg",
+    "audio/music/gameover.mp3"
+   ],
+   "duration": 3.907664
+  },
+  "pipe_intro": {
+   "files": [
+    "audio/music/pipe_intro.ogg",
+    "audio/music/pipe_intro.mp3"
+   ],
+   "duration": 2.51
+  }
+ }
+}

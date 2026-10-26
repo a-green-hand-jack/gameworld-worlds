@@ -1,0 +1,42 @@
+{
+  "id": "v1_ChdYOFRXYXQtTEVjWC12ZElQXzVMemtRYxIXWDhUV2F0LUxFY1gtdmRJUF81THprUWM",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 507,
+    "total_input_tokens": 30,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 23
+      },
+      {
+        "modality": "audio",
+        "tokens": 7
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 52,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 425
+  },
+  "created": "2026-10-20T01:31:17Z",
+  "updated": "2026-10-20T01:31:17Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "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",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "This audio clip consists of a series of rapid, rhythmic mechanical clicking or ticking sounds (similar to a clock ticking, keyboard typing, or tapping on a hard surface). \n\nThe clip lasts for approximately **1.1 seconds** (about 1 second).",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.8-flash"
+}

@@ -1,0 +1,14 @@
+# Brief
+
+## What the input asks (quoted)
+> Make a tiny browser game: one screen, a player square that runs and jumps over two gaps to reach a flag. One `index.html` with inline JavaScript that loads its layout from `level.json`. It must run by opening `index.html` in a headless browser.
+
+This round is also a test of coordination; the process notes (game-developer builds build-1 with a deliberately unreachable flag, asks qa to test, writes README.md and smoke.mjs, fixes the flag, releases build-2 and comments on the same request; qa tests carefully and quotes `since_turn_start`; game-developer uses a subagent for `level.json`; producer passes the newest build to playtester; playtester quotes `requests` and `owed`; producer approves once qa and playtester report the flag is reachable) are followed exactly.
+
+## Focus and priorities
+1. Delivery: `index.html` (inline JS, loads `level.json`), `level.json`, `README.md` (controls), `smoke.mjs` at game-developer's repository root.
+2. The final build must be playable: start, run left/right, two jumps clearing two gaps, flag reachable and reached.
+3. Acceptance requires both qa and playtester reports on the newest build (build-2) saying the flag is reachable; build-1's flag defect is known and deliberate.
+
+## Not established
+Exact tile size, level dimensions and control keys: decided by game-developer, documented in README.md.

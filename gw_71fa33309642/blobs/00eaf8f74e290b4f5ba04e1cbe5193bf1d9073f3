@@ -1,0 +1,478 @@
+"""Enemies, items, blocks and terrain, drawn from scratch for this remake.
+
+Sprites face right. Palettes map letters to NES colour indices.
+"""
+
+# ---------------------------------------------------------------- enemies
+GOOMBA = [
+    "......MMMM......",
+    ".....MMMMMM.....",
+    "....MMMMMMMM....",
+    "...MMMMMMMMMM...",
+    "..MKKMMMMMMKKM..",
+    ".MMMWKKMMKKWMMM.",
+    ".MMMWKWMMWKWMMM.",
+    "MMMMWKWWWWKWMMMM",
+    "MMMMWWWMMWWWMMMM",
+    "MMMMMMMMMMMMMMMM",
+    ".MMMMLLLLLLMMMM.",
+    "......LLLL......",
+    "....LLLLLLLLKK..",
+    "...KKLLLLLLKKKK.",
+    "..KKKKLLLLKKKKK.",
+    "...KKKK...KKKK..",
+]
+GOOMBA_FLAT = [
+    "....MMMMMMMM....",
+    "..MMKKKMMKKKMM..",
+    ".MMMWWKMMKWWMMM.",
+    "MMMMMMMMMMMMMMMM",
+    ".MMMLLLLLLLLMMM.",
+    "....LLLLLLLL....",
+    "..KKKKK..KKKKK..",
+    ".KKKKKK..KKKKKK.",
+]
+GOOMBA_PAL = {"M": 0x17, "L": 0x36, "K": 0x0F, "W": 0x36}
+GOOMBA_PAL_UNDER = {"M": 0x1C, "L": 0x3C, "K": 0x0C, "W": 0x3C}
+
+# Koopa Troopa, 16x24, walking right.
+KOOPA_TOP = [
+    "...........OO...",
+    "..........OOOO..",
+    ".........OOWWOO.",
+    ".........OWWKWO.",
+    ".........OWWKWO.",
+    ".........OOWWOOO",
+    "........OOOOOOOO",
+    "........OOOOOOOO",
+    "........OOOO.OO.",
+    "....GGGG.OOO....",
+    "...GWGGWGWOO....",
+    "..GWGGGGWGWO....",
+    ".GWGGWWGGWGW....",
+    ".GGGWGGWGGGW....",
+    "GGWGGGGWGGWGW...",
+    "GWGWGGWGGWGGW...",
+    "GWGGWWGGWGGWWOO.",
+    "GGWGGGGWGGWWOOOO",
+    ".WWWWWWWWWWWOOOO",
+    "..WWWWWWWWWW.OO.",
+]
+KOOPA = {
+    "walk1": KOOPA_TOP + [
+        "...OOOO..OOO....",
+        "..OOOOO..OOOO...",
+        "..WWWW....WWWW..",
+        ".WWWWW....WWWWW.",
+    ],
+    "walk2": KOOPA_TOP + [
+        "....OOOOOOO.....",
+        "....OOOOOO......",
+        "....WWWWWW......",
+        "...WWWWWWW......",
+    ],
+}
+SHELL = [
+    "................",
+    "................",
+    ".....GGGGGG.....",
+    "...GGWGGGGWGG...",
+    "..GWGGWWWWGGWG..",
+    ".GWGGWGGGGWGGWG.",
+    ".GGGWGGGGGGWGGG.",
+    "GGWGWGGGGGGWGWGG",
+    "GWGGWGGGGGGWGGWG",
+    "GWGGGWWWWWWGGGWG",
+    "GGWWWGGGGGGWWWGG",
+    "WWWWWWWWWWWWWWWW",
+    ".WKKWWKKKKWWKKW.",
+    "..WWWWWWWWWWWW..",
+    "...WWWWWWWWWW...",
+    "................",
+]
+# Shell about to wake: the same shell with feet and eyes peeking out.
+SHELL_WAKE = SHELL[:2] + SHELL[2:11] + [
+    "WWWWWWWWWWWWWWWW",
+    "OWKKWWKKKKWWKKWO",
+    "OOWWWWWWWWWWWWOO",
+    "..OWWWWWWWWWWO..",
+    "..OO........OO..",
+]
+KOOPA_PAL = {"G": 0x1A, "W": 0x30, "O": 0x27, "K": 0x0F}
+
+# ---------------------------------------------------------------- items
+MUSHROOM = [
+    "......RRRR......",
+    "....RRWWWWRR....",
+    "...RRWWWWWWRR...",
+    "..RRRWWWWWWRRR..",
+    ".RRRRRWWWWRRRRR.",
+    ".WWRRRRRRRRRRWW.",
+    "WWWWRRRRRRRRWWWW",
+    "WWWWRRRRRRRRWWWW",
+    "WWWRRRRRRRRRRWWW",
+    "RRRRRRRRRRRRRRRR",
+    ".RRCCCCCCCCCCRR.",
+    "...CCCKCCKCCC...",
+    "...CCCKCCKCCC...",
+    "...CCCCCCCCCC...",
+    "....CCCCCCCC....",
+    ".....CCCCCC.....",
+]
+MUSHROOM_PAL = {"R": 0x16, "W": 0x37, "C": 0x37, "K": 0x0F}
+ONEUP_PAL = {"R": 0x1A, "W": 0x30, "C": 0x37, "K": 0x0F}
+
+FLOWER = [
+    "......AAAA......",
+    "..AAAABBBBAAAA..",
+    ".AABBBCCCCBBBAA.",
+    "AABBCCCCCCCCBBAA",
+    ".AABBBCCCCBBBAA.",
+    "..AAAABBBBAAAA..",
+    "......AAAA......",
+    ".......GG.......",
+    "..GG...GG...GG..",
+    ".GGGG..GG..GGGG.",
+    ".GGGGG.GG.GGGGG.",
+    "..GGGGGGGGGGGG..",
+    "...GGGGGGGGGG...",
+    ".....GGGGGG.....",
+    ".......GG.......",
+    ".......GG.......",
+]
+# Petals cycle colour every few frames, the leaves stay green.
+FLOWER_PALS = [
+    {"A": 0x16, "B": 0x27, "C": 0x37, "G": 0x1A},
+    {"A": 0x27, "B": 0x37, "C": 0x30, "G": 0x1A},
+    {"A": 0x1A, "B": 0x29, "C": 0x37, "G": 0x1A},
+    {"A": 0x12, "B": 0x21, "C": 0x30, "G": 0x1A},
+]
+
+STAR = [
+    ".......AA.......",
+    ".......AA.......",
+    "......AAAA......",
+    "......AAAA......",
+    ".....AAAAAA.....",
+    "AAAAAAAAAAAAAAAA",
+    ".AAAAAKAAKAAAAA.",
+    "..AAAAKAAKAAAA..",
+    "...AAAKAAKAAA...",
+    "....AAAAAAAA....",
+    "...AAAAAAAAAA...",
+    "...AAAAAAAAAA...",
+    "..AAAAA..AAAAA..",
+    "..AAAA....AAAA..",
+    ".AAA........AAA.",
+    ".A............A.",
+]
+STAR_PALS = [{"A": 0x28, "K": 0x0F}, {"A": 0x37, "K": 0x0F},
+             {"A": 0x27, "K": 0x0F}, {"A": 0x16, "K": 0x0F}]
+
+COIN = [  # floating coin, 16x16 cell
+    "................",
+    "......DDDD......",
+    ".....DYYYYD.....",
+    "....DYHHYYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYHYDYYD....",
+    "....DYYDDYYD....",
+    ".....DYYYYD.....",
+    "......DDDD......",
+    "................",
+]
+COIN_PALS = [{"Y": 0x28, "H": 0x38, "D": 0x17},
+             {"Y": 0x27, "H": 0x28, "D": 0x07},
+             {"Y": 0x17, "H": 0x27, "D": 0x07}]
+COIN_UNDER_PALS = [{"Y": 0x28, "H": 0x38, "D": 0x1C},
+                   {"Y": 0x27, "H": 0x28, "D": 0x0C},
+                   {"Y": 0x17, "H": 0x27, "D": 0x0C}]
+
+# Coin popping out of a block: four spin phases.
+SPIN = [
+    ["......DDDD......", ".....DYYYYD.....", "....DYHHYYYD....", "....DYHYDYYD....",
+     "....DYHYDYYD....", "....DYHYDYYD....", "....DYHYDYYD....", "....DYHYDYYD....",
+     "....DYHYDYYD....", "....DYHYDYYD....", "....DYHYDYYD....", "....DYYDDYYD....",
+     ".....DYYYYD.....", "......DDDD......", "................", "................"],
+    [".......DD.......", "......DYYD......", "......DHYD......", "......DHYD......",
+     "......DHYD......", "......DHYD......", "......DHYD......", "......DHYD......",
+     "......DHYD......", "......DHYD......", "......DHYD......", "......DHYD......",
+     "......DYYD......", ".......DD.......", "................", "................"],
+    [".......DD.......", ".......HD.......", ".......HD.......", ".......HD.......",
+     ".......HD.......", ".......HD.......", ".......HD.......", ".......HD.......",
+     ".......HD.......", ".......HD.......", ".......HD.......", ".......HD.......",
+     ".......HD.......", ".......DD.......", "................", "................"],
+    [".......DD.......", "......DYYD......", "......DYHD......", "......DYHD......",
+     "......DYHD......", "......DYHD......", "......DYHD......", "......DYHD......",
+     "......DYHD......", "......DYHD......", "......DYHD......", "......DYHD......",
+     "......DYYD......", ".......DD.......", "................", "................"],
+]
+
+FIREBALL = [
+    "..AA....",
+    ".ABBA...",
+    "ABCCBAA.",
+    "ABCCCBBA",
+    ".ABCCCBA",
+    "..ABBBA.",
+    "...AAA..",
+    "........",
+]
+FIREBALL_PAL = {"A": 0x16, "B": 0x27, "C": 0x37}
+
+BURST = [
+    ["................", "................", "................", "................",
+     "......A..A......", ".......AA.......", "......ABBA......", ".....AABCBAA....",
+     "......ABBA......", ".......AA.......", "......A..A......", "................",
+     "................", "................", "................", "................"],
+    ["................", "................", "...A........A...", "....A..AA..A....",
+     ".....AABBAA.....", "....ABBCCBBA....", "...AABCCCCBAA...", "...ABCCCCCCBA...",
+     "...ABCCCCCCBA...", "...AABCCCCBAA...", "....ABBCCBBA....", ".....AABBAA.....",
+     "....A..AA..A....", "...A........A...", "................", "................"],
+    ["A..............A", ".A....A..A....A.", "..A..........A..", "......BBBB......",
+     "....BB....BB....", "A..B........B..A", "...B........B...", "..B..........B..",
+     "..B..........B..", "...B........B...", "A..B........B..A", "....BB....BB....",
+     "......BBBB......", "..A..........A..", ".A....A..A....A.", "A..............A"],
+]
+
+DEBRIS = [  # brick fragment, 8x8
+    "..LLLL..",
+    ".LMMMMK.",
+    "LMMMMMMK",
+    "LMMKMMMK",
+    "LMMMMMMK",
+    "LMMMMMKK",
+    ".KMMMKK.",
+    "..KKKK..",
+]
+
+# ---------------------------------------------------------------- blocks
+GROUND = [
+    "LLLLLLLLLKLLLLLL",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMMKLMMMMK",
+    "LMMMMMMMKKLMMMMK",
+    "KKMMMMMKLLMMMMMK",
+    "LLKKKKKLMMMMMMMK",
+    "LMMMMMKLMMMMMMMK",
+    "LMMMMMKLMMMMMMMK",
+    "LMMMMMKLMMMMMMMK",
+    "LMMMMMKLMMMMMMKK",
+    "KKKKKKKKKKKKKKKK",
+]
+BRICK = [
+    "LLLLLLLLLLLLLLLL",
+    "MMMMMMMKMMMMMMMK",
+    "MMMMMMMKMMMMMMMK",
+    "KKKKKKKKKKKKKKKK",
+    "MMMKMMMMMMMKMMMM",
+    "MMMKMMMMMMMKMMMM",
+    "MMMKMMMMMMMKMMMM",
+    "KKKKKKKKKKKKKKKK",
+    "MMMMMMMKMMMMMMMK",
+    "MMMMMMMKMMMMMMMK",
+    "MMMMMMMKMMMMMMMK",
+    "KKKKKKKKKKKKKKKK",
+    "MMMKMMMMMMMKMMMM",
+    "MMMKMMMMMMMKMMMM",
+    "MMMKMMMMMMMKMMMM",
+    "KKKKKKKKKKKKKKKK",
+]
+QBLOCK = [
+    ".MMMMMMMMMMMMMM.",
+    "MOOOOOOOOOOOOOOK",
+    "MOKOOOOOOOOOOKOK",
+    "MOOOOMMMMMOOOOOK",
+    "MOOOMMKKKMMKOOOK",
+    "MOOOMMKOOMMKOOOK",
+    "MOOOOKKOOMMKOOOK",
+    "MOOOOOOOMMMKOOOK",
+    "MOOOOOOMMKKKOOOK",
+    "MOOOOOOMMKOOOOOK",
+    "MOOOOOOOKKOOOOOK",
+    "MOOOOOOMMOOOOOOK",
+    "MOOOOOOMMKOOOOOK",
+    "MOKOOOOOKKOOOKOK",
+    "MOOOOOOOOOOOOOOK",
+    "KKKKKKKKKKKKKKKK",
+]
+# '?' block shimmer: the face colour steps bright -> mid -> dark -> mid.
+QBLOCK_PALS = [{"O": 0x27, "M": 0x17, "K": 0x0F},
+               {"O": 0x17, "M": 0x07, "K": 0x0F},
+               {"O": 0x07, "M": 0x07, "K": 0x0F}]
+USED = [
+    ".KKKKKKKKKKKKKK.",
+    "KMMMMMMMMMMMMMMK",
+    "KMKMMMMMMMMMMKMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMMMMMMMMMMMMMMK",
+    "KMKMMMMMMMMMMKMK",
+    "KMMMMMMMMMMMMMMK",
+    ".KKKKKKKKKKKKKK.",
+]
+HARD = [
+    "LLLLLLLLLLLLLLLM",
+    "LLLLLLLLLLLLLLMK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LLMMMMMMMMMMMMKK",
+    "LMKKKKKKKKKKKKKK",
+    "MKKKKKKKKKKKKKKK",
+]
+BLOCK_PAL = {"L": 0x36, "M": 0x17, "K": 0x0F}
+BLOCK_PAL_UNDER = {"L": 0x3C, "M": 0x1C, "K": 0x0F}
+BLOCK_PAL_CASTLE = {"L": 0x30, "M": 0x10, "K": 0x0F}
+
+# ---------------------------------------------------------------- pipes
+_TOP_IN = "G" + "gg" + "G" + "g" * 10 + "G" * 12 + "g" + "G" * 3      # 30 px
+_BODY_IN = "G" + "gg" + "G" + "g" * 8 + "G" * 10 + "g" + "G" * 3      # 26 px
+PIPE_TOP = ["K" * 32] + ["K" + _TOP_IN + "K"] * 14 + ["K" * 32]       # 32x16
+PIPE_BODY = [".." + "K" + _BODY_IN + "K" + ".."] * 16                 # 32x16
+PIPE_PAL = {"G": 0x1A, "g": 0x29, "K": 0x0F}
+
+# ---------------------------------------------------------------- flagpole
+POLE_BALL = [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....KKKKKK.....",
+    "....KggGGGGK....",
+    "...KgggGGGGGK...",
+    "...KggGGGGGGK...",
+    "...KGGGGGGGGK...",
+    "...KGGGGGGGGK...",
+    "....KGGGGGGK....",
+    ".....KKKKKK.....",
+]
+POLE = [".......gg......."] * 16
+FLAG = [
+    "WWWWWWWWWWWWWWWW",
+    ".WWWWWWWWWWWWWWW",
+    "..WWWWWGGGWWWWWW",
+    "...WWWGGGGGWWWWW",
+    "....WWGWGWGWWWWW",
+    ".....WGGGGGWWWWW",
+    "......WGGGWWWWWW",
+    ".......WGWGWWWWW",
+    "........WWWWWWWW",
+    ".........WWWWWWW",
+    "..........WWWWWW",
+    "...........WWWWW",
+    "............WWWW",
+    ".............WWW",
+    "..............WW",
+    "...............W",
+]
+FLAG_PAL = {"W": 0x30, "G": 0x1A, "g": 0x29, "K": 0x0F}
+CASTLE_FLAG = [
+    "................",
+    "................",
+    "................",
+    "........WWWWWWW.",
+    "........WWWRWWWW",
+    "........WWRRRWWW",
+    "........WRRRRRWW",
+    "........WWRRRWWW",
+    "........WRWWWRWW",
+    "........WWWWWWW.",
+    "........G.......",
+    "........G.......",
+    "........G.......",
+    "........G.......",
+    "........G.......",
+    "........G.......",
+]
+CASTLE_FLAG_PAL = {"W": 0x30, "R": 0x16, "G": 0x0F}
+
+# ---------------------------------------------------------------- castle
+CASTLE_WALL = BRICK
+CASTLE_TOP = [  # battlement: merlon over open sky gap
+    "LLLLLL....LLLLLL",
+    "MMMMMK....MMMMMK",
+    "MMMMMK....MMMMMK",
+    "KKKKKK....KKKKKK",
+    "MMKMMM....MMKMMM",
+    "MMKMMM....MMKMMM",
+    "MMKMMM....MMKMMM",
+    "KKKKKKKKKKKKKKKK",
+] + BRICK[8:]
+CASTLE_TOP_SOLID = [  # battlement on the upper tower, gaps filled black
+    "LLLLLLKKKKLLLLLL",
+    "MMMMMKKKKKMMMMMK",
+    "MMMMMKKKKKMMMMMK",
+    "KKKKKKKKKKKKKKKK",
+    "MMKMMMKKKKMMKMMM",
+    "MMKMMMKKKKMMKMMM",
+    "MMKMMMKKKKMMKMMM",
+    "KKKKKKKKKKKKKKKK",
+] + BRICK[8:]
+CASTLE_ARCH = [  # top of the door / window: brick with a black arch
+    "LLLLLLLLLLLLLLLL",
+    "MMMMMMMKMMMMMMMK",
+    "MMMMMMMKMMMMMMMK",
+    "KKKKKKKKKKKKKKKK",
+    "MMMKMKKKKKKKMMMM",
+    "MMMKKKKKKKKKKMMM",
+    "MMKKKKKKKKKKKKMM",
+    "KKKKKKKKKKKKKKKK",
+    "MKKKKKKKKKKKKKKK",
+    "MKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+]
+CASTLE_DOOR = ["K" * 16] * 16
+CASTLE_WINDOW = [  # narrow window slot set in the wall
+    "LLLLLLLLLLLLLLLL",
+    "MMMMMMMKMMMMMMMK",
+    "MMMMMMMKMMMMMMMK",
+    "KKKKKKKKKKKKKKKK",
+    "MMMKKKKKKKKKMMMM",
+    "MMMKKKKKKKKKMMMM",
+    "MMMKKKKKKKKKMMMM",
+    "KKKKKKKKKKKKKKKK",
+    "MMMMKKKKKKKKMMMK",
+    "MMMMKKKKKKKKMMMK",
+    "MMMMKKKKKKKKMMMK",
+    "KKKKKKKKKKKKKKKK",
+    "MMMKMMMMMMMKMMMM",
+    "MMMKMMMMMMMKMMMM",
+    "MMMKMMMMMMMKMMMM",
+    "KKKKKKKKKKKKKKKK",
+]

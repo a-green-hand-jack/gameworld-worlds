@@ -1,0 +1,50 @@
+{
+  "build": {
+    "game-developer": "8063df5ac6b6aaa38f6a40c086216b4b7068cfee",
+    "artist": "d75a5b6e61b86b06a6889c944e9743450844cba4"
+  },
+  "wav": {
+    "sha256": "eefee3386b83b21bb41fa218f04f1d408dfd4e1cfb5f89734005d6c2348e9e36",
+    "rate": 44100,
+    "frames": 22050,
+    "duration": 0.5,
+    "channels": 1,
+    "sample_width": 2,
+    "dominant_frequency": 660.0,
+    "rms_per_50ms": [
+      2657.5973522377903,
+      2175.786148121703,
+      1694.4327327203891,
+      1214.1151671082391,
+      736.7637738810191,
+      278.2403959058285
+    ],
+    "trailing_silence_nonzero_samples": 0
+  },
+  "browser": {
+    "version": "156.0.8078.4",
+    "count_after_10_clicks_and_2_keyboard_activations": "12",
+    "audio": {
+      "duration": 0.5,
+      "ended": true,
+      "error": null,
+      "events": [
+        "playing",
+        "ended",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "playing",
+        "ended"
+      ]
+    },
+    "page_errors": []
+  }
+}

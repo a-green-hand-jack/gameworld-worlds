@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Click Ten</title>
+<style>
+:root{font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f6fb;color:#172033}main{width:min(90vw,30rem);padding:2.5rem;text-align:center;background:#fff;border:1px solid #dce3ef;border-radius:1rem;box-shadow:0 1rem 2.5rem #17203318}h1{margin:0 0 .5rem;font-size:2.5rem}p{margin:.5rem 0 1.75rem;color:#526079}#counter{margin:1rem 0 1.5rem;font-size:4rem;font-weight:750;line-height:1}button{border:0;border-radius:.65rem;padding:.85rem 1.5rem;font:inherit;font-weight:700;color:#fff;background:#3157d5;cursor:pointer}button:hover{background:#2547b8}button:focus-visible{outline:3px solid #91aaff;outline-offset:3px}[hidden]{display:none}#success{color:#176b43;font-weight:700}
+</style>
+</head><body><main><h1>Click Ten</h1><p>Click the button ten times.</p><div id="counter" aria-live="polite">0</div><button id="clickButton" type="button">Click me</button><div id="complete" hidden><p id="success" role="status">You did it!</p><button id="againButton" type="button">Play again</button></div></main>
+<script>
+const counter=document.querySelector('#counter'),clickButton=document.querySelector('#clickButton'),complete=document.querySelector('#complete'),againButton=document.querySelector('#againButton');let clicks=0;
+clickButton.addEventListener('click',()=>{clicks+=1;counter.textContent=clicks;if(clicks===10){clickButton.hidden=true;complete.hidden=false;}});
+againButton.addEventListener('click',()=>{clicks=0;counter.textContent=clicks;complete.hidden=true;clickButton.hidden=false;clickButton.focus();});
+</script></body></html>

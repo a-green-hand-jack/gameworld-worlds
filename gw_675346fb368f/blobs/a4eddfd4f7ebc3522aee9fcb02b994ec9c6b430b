@@ -1,0 +1,30 @@
+PASS R2 loads over http, title screen first screen=title assets={'loaded': ['img/logo.svg', 'audio/paddle_hit.wav', 'audio/wall_hit.wav', 'audio/score.wav', 'audio/concede.wav', 'audio/win.wav', 'audio/lose.wav', 'audio/start.wav'], 'missing': []}
+PASS R2 no console errors/warnings/404 on load []
+PASS R6 Enter starts match 
+PASS R4 ArrowUp moves paddle up, stops on release 252->99, after release 99,99
+PASS R4 paddle clamped to court (0..H-96) min=0 max=504
+PASS R4 KeyW moves paddle 504->412
+PASS R4 KeyS moves paddle 404->496
+PASS R4 up+down together: net movement small (<=2 steps) 496->496
+PASS R3/R5 idle player: computer wins exactly 5-x, match ends at 5 {'player': 0, 'cpu': 5} in 7s
+PASS R1/R7 score increments by exactly 1 per point [[{'player': 0, 'cpu': 0}, {'player': 0, 'cpu': 1}], [{'player': 0, 'cpu': 1}, {'player': 0, 'cpu': 2}], [{'player': 0, 'cpu': 2}, {'player': 0, 'cpu': 3}], [{'player': 0, 'cpu': 3}, {'player': 0, 'cpu': 4}], [{'player': 0, 'cpu': 4}, {'player': 0, 'cpu': 5}]]
+PASS R1 no ball passes through a paddle (overlap at score time) []
+FAIL R9 Space on end screen starts new match at 0-0 {'player': 0, 'cpu': 5}
+PASS R5 human-like bot (150ms latency) match ends at 5 {'player': 0, 'cpu': 5} winner=cpu rallies=1 0s
+FAIL R9 click on end screen starts new match at 0-0 {'player': 0, 'cpu': 5}
+FAIL pause freezes ball 
+PASS R1 ball stays within court vertically (never escapes top/bottom) 0 oob samples
+PASS ball speed bounded max comp speed 395
+PASS ball never frozen longer than the 1s serve delay longest frozen run 1002 ms
+PASS ball never near-vertical (no endless wall bouncing) max |vy/vx|=0.38
+PASS title<->play cycle 1 (Enter, Esc pause, Q quit) 
+PASS title<->play cycle 2 (Enter, Esc pause, Q quit) 
+PASS title<->play cycle 3 (Enter, Esc pause, Q quit) 
+PASS R6 click on title starts match 
+bot 250ms latency matches: [(101, {'player': 4, 'cpu': 5}, 'cpu', 63), (202, {'player': 0, 'cpu': 5}, 'cpu', 44)]
+PASS canvas fits viewport (1920, 1080) [240, 0, 1440, 1080, 1920, 1080, 1080, 1920]
+PASS canvas fits viewport (800, 600) [0, 0, 800, 600, 800, 600, 600, 800]
+PASS canvas fits viewport (500, 300) [50, 0, 400, 300, 500, 300, 300, 500]
+PASS canvas fits viewport (1024, 500) [179, 0, 667, 500, 1024, 500, 500, 1024]
+PASS R2 works from file:// assets={'loaded': ['img/logo.svg', 'audio/paddle_hit.wav', 'audio/wall_hit.wav', 'audio/score.wav', 'audio/concede.wav', 'audio/lose.wav', 'audio/start.wav', 'audio/win.wav'], 'missing': []}
+ERRORS/WARNINGS seen across run: []

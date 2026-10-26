@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <defs>
+    <radialGradient id="rock" cx=".31" cy=".22" r=".84">
+      <stop stop-color="#ffe0a0"/><stop offset=".36" stop-color="#eaa666"/><stop offset=".75" stop-color="#aa5c48"/><stop offset="1" stop-color="#56384a"/>
+    </radialGradient>
+  </defs>
+  <path d="m20 9 13-4 13 5 14 12 5 15-9 17-15 11-14-4-17-8-5-15 5-17Z" fill="url(#rock)" stroke="#ffd295" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="m20 9 4 14-12 8m20-24 5 15 18 2 5-2M7 39l17 6 3 16m22-43-3 12 17 7M38 51l3 14" fill="none" stroke="#f5b77f" stroke-width="1.6" opacity=".8"/>
+  <path d="M39 26q9-2 11 5t-5 11q-8 2-11-5t5-11Z" fill="#8a4c49" stroke="#ffcf91" stroke-width="1.2"/>
+  <path d="M16 35q5-4 9 0t-2 8q-8 2-10-3Z" fill="#85504a" stroke="#d79769" stroke-width="1.1"/>
+  <path d="M30 48q4-2 7 2t-2 7q-7 1-8-4Z" fill="#975443" stroke="#ebaa70" stroke-width="1.1"/>
+  <path d="M20 18h3m33 21h3M33 14h3" stroke="#fff0bd" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+</svg>

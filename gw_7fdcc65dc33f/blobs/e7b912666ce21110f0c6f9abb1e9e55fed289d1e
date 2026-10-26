@@ -1,0 +1,35 @@
+# Playtest of build `play-1`
+
+**Build played:** release `play-1` in world/producer, `whack-a-mole-play-1.zip` (game-developer 130237e + artist sound/hit.wav 18f595a). Unzipped into an empty directory, served with `python3 -m http.server 8000`, opened at http://localhost:8000/.
+**How played:** headless Chromium (Playwright 1.64), 1280x800, real mouse clicks at the on-screen centre of whichever hole had its mole up (reaction delay ~250 ms), one full 30 s round, a replay, plus a separate run of 60 clicks on empty holes. I did not listen to the sound by ear (headless, no output device); see "Sound" for what I could verify.
+Scripts: `playtest/play-1-script.py`, `playtest/play-1-miss-script.py`. Video of the main session: `playtest/play-1-round.webm`. Screenshots: `playtest/shots/`.
+
+## Verdict
+Playable start to finish; I found no defect against R1–R8 and no crash or console error. Nothing here blocks acceptance. Minor polish notes below.
+
+## What I saw, against the input
+| Req | Result | Evidence |
+|---|---|---|
+| R1 browser game | Opens and plays from static files, no console errors/page errors | console log empty for the whole session |
+| R6 title screen | "Whack-a-Mole", a how-to-play text, a Start button | shots/1-title.png |
+| R2 grid | 9 holes (3x3) shown during play | `.hole` count = 9; shots/3-mole-up.png |
+| R3 moles <1 s | One mole at a time, hides by itself. 20 un-hit appearances measured in-page with a MutationObserver on the `up` class: 561–898 ms (max 898 ms). Hit appearances were shorter (e.g. 279–409 ms, due to my reaction time). | durations list in the run; max < 1000 ms |
+| R4 hit | Click on the up mole: +1 and the sound call fires (8 hits -> score 8, 8 sound plays). 5 rapid clicks on one up mole scored exactly 1. 60 clicks on non-up holes scored 0 (separate run, clicks verified in-page not to land on an up mole). | run output: `60 clicks; ... landed on an up-mole: 0, final score 0` |
+| R5 round | Round ended 30.02 s of wall time after Start | measured |
+| R7 HUD | "Score: N" and "Time: Ns" visible and updating (30 -> 25 after ~5 s, etc.) | shots/2-play-start.png, 5-play-mid.png |
+| R8 end screen | "Time's up! Final score: 10" (matched the in-game score) and a "Play again" button | shots/6-end.png |
+| Replay | Play again went straight to a fresh round with Score 0, Time 30, and scoring worked (3 hits -> 3) | shots/7-replay.png |
+
+Note on a false alarm I had to rule out: my first run counted one point from "empty-hole clicks"; the follow-up run logged each click's state at the moment of pointerdown and showed no click on a non-up hole ever scored, so that point was a race in my script (a mole popped up in the hole I was clicking), not a game defect.
+
+## Sound (R4/R9, what I could check)
+- `sound/hit.wav` in the build: mono, 44.1 kHz, 0.25 s (read with Python `wave`).
+- In the page the file is fetched and decoded by Web Audio (decoded buffer: 0.25 s, 44100 Hz, 1 ch), and every hit created and started a buffer source (soundsPlayed == hits). I could not hear it audibly; whether it sounds like a "bonk" is QA's listening check (R10).
+- The audio context is only created after pressing Start (user gesture), so browsers' autoplay rules do not mute the first hit.
+
+## Felt / minor notes (none against a requirement)
+1. The holes render as tall egg/arch shapes rather than round holes, and a mole is clipped by the shape, which looks slightly odd; purely cosmetic.
+2. After a hit the mole stays visible, brightened, for ~0.25–0.6 s before the next mole appears (hit-flash). It reads as feedback; it is not clickable again (no extra points).
+3. Only one mole is up at a time with a short gap, so the pace is gentle; at ~250 ms reaction I hit 10 of ~30 appearances while also testing misses, so it is easy to play. Ok for "small game".
+4. The game offers no feedback on a miss click (no sound, no flash); acceptable, since the input asks for none.
+5. Not tested: touch input, other browsers, window resize/mobile layout (the layout is a centred 520 px column and uses pointerdown).

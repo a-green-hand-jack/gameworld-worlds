@@ -1,0 +1,257 @@
+{
+ "fireball_first_taps": {
+  "positions_every_4f": [
+   [
+    68,
+    198.9
+   ],
+   [
+    84,
+    192.8
+   ],
+   [
+    100,
+    188.8
+   ],
+   [
+    116,
+    191.2
+   ],
+   [
+    132,
+    200
+   ],
+   [
+    148,
+    191.2
+   ],
+   [
+    164,
+    188.8
+   ],
+   [
+    180,
+    192.8
+   ],
+   [
+    196,
+    197.2
+   ],
+   [
+    212,
+    190
+   ],
+   [
+    228,
+    189.2
+   ],
+   [
+    244,
+    194.8
+   ],
+   [
+    260,
+    194.8
+   ],
+   null,
+   null
+  ]
+ },
+ "fireball_bounce": {
+  "y_min": 188.8,
+  "y_max": 200,
+  "floor_top": 208
+ },
+ "fireball_limit_after_3_quick_taps": 2,
+ "fireball_kills": {
+  "score_gain": 300,
+  "enemies_left": []
+ },
+ "brick_break_big": {
+  "score_gain": 50,
+  "tile_now": 0
+ },
+ "brick_bump_small": {
+  "score_gain": 0,
+  "tile_now": 4
+ },
+ "multi_coin_tight": {
+  "hits_log_(frame,coins,tile)": [
+   [
+    21,
+    1,
+    2
+   ],
+   [
+    42,
+    2,
+    2
+   ],
+   [
+    63,
+    3,
+    2
+   ],
+   [
+    84,
+    4,
+    2
+   ],
+   [
+    105,
+    5,
+    2
+   ],
+   [
+    126,
+    6,
+    2
+   ],
+   [
+    147,
+    7,
+    2
+   ],
+   [
+    168,
+    8,
+    2
+   ],
+   [
+    189,
+    9,
+    2
+   ],
+   [
+    210,
+    10,
+    2
+   ],
+   [
+    231,
+    11,
+    2
+   ],
+   [
+    252,
+    12,
+    2
+   ],
+   [
+    273,
+    13,
+    4
+   ]
+  ],
+  "coins": 13,
+  "score": 2600
+ },
+ "multi_coin_slow": {
+  "log": [
+   [
+    90,
+    1,
+    2
+   ],
+   [
+    180,
+    2,
+    2
+   ],
+   [
+    270,
+    3,
+    2
+   ],
+   [
+    360,
+    4,
+    4
+   ]
+  ]
+ },
+ "hundred_coins": {
+  "coins_after": 0,
+  "lives": [
+   3,
+   4
+  ]
+ },
+ "pause": {
+  "paused": true,
+  "x_moved_while_paused": 0,
+  "time_ticks_lost_while_paused": 0,
+  "paused_after_second_press": false
+ },
+ "mute": {
+  "muted_after_M": true,
+  "muted_after_M_again": false
+ },
+ "pipe_enter": {
+  "transitions": [
+   [
+    0,
+    "pipe/main"
+   ],
+   [
+    32,
+    "play/coinroom"
+   ]
+  ],
+  "player_pos": [
+   18,
+   87.0625
+  ],
+  "camX": 0,
+  "time": 399
+ },
+ "coinroom": {
+  "coin_tiles": 19,
+  "pxWidth": 256,
+  "scrollLock": true,
+  "coins_collected_running_right_jumping": 0,
+  "state_after": [
+   "play",
+   "coinroom",
+   52
+  ]
+ },
+ "pipe_exit": {
+  "transitions": [
+   [
+    0,
+    "play/coinroom"
+   ]
+  ],
+  "x": 52,
+  "camX": 0,
+  "area": "coinroom"
+ },
+ "checkpoint_flag_after_passing_82": true,
+ "checkpoint_respawn": {
+  "x": 1314,
+  "camX": 1234,
+  "lives": 2,
+  "time": 400
+ },
+ "sound_calls": {
+  "stopMusic:": 21,
+  "playMusic:overworld": 9,
+  "play:fireball": 6,
+  "play:kick": 2,
+  "play:jump_big": 21,
+  "play:break": 1,
+  "play:jump_small": 18,
+  "play:bump": 18,
+  "play:powerup_appear": 1,
+  "play:coin": 19,
+  "play:oneup": 1,
+  "play:pause": 2,
+  "pauseMusic:": 1,
+  "resumeMusic:": 1,
+  "play:pipe": 1,
+  "playMusic:underground": 1,
+  "playMusic:death": 1
+ },
+ "console_errors": []
+}

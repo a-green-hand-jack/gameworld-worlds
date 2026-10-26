@@ -1,0 +1,31 @@
+"""Contact sheet for review: python3 tools/gfx/contact.py SHEET [PREFIX] [THEME] > writes /hutian/work/contact_<sheet>.png"""
+import json
+import os
+import sys
+from PIL import Image, ImageDraw
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+g = json.load(open(os.path.join(ROOT, "build", "gfx.json")))
+name = sys.argv[1]
+prefix = sys.argv[2] if len(sys.argv) > 2 else ""
+theme = sys.argv[3] if len(sys.argv) > 3 else "overworld"
+s = g["sheets"][name]
+f = s.get("variants", {}).get(theme, s["file"])
+src = Image.open(os.path.join(ROOT, "assets", f)).convert("RGBA")
+bg = g["palette"].get({"overworld": "sky_day", "snow": "sky_day"}.get(theme, theme), "#6888FC")
+frames = [(n, r) for n, r in s["frames"].items() if n.startswith(prefix)]
+sc, cols = int(os.environ.get("SC", 4)), int(os.environ.get("COLS", 8))
+cw = max(r[2] for _, r in frames) * sc + 8
+ch = max(r[3] for _, r in frames) * sc + 18
+rows = (len(frames) + cols - 1) // cols
+out = Image.new("RGB", (cw * cols, ch * rows), "#444")
+d = ImageDraw.Draw(out)
+for i, (n, (x, y, w, h)) in enumerate(frames):
+    cx, cy = (i % cols) * cw, (i // cols) * ch
+    tile = Image.new("RGBA", (w * sc, h * sc), bg)
+    tile.alpha_composite(src.crop((x, y, x + w, y + h)).resize((w * sc, h * sc), Image.NEAREST))
+    out.paste(tile, (cx + 4, cy + 14))
+    d.text((cx + 4, cy + 2), n.replace(prefix, "")[:22], fill="white")
+p = f"/hutian/work/contact_{name}_{prefix or 'all'}_{theme}.png"
+out.save(p)
+print(p)

@@ -1,0 +1,25 @@
+# Acceptance record
+
+## Candidate 1
+Assembled delivery: `game-developer` 78f16e43e892da6e97db091d3eb93d128a8b45ed + `artist` f5b3b5d5cf2c3a738eea4a39c596ce2e4925a0bf, assignment e685695996495629902aae26ef98afac1a113300. Published for play as release `play-1` (`snake-build-1.zip`).
+
+### Producer's own play (headless Chromium, Playwright 1.64, `play.py`, real key presses, file://)
+- R6 title shown first with name, how to play and how to start (`shots/1-title.png`). Enter starts.
+- R2/R4/R7 ate 5 foods: score/length went (0,3)→(1,4)→…→(5,8), +1 each; score in HUD (`shots/2-play-score.png`).
+- R3 pressing straight back was ignored; page scrollY stayed 0.
+- R5 death on top wall (cause `wall`, final 5) and on own body after a tight loop (cause `self`, final 3).
+- R8 game-over panel with final score and play-again hint (`shots/3-gameover-wall.png`, `shots/4-gameover-self.png`); Enter and click each started a fresh game (score 0, length 3).
+- R1 no console errors or page errors in the whole run; all assets loaded (none missing).
+- R9 head, body, food and board distinct and in one flat style.
+
+### QA
+`qa` a141300e `qa/reports/v0.2.0.md`: 56/56 checks pass against R1–R9, no defects (run with artist 168dbb55; artist's f5b3b5d5 only raised board contrast, which QA had noted).
+
+### Playtest
+`playtester` 7d568de1d5587e3e828a58876a2711f722fab4c0 `playtest/play-1.md` (answer to `playtester`#2), played release `play-1` (this exact delivery) in real time with real keys/mouse, recording `playtest/play-1-session.webm`: R1–R9 PASS, no console errors, nothing blocks release. Minor, non-blocking notes: third key within one tick dropped (2-turn buffer cap); game-over veil hides the crash spot; wall shown only as a thin border; small footer text.
+
+### Sound
+Not required by the input (R9: if present, not broken or jarring). The three WAVs are 0.14–0.6 s, mono 44.1 kHz, peaks 0.68–0.70 (about −3 dB, no clipping), loaded without errors. A listening check via `audio-understanding` was attempted twice and refused with HTTP 429, so nobody has listened to them by ear; recorded as a limit, not a blocker.
+
+## Conclusion
+The assembled delivery (game-developer 78f16e43e892da6e97db091d3eb93d128a8b45ed, artist f5b3b5d5cf2c3a738eea4a39c596ce2e4925a0bf) is the Snake game producer#1 asks for: grid movement turned by arrow keys, +1 cell and +1 point per food, wall and self collisions end the game, title screen, live score, game-over screen with final score and play again. My own play, QA's checks and the playtest agree; no open defect against R1–R8. The minor notes above are polish for a later round, not defects against the input. **Accepted for release.**

@@ -1,0 +1,11 @@
+console.info: [pong] assets loaded: 8 missing: 0
+title screen reached; assets {'loaded': ['img/logo.svg', 'audio/paddle_hit.wav', 'audio/wall_hit.wav', 'audio/score.wav', 'audio/concede.wav', 'audio/win.wav', 'audio/lose.wav', 'audio/start.wav'], 'missing': []}
+Enter -> play, score 0-0
+keyboard moves paddle: ArrowUp 252->68, S 68->252
+idle player: computer wins {'player': 0, 'cpu': 5} in 18.2s; scores seen [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]
+Enter on end screen -> new match at 0-0
+bot player: screen over winner player score {'player': 5, 'cpu': 0} rallies 62 in 86.3s
+Esc on end screen -> title
+click on title -> play
+P pauses and resumes
+no page errors; ALL CHECKS PASSED

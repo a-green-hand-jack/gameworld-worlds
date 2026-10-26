@@ -1,0 +1,139 @@
+// An area of a level at run time: its tile grid, what the tiles are, how
+// bodies collide with them, and how it is drawn.
+import { TILE, ROWS } from './consts.js';
+
+// Tile characters of src/levels/*.js (see docs/levels.md).
+export const SOLID = new Set(['G', 'S', 'B', '?', 'U', '[', ']', '{', '}', 'm', 'n', 'q', 'r', 'T', 'Z', 'M', 'Y', 'C', 'c', 'K', '=', 'X', 'D']);
+
+export class Area {
+  constructor(level, index) {
+    const data = level.areas[index];
+    this.level = level;
+    this.index = index;
+    this.data = data;
+    this.theme = data.theme;
+    this.sky = data.sky;
+    this.tileVariant = data.tiles || ({ underground: 'underground', underwater: 'underwater', castle: 'castle' }[data.theme] || null);
+    this.spriteVariant = { underground: 'underground', castle: 'castle', underwater: 'underwater' }[data.theme] || null;
+    this.cols = Math.max(16, ...data.rows.map((r) => r.length), Math.ceil(data.width / TILE));
+    this.grid = [];
+    for (let r = 0; r < ROWS; r++) {
+      const row = data.rows[r] || '';
+      this.grid.push(Array.from({ length: this.cols }, (_, c) => row[c] || ' '));
+    }
+    this.width = this.cols * TILE;
+    this.contents = { ...(data.contents || {}) };
+    this.scenery = data.scenery || [];
+    this.pipes = data.pipes || [];
+    this.triggers = (data.triggers || []).map((t) => ({ ...t }));
+    this.spawns = (data.things || []).map((t, i) => ({ type: t[0], x: t[1], y: t[2], opts: t[3] || {}, id: i, spawned: false }));
+    this.bumps = []; // {c, r, t}
+    this.multiCoin = new Map(); // "c,r" -> frames left
+    this.scrollStop = this.width;
+    for (const t of this.triggers) if (t.kind === 'scrollStop') this.scrollStop = Math.min(this.scrollStop, t.x);
+    this.underwater = data.theme === 'underwater';
+  }
+
+  get(c, r) {
+    if (r < 0 || r >= ROWS || c < 0 || c >= this.cols) return ' ';
+    return this.grid[r][c];
+  }
+
+  set(c, r, ch) {
+    if (r < 0 || r >= ROWS || c < 0 || c >= this.cols) return;
+    this.grid[r][c] = ch;
+  }
+
+  solid(c, r) {
+    if (c < 0) return true;
+    if (r < 0 || r >= ROWS || c >= this.cols) return false;
+    return SOLID.has(this.grid[r][c]);
+  }
+
+  solidAtPx(x, y) {
+    return this.solid(Math.floor(x / TILE), Math.floor(y / TILE));
+  }
+
+  bumpOffset(c, r) {
+    for (const b of this.bumps) if (b.c === c && b.r === r) return BUMP[b.t] || 0;
+    return 0;
+  }
+
+  update() {
+    for (const b of this.bumps) b.t++;
+    this.bumps = this.bumps.filter((b) => b.t < BUMP.length);
+    for (const [k, v] of this.multiCoin) this.multiCoin.set(k, v - 1);
+  }
+}
+
+const BUMP = [-2, -4, -6, -7, -8, -8, -7, -6, -4, -2, -1];
+
+// Moves a body by its velocity (or opts.dx, opts.dy) and resolves it against
+// the tiles.  Body: {x, y, w, h, vx, vy}.  Sets onGround, hitWall (-1/0/1), hitHead.
+// opts.head: only the centre of the head bumps into tiles (the player), so a
+// body that clips a block with the edge of its head slides past the corner.
+export function moveBody(b, area, opts = {}) {
+  b.hitHead = null;
+  b.hitWall = 0;
+  const wasGround = b.onGround;
+  b.onGround = false;
+  b.groundTile = null;
+  const dx = opts.dx ?? b.vx, dy = opts.dy ?? b.vy;
+  // vertical
+  b.y += dy;
+  const c0 = Math.floor((b.x + 1) / TILE), c1 = Math.floor((b.x + b.w - 1) / TILE);
+  if (dy >= 0) {
+    const bottom = b.y + b.h;
+    const r = Math.floor(bottom / TILE);
+    const tol = Math.max(dy, 0) + (opts.ledge ?? 4);
+    for (let c = c0; c <= c1; c++) {
+      if (area.solid(c, r) && bottom - r * TILE <= tol && !area.solid(c, r - 1)) {
+        b.y = r * TILE - b.h;
+        b.vy = 0;
+        b.onGround = true;
+        b.groundTile = { c, r };
+        break;
+      }
+    }
+  } else {
+    const r = Math.floor(b.y / TILE);
+    if (opts.head) {
+      const c = Math.floor((b.x + b.w / 2) / TILE);
+      if (area.solid(c, r) || (opts.hidden && area.get(c, r) === 'h')) {
+        b.y = (r + 1) * TILE;
+        b.vy = 0;
+        b.hitHead = { c, r };
+      }
+    } else {
+      for (let c = c0; c <= c1; c++) {
+        if (area.solid(c, r)) {
+          b.y = (r + 1) * TILE;
+          b.vy = 0;
+          b.hitHead = { c, r };
+          break;
+        }
+      }
+    }
+  }
+  // horizontal
+  b.x += dx;
+  const top = b.y + 2, low = b.y + b.h - 1 - (opts.foot ?? 4);
+  const r0 = Math.floor(top / TILE), r1 = Math.max(r0, Math.floor(low / TILE));
+  for (let r = r0; r <= r1; r++) {
+    const lc = Math.floor(b.x / TILE), rc = Math.floor((b.x + b.w - 1) / TILE);
+    for (const c of lc === rc ? [lc] : [lc, rc]) {
+      if (!area.solid(c, r)) continue;
+      const tileCenter = c * TILE + TILE / 2, center = b.x + b.w / 2;
+      if (tileCenter > center) {
+        b.x = c * TILE - b.w;
+        if (b.vx > 0) b.vx = 0;
+        b.hitWall = 1;
+      } else {
+        b.x = (c + 1) * TILE;
+        if (b.vx < 0) b.vx = 0;
+        b.hitWall = -1;
+      }
+    }
+  }
+  b.wasGround = wasGround;
+}

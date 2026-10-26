@@ -1,0 +1,386 @@
+// Pong: one player (left paddle, keyboard) against a computer opponent (right paddle).
+// First to WIN_SCORE points wins. Screens: title -> play -> over (play again / title).
+(function () {
+  "use strict";
+
+  const W = 800, H = 600;
+  const WIN_SCORE = 5;
+  const PADDLE_W = 16, PADDLE_H = 96, PADDLE_MARGIN = 24;
+  const BALL = 16;
+  const PLAYER_SPEED = 460;          // px/s
+  const CPU_SPEED = 320;             // px/s, slower than the player so it can be beaten
+  const BALL_START_SPEED = 380;
+  const BALL_SPEEDUP = 1.06;         // per paddle hit
+  const BALL_MAX_SPEED = 900;
+  const MAX_BOUNCE = Math.PI / 3;    // 60 degrees
+  const CPU_SHOT_CHANCE = 0.35;      // share of returns the computer aims away from the player
+  const CPU_SHOT_MAX_REL = 0.85;     // how far off-centre it dares to meet the ball for a shot
+  const CPU_SHOT_STEPS = 8;
+  const CPU_SHOT_SPEEDUP = 1.45;     // an aimed shot is also hit harder
+  const SERVE_DELAY = 1.0;           // seconds before each serve
+  const END_LOCK = 1.0;              // seconds the end screen ignores input, so the winner is always seen
+  const STEP = 1 / 120;              // fixed simulation step
+
+  const params = new URLSearchParams(location.search);
+  let seed = Number(params.get("seed")) || (Date.now() >>> 0);
+  function rand() { // mulberry32, seedable with ?seed=N for reproducible runs
+    seed = (seed + 0x6D2B79F5) >>> 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const A = window.PongAssets;
+
+  const keys = new Set();
+  const state = {
+    screen: "loading",               // loading | title | play | over
+    paused: false,
+    score: { player: 0, cpu: 0 },
+    player: { x: PADDLE_MARGIN, y: H / 2 - PADDLE_H / 2 },
+    cpu: { x: W - PADDLE_MARGIN - PADDLE_W, y: H / 2 - PADDLE_H / 2, aim: 0, shot: false },
+    ball: { x: W / 2 - BALL / 2, y: H / 2 - BALL / 2, vx: 0, vy: 0 },
+    serveTimer: 0,
+    serveDir: 1,
+    winner: null,                    // "player" | "cpu"
+    overAt: 0,                       // state.time when the end screen appeared
+    rallies: 0,
+    time: 0,
+  };
+
+  // ---------- game flow ----------
+  function resetPaddles() {
+    state.player.y = H / 2 - PADDLE_H / 2;
+    state.cpu.y = H / 2 - PADDLE_H / 2;
+  }
+
+  function startMatch() {
+    state.score.player = 0;
+    state.score.cpu = 0;
+    state.winner = null;
+    state.paused = false;
+    state.rallies = 0;
+    resetPaddles();
+    state.screen = "play";
+    prepareServe(rand() < 0.5 ? -1 : 1);
+    A.play("select");
+  }
+
+  function prepareServe(dir) {
+    state.ball.x = W / 2 - BALL / 2;
+    state.ball.y = H / 2 - BALL / 2;
+    state.ball.vx = 0;
+    state.ball.vy = 0;
+    state.serveDir = dir;
+    state.serveTimer = SERVE_DELAY;
+  }
+
+  function serve() {
+    const angle = (rand() * 2 - 1) * (Math.PI / 6);
+    state.ball.vx = Math.cos(angle) * BALL_START_SPEED * state.serveDir;
+    state.ball.vy = Math.sin(angle) * BALL_START_SPEED;
+    state.cpu.aim = cpuPlanReturn();
+  }
+
+  function pointTo(who) {
+    state.score[who] += 1;
+    if (state.score[who] >= WIN_SCORE) {
+      state.winner = who;
+      state.screen = "over";
+      state.overAt = state.time;
+      state.ball.vx = state.ball.vy = 0;
+      A.play(who === "player" ? "win" : "lose");
+      return;
+    }
+    A.play(who === "player" ? "scorePlayer" : "scoreCpu");
+    // Serve toward the side that just conceded.
+    prepareServe(who === "player" ? 1 : -1);
+  }
+
+  function toTitle() {
+    state.screen = "title";
+    state.paused = false;
+    state.winner = null;
+    resetPaddles();
+    prepareServe(1);
+  }
+
+  // Rally sounds only during a match (the title screen's attract-mode rally stays silent).
+  function sfx(key) { if (state.screen === "play") A.play(key); }
+
+  // ---------- simulation ----------
+  // Where the computer means to meet the ball coming its way. Sometimes it places the return
+  // away from the player's paddle (a shot that wins points from attentive play); otherwise it
+  // just tries to block, with an aim error that sometimes makes it miss.
+  function cpuPlanReturn() {
+    return rand() < CPU_SHOT_CHANCE ? cpuShotAim() : cpuAimError();
+  }
+
+  function cpuShotAim() {
+    // Try contact points across the paddle and pick the return the player must move fastest to reach.
+    const b = state.ball;
+    const speed = Math.min(BALL_MAX_SPEED, Math.hypot(b.vx, b.vy) * BALL_SPEEDUP) * CPU_SHOT_SPEEDUP;
+    const contactY = predictBallY() - BALL / 2;
+    const playerCentre = state.player.y + PADDLE_H / 2;
+    const reach = PADDLE_H / 2 + BALL / 2;
+    let best = 0, bestNeed = -1;
+    for (let i = -CPU_SHOT_STEPS; i <= CPU_SHOT_STEPS; i++) {
+      const rel = (i / CPU_SHOT_STEPS) * CPU_SHOT_MAX_REL;
+      const angle = rel * MAX_BOUNCE;
+      const vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
+      const t = (state.cpu.x - BALL - (state.player.x + PADDLE_W)) / vx;
+      const need = Math.abs(reflectY(contactY + vy * t) + BALL / 2 - playerCentre) / t;
+      if (need > bestNeed) { bestNeed = need; best = rel; }
+    }
+    // The paddle centre sits at ball + aim, so the ball meets it at rel = -aim / reach.
+    state.cpu.shot = true;
+    return -best * reach;
+  }
+
+  function reflectY(y) {
+    const span = H - BALL;
+    y = ((y % (2 * span)) + 2 * span) % (2 * span);
+    return y > span ? 2 * span - y : y;
+  }
+
+  function cpuAimError() {
+    state.cpu.shot = false;
+    // Where on its paddle the CPU tries to meet the ball; sometimes past the edge, so it can miss.
+    return (rand() * 2 - 1) * (PADDLE_H * 0.75);
+  }
+
+  function predictBallY() {
+    // Follow the ball's path to the CPU paddle's face, reflecting off top/bottom walls.
+    const b = state.ball;
+    if (b.vx <= 0) return H / 2;
+    const travel = (state.cpu.x - (b.x + BALL)) / b.vx;
+    return reflectY(b.y + b.vy * travel) + BALL / 2;
+  }
+
+  function movePaddle(p, dy) {
+    p.y = Math.max(0, Math.min(H - PADDLE_H, p.y + dy));
+  }
+
+  function hits(p, b) {
+    return b.x < p.x + PADDLE_W && b.x + BALL > p.x && b.y < p.y + PADDLE_H && b.y + BALL > p.y;
+  }
+
+  function bounceOff(p, dir) {
+    const b = state.ball;
+    const rel = ((b.y + BALL / 2) - (p.y + PADDLE_H / 2)) / (PADDLE_H / 2 + BALL / 2);
+    const angle = Math.max(-1, Math.min(1, rel)) * MAX_BOUNCE;
+    let speed = Math.min(BALL_MAX_SPEED, Math.hypot(b.vx, b.vy) * BALL_SPEEDUP);
+    if (dir < 0 && state.cpu.shot) { speed *= CPU_SHOT_SPEEDUP; state.cpu.shot = false; }
+    b.vx = Math.cos(angle) * speed * dir;
+    b.vy = Math.sin(angle) * speed;
+    b.x = dir > 0 ? p.x + PADDLE_W : p.x - BALL;
+    state.rallies += 1;
+    if (dir < 0) state.cpu.aim = 0; else state.cpu.aim = cpuPlanReturn();
+    sfx("paddleHit");
+  }
+
+  function update(dt) {
+    state.time += dt;
+    if (state.screen !== "play" && state.screen !== "title") return;
+    if (state.paused) return;
+
+    // Player (only during play; the title screen shows an attract-mode rally between two CPUs).
+    if (state.screen === "play") {
+      let dy = 0;
+      if (keys.has("ArrowUp") || keys.has("KeyW")) dy -= 1;
+      if (keys.has("ArrowDown") || keys.has("KeyS")) dy += 1;
+      movePaddle(state.player, dy * PLAYER_SPEED * dt);
+    } else {
+      const target = state.ball.vx < 0 ? state.ball.y + BALL / 2 : H / 2;
+      const d = target - (state.player.y + PADDLE_H / 2);
+      movePaddle(state.player, Math.sign(d) * Math.min(Math.abs(d), CPU_SPEED * dt));
+    }
+
+    // Computer opponent: tracks the predicted arrival point with limited speed and an aim error.
+    const target = state.ball.vx > 0 ? predictBallY() + state.cpu.aim : H / 2;
+    const d = target - (state.cpu.y + PADDLE_H / 2);
+    if (Math.abs(d) > 4) movePaddle(state.cpu, Math.sign(d) * Math.min(Math.abs(d), CPU_SPEED * dt));
+
+    if (state.serveTimer > 0) {
+      state.serveTimer -= dt;
+      if (state.serveTimer <= 0) serve();
+      return;
+    }
+
+    const b = state.ball;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (b.y < 0) { b.y = -b.y; b.vy = Math.abs(b.vy); sfx("wallHit"); }
+    if (b.y > H - BALL) { b.y = 2 * (H - BALL) - b.y; b.vy = -Math.abs(b.vy); sfx("wallHit"); }
+
+    if (b.vx < 0 && hits(state.player, b) && b.x + BALL > state.player.x + PADDLE_W / 2) bounceOff(state.player, 1);
+    if (b.vx > 0 && hits(state.cpu, b) && b.x < state.cpu.x + PADDLE_W / 2) bounceOff(state.cpu, -1);
+
+    if (b.x + BALL < 0) {
+      if (state.screen === "play") pointTo("cpu"); else prepareServe(1);
+    } else if (b.x > W) {
+      if (state.screen === "play") pointTo("player"); else prepareServe(-1);
+    }
+  }
+
+  // ---------- rendering ----------
+  const FG = () => A.color("fg");
+  const BG = () => A.color("bg");
+  const PLAYER_COLOR = () => A.color("accent");
+  const CPU_COLOR = () => A.color("accent2");
+  const ACCENT = PLAYER_COLOR;
+  const DIM = () => A.color("dim");
+  const MUTED_TEXT = "#8a96b8";      // secondary text: readable on the background, quieter than fg
+
+  function text(str, x, y, size, color, align) {
+    ctx.fillStyle = color || FG();
+    ctx.font = `bold ${size}px ${A.font()}`;
+    ctx.textAlign = align || "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(str, x, y);
+  }
+
+  function drawField() {
+    ctx.fillStyle = BG();
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = DIM();
+    for (let y = 8; y < H; y += 32) ctx.fillRect(W / 2 - 2, y, 4, 16);
+  }
+
+  function drawPaddle(p, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), PADDLE_W, PADDLE_H);
+  }
+
+  function drawBall() {
+    const b = state.ball;
+    ctx.fillStyle = FG();
+    ctx.fillRect(Math.round(b.x), Math.round(b.y), BALL, BALL);
+  }
+
+  function drawScore() {
+    text(String(state.score.player), W / 2 - 70, 56, 56, PLAYER_COLOR());
+    text(String(state.score.cpu), W / 2 + 70, 56, 56, CPU_COLOR());
+    text("YOU", W / 2 - 70, 100, 16, MUTED_TEXT);
+    text("CPU", W / 2 + 70, 100, 16, MUTED_TEXT);
+  }
+
+  function overlay(alpha) {
+    ctx.fillStyle = BG();
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+
+  function endLocked() { return state.screen === "over" && state.time - state.overAt < END_LOCK; }
+
+  function blink() { return Math.floor(state.time * 2) % 2 === 0; }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    if (state.screen === "loading") {
+      ctx.fillStyle = BG(); ctx.fillRect(0, 0, W, H);
+      text("Loading…", W / 2, H / 2, 24, FG());
+      return;
+    }
+    drawField();
+    drawPaddle(state.player, PLAYER_COLOR());
+    drawPaddle(state.cpu, CPU_COLOR());
+
+    if (state.screen === "title") {
+      // Attract-mode rally stays faint behind the title text.
+      drawBall();
+      overlay(0.82);
+      if (A.images.title) {
+        const t = A.images.title, s = Math.min(1.5, 600 / t.width, 200 / t.height);
+        ctx.drawImage(t, W / 2 - (t.width * s) / 2, 170 - (t.height * s) / 2, t.width * s, t.height * s);
+      } else text("PONG", W / 2, 170, 120, FG());
+      text("You vs the computer  ·  first to " + WIN_SCORE + " points wins", W / 2, 290, 20, FG());
+      text("Move your paddle (left): W / S  or  ↑ / ↓", W / 2, 340, 18, FG());
+      text("P or Esc: pause      M: sound " + (A.isMuted() ? "off" : "on"), W / 2, 370, 18, MUTED_TEXT);
+      if (blink()) text("Press Enter or Space to start", W / 2, 440, 28, ACCENT());
+      return;
+    }
+
+    drawBall();
+    drawScore();
+
+    if (state.screen === "play") {
+      if (state.serveTimer > 0 && !state.paused && state.score.player + state.score.cpu === 0)
+        text("Get ready!", W / 2, H / 2 + 60, 24, ACCENT());
+      if (state.paused) {
+        overlay(0.55);
+        text("PAUSED", W / 2, H / 2 - 20, 56, FG());
+        text("P / Esc to resume  ·  Q to quit to title", W / 2, H / 2 + 40, 18, MUTED_TEXT);
+      }
+      return;
+    }
+
+    if (state.screen === "over") {
+      overlay(0.65);
+      const won = state.winner === "player";
+      text(won ? "YOU WIN!" : "THE COMPUTER WINS", W / 2, 230, won ? 80 : 56, won ? PLAYER_COLOR() : CPU_COLOR());
+      text(`Final score  You ${state.score.player} – ${state.score.cpu} Computer`, W / 2, 310, 26, FG());
+      if (!endLocked()) {
+        text("Press Enter or Space to play again", W / 2, 400, 26, FG());
+        text("Esc for the title screen", W / 2, 450, 18, MUTED_TEXT);
+      }
+    }
+  }
+
+  // ---------- input ----------
+  const CONTROL_KEYS = new Set(["ArrowUp", "ArrowDown", "Space", "KeyW", "KeyS"]);
+  window.addEventListener("keydown", (e) => {
+    if (CONTROL_KEYS.has(e.code)) e.preventDefault();
+    keys.add(e.code);
+    if (e.repeat) return;
+    if (e.code === "KeyM") A.toggleMute();
+    const confirm = e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space";
+    if (state.screen === "title" && confirm) startMatch();
+    else if (state.screen === "over" && !endLocked()) {
+      if (confirm) startMatch();
+      else if (e.code === "Escape") toTitle();
+    } else if (state.screen === "play") {
+      if (e.code === "KeyP" || e.code === "Escape") state.paused = !state.paused;
+      else if (e.code === "KeyQ" && state.paused) toTitle();
+    }
+  });
+  window.addEventListener("keyup", (e) => keys.delete(e.code));
+  window.addEventListener("blur", () => {
+    keys.clear();
+    if (state.screen === "play") state.paused = true;
+  });
+  canvas.addEventListener("pointerdown", () => {
+    canvas.focus();
+    if (state.screen === "title" || (state.screen === "over" && !endLocked())) startMatch();
+  });
+
+  // ---------- loop ----------
+  let last = null, acc = 0;
+  function frame(now) {
+    if (last === null) last = now;
+    acc += Math.min(0.25, (now - last) / 1000);
+    last = now;
+    while (acc >= STEP) { update(STEP); acc -= STEP; }
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // Test hook for qa / automated checks.
+  const getState = () => JSON.parse(JSON.stringify({
+      screen: state.screen, paused: state.paused, score: state.score, winner: state.winner,
+      ball: state.ball, player: { y: state.player.y }, cpu: { y: state.cpu.y }, rallies: state.rallies,
+      winScore: WIN_SCORE, assets: A.report, muted: A.isMuted(), endLocked: endLocked(),
+    }));
+  window.pong = {
+    getState,
+    state: getState,
+    constants: { W, H, WIN_SCORE, PADDLE_W, PADDLE_H, BALL, PLAYER_SPEED, CPU_SPEED },
+  };
+
+  requestAnimationFrame(frame);
+  A.load().then(() => { toTitle(); canvas.focus(); });
+})();

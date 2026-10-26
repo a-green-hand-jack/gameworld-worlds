@@ -1,0 +1,72 @@
+{
+ "results": [
+  {
+   "match": 1,
+   "winner": "player",
+   "score": [
+    5,
+    0
+   ],
+   "secs": 138,
+   "longest_rally_hits": 111,
+   "ball_stuck": false
+  },
+  {
+   "match": 2,
+   "winner": "player",
+   "score": [
+    5,
+    0
+   ],
+   "secs": 145,
+   "longest_rally_hits": 111,
+   "ball_stuck": false
+  },
+  {
+   "match": 3,
+   "winner": "player",
+   "score": [
+    5,
+    0
+   ],
+   "secs": 140,
+   "longest_rally_hits": 102,
+   "ball_stuck": false
+  },
+  {
+   "match": 4,
+   "winner": "player",
+   "score": [
+    5,
+    0
+   ],
+   "secs": 81,
+   "longest_rally_hits": 54,
+   "ball_stuck": false
+  }
+ ],
+ "errors": [],
+ "log": [
+  "match 1: score 1-0 at 4s",
+  "match 1: score 2-0 at 42s",
+  "match 1: score 3-0 at 53s",
+  "match 1: score 4-0 at 86s",
+  "{\"match\": 1, \"winner\": \"player\", \"score\": [5, 0], \"secs\": 138, \"longest_rally_hits\": 111, \"ball_stuck\": false}",
+  "match 2: score 1-0 at 11s",
+  "match 2: score 2-0 at 37s",
+  "match 2: score 3-0 at 90s",
+  "match 2: score 4-0 at 128s",
+  "{\"match\": 2, \"winner\": \"player\", \"score\": [5, 0], \"secs\": 145, \"longest_rally_hits\": 111, \"ball_stuck\": false}",
+  "match 3: score 1-0 at 26s",
+  "match 3: score 2-0 at 81s",
+  "match 3: score 3-0 at 108s",
+  "match 3: score 4-0 at 120s",
+  "{\"match\": 3, \"winner\": \"player\", \"score\": [5, 0], \"secs\": 140, \"longest_rally_hits\": 102, \"ball_stuck\": false}",
+  "match 4: score 1-0 at 6s",
+  "match 4: score 2-0 at 21s",
+  "match 4: score 3-0 at 61s",
+  "match 4: score 4-0 at 63s",
+  "{\"match\": 4, \"winner\": \"player\", \"score\": [5, 0], \"secs\": 81, \"longest_rally_hits\": 54, \"ball_stuck\": false}",
+  "console/page errors: []"
+ ]
+}

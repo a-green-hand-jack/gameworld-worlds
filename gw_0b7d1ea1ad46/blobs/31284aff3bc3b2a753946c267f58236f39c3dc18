@@ -1,0 +1,31 @@
+# Brief — 陨石躲避 (Meteor Dodge)
+
+## Input (quoted)
+> 做一个单屏网页小游戏：方向键控制飞船躲避陨石，记录最高分，打开 index.html 就能玩
+
+## What the game must be
+- Single screen, browser, no server, no build step: double-clicking `index.html` (file:// protocol) must start a playable game. All resources load by relative path; no ES-module imports, no fetch/XHR of local files, no CDN dependency.
+- Arrow keys move the spaceship (all four directions, held-key smooth movement, clamped to the screen). Meteors fall/drift in from the edges; collision with the ship ends the run.
+- Score grows while surviving (time and/or meteors passed); difficulty ramps up gradually.
+- High score recorded and persisted across reloads (localStorage, with graceful fallback if unavailable); shown on screen during play and on the game-over screen; new-record is indicated.
+- States: start screen (instructions), playing, game over with restart (Space/Enter). Optional pause (P) is a bonus, not required.
+
+## Priorities
+1. Playable end to end from index.html on file:// (requirement as stated).
+2. Arrow-key control feels responsive; collisions fair (hitbox slightly smaller than sprite).
+3. High score persists and displays correctly.
+4. Visual consistency (ship, meteors, background share one style) — artist delivers under `assets/`; game must still render acceptably (canvas-drawn fallback) if an asset fails to load.
+5. Polish (sound, particles) only after 1–4; any audio must be started on first key press and be mutable/non-essential.
+
+## Work split
+- game-developer: `index.html` (+ any scripts/styles it references at repo root), checks of each build against this brief, release of a playable build.
+- artist: `assets/` — ship, meteor variants, background (SVG or PNG, loadable via file://), optional sounds; plus `assets/README.md` listing every file, size and intended use.
+- playtester: plays the released build as a player, reports with evidence.
+- producer: brief, assignment, acceptance.
+
+## Acceptance standard
+See commitment: playable from file://, arrow keys, dodge/collision/game over, score, persisted high score, restart, no console errors, assets consistent, checked by game-developer and played by playtester on the exact build being approved.
+
+## Not established
+- Desired visual style/language of UI text (default: Chinese UI text, retro-space style; artist/developer may refine).
+- Target resolution (default: fixed-aspect canvas, ~800x600, scaled to fit window).

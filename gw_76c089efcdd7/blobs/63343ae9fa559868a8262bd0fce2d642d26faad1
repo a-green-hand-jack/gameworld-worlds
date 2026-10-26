@@ -1,0 +1,69 @@
+# Listening check — playtester
+
+Build: assembled delivery (`ht-role delivery`), game-developer revision 9c6e4b1bca27d241237fcc4b4d386bb947000951, file `sound/beep.wav`.
+
+## Own measurement (numpy, for comparison)
+44100 Hz, mono, 0.500 s long, dominant frequency 660 Hz, peak amplitude falls from ~4088 to ~1000 by 0.23 s, last sample above threshold at ~0.285 s, then silence to 0.5 s. This matches the spec (0.3 s fading 660 Hz tone + 0.2 s silence).
+
+## Request 1 (audio-understanding, gemini-3.8-flash, wav sent as audio/wav)
+Question: "Describe this audio precisely: what sounds are heard, their pitch (Hz if you can), loudness changes, and what is silent, with times (MM:SS or seconds), and total length."
+
+Answer as it came:
+
+> Here is a detailed acoustic description of the audio:
+> 
+> ### **Overview**
+> The audio consists of a single, clean, high-pitched synthesized chime or metallic bell hit, commonly used as a digital alert, notification, or confirmation "ding."
+> 
+> ---
+> 
+> ### **Timeline Breakdown**
+> 
+> * **00:00.00 – 00:00.05 (Transient Attack):** 
+>   * The sound starts abruptly with a sharp, percussive strike (bright mallet or synthesized impulse).
+>   * Reaches maximum peak volume immediately.
+> * **00:00.05 – 00:00.70 (Resonant Decay):** 
+>   * The tone rings out in a clean, natural exponential decay.
+>   * Higher overtone frequencies dissipate rapidly within the first 150 ms, leaving a pure, warm sinusoidal sustain tail.
+> * **00:00.70 – 00:00.94 (Fade to Silence):** 
+>   * The remaining resonance completely dies out into silence at the end of the clip.
+> 
+> ---
+> 
+> ### **Acoustic Characteristics**
+> 
+> * **Pitch / Frequency:**
+>   * **Fundamental frequency:** Approximately **1318 Hz – 1330 Hz** (close to note **E6**).
+>   * **Harmonics:** Prominent metallic overtones at attack around **2.6 kHz** and **3.9 kHz**, which decay quickly.
+> * **Loudness / Dynamics:**
+>   * **Peak Loudness:** Occurs at ~00:00.02.
+>   * **Dynamic Contour:** Immediate sharp rise (percussive attack) followed by a smooth exponential decrease in amplitude until reaching inaudibility around 00:00.70–00:00.75.
+> * **Silence:**
+>   * From approximately **00:00.75 to 00:00.94**, the recording is effectively silent.
+> 
+> ---
+> 
+> ### **Total Duration**
+> * **Total Length:** ~**0.94 seconds** (00:00.94).
+
+## Request 2 (same file)
+Question: "How long is this clip, what is the pitch of the tone in Hz, and when does the tone start and stop and when is it silent? Give times in seconds."
+
+Answer as it came:
+
+> Based on the audio clip:
+> 
+> * **Total Clip Length:** 5.0 seconds
+> * **Pitch / Frequency:** 1000 Hz (1 kHz sine tone)
+> * **Tone Timeline:**
+>   * **Starts:** 1.0 second
+>   * **Stops:** 3.0 seconds (tone duration: 2.0 seconds)
+> * **Silent Periods:**
+>   * **0.0 to 1.0 seconds**
+>   * **3.0 to 5.0 seconds**
+
+## Does the answer match the sound above?
+**No.** The file itself matches the spec, but the listener's answers do not describe it. Answer 1 says a percussive bell "ding" at ~1318 Hz, 0.94 s long, with silence from 0.75 s; answer 2 says 5.0 s, 1000 Hz, tone from 1.0 to 3.0 s. Both disagree with the file (0.5 s, 660 Hz, tone 0–~0.3 s) and with each other. Only the loose shape (short sound that decays to silence) is right in answer 1. The listening resource is unreliable on pitch and timing here; the listening result cannot confirm the sound.
+
+## Playing the page
+Chromium (Playwright) served index.html over http: button "Beep" present, 3 clicks → "Clicks: 3", audio element loaded without error (duration 0.5, readyState 4), no console errors. Actual audible output cannot be heard in headless play. Screenshots: shots/before.png, shots/after3.png.

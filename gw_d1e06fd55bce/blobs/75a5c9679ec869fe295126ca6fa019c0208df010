@@ -1,0 +1,20 @@
+"""Simulated human players vs the computer, run headless inside the page (not real time).
+The player re-aims every `react` s at the predicted crossing of its paddle line (as a human anticipates
+the bounce), with aim noise `noise` px. Usage: python3 difficulty.py DELIVERY_DIR"""
+import sys, pathlib
+from playwright.sync_api import sync_playwright
+JS = '''(cfg)=>{const G=window.PongGame,res=[];
+for(let m=0;m<cfg.n;m++){const g=new G({seed:7000+m});g.startMatch();let rt=0,tgt=250,t=0;const inp={up:false,down:false};
+ while(g.state==='play'&&t<1200){rt-=1/120;
+  if(rt<=0){rt=cfg.react;const b=g.ball;let y=250;
+   if(b.vx<0){const tt=(b.x-(g.player.x+12))/-b.vx;y=b.y+b.vy*tt;const s=500-12;y=((y%(2*s))+2*s)%(2*s);if(y>s)y=2*s-y;y+=6;}
+   tgt=y+(Math.random()*2-1)*cfg.noise;}
+  const d=tgt-(g.player.y+40);inp.up=d<-8;inp.down=d>8;g.update(1/120,inp);t+=1/120;}
+ res.push([g.score.player,g.score.computer]);}return res;}'''
+root = pathlib.Path(sys.argv[1]).resolve()
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(); pg.goto(root.joinpath('index.html').as_uri()); pg.wait_for_function('window.pong&&pong.ready')
+    for name, cfg in [('quick (0.2 s, ±20 px)', dict(n=40, react=.2, noise=20)), ('typical (0.3 s, ±35 px)', dict(n=40, react=.3, noise=35)), ('casual (0.45 s, ±50 px)', dict(n=40, react=.45, noise=50))]:
+        r = pg.evaluate(JS, cfg); w = sum(1 for x in r if x[0] > x[1])
+        print(f"predictive {name}: player won {w}/40, avg {sum(x[0] for x in r)/40:.1f}-{sum(x[1] for x in r)/40:.1f}")
+    b.close()

@@ -1,0 +1,157 @@
+{
+ "D_die_while_muted": {
+  "before": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": false,
+   "t": 1.15,
+   "muted": false,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  },
+  "after_respawn_muted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": true,
+   "t": 1.46,
+   "muted": true,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  },
+  "unmuted_1.2s": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": false,
+   "t": 2.72,
+   "muted": false,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  }
+ },
+ "D_errors": [],
+ "E_pause_while_muted": {
+  "paused_muted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": true,
+   "el_muted": true,
+   "t": 1.28,
+   "muted": true,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  },
+  "resumed_muted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": true,
+   "t": 1.99,
+   "muted": true,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  },
+  "unmuted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": false,
+   "t": 2.85,
+   "muted": false,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  }
+ },
+ "E_errors": [],
+ "F_muted_across_level_change": {
+  "flag_muted": {
+   "name": null,
+   "has_element": false,
+   "paused": null,
+   "el_muted": null,
+   "t": null,
+   "muted": true,
+   "state": "flag",
+   "level": "1-1",
+   "area": "main"
+  },
+  "in_1-2_muted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": true,
+   "t": 1.46,
+   "muted": true,
+   "state": "play",
+   "level": "1-2",
+   "area": "intro"
+  },
+  "in_1-2_unmuted": {
+   "name": "underground",
+   "has_element": true,
+   "paused": false,
+   "el_muted": false,
+   "t": 0.91,
+   "muted": false,
+   "state": "play",
+   "level": "1-2",
+   "area": "main"
+  }
+ },
+ "F_errors": [],
+ "G_mute_on_title": {
+  "title": {
+   "name": null,
+   "has_element": false,
+   "paused": null,
+   "el_muted": null,
+   "t": null,
+   "muted": false,
+   "state": "title",
+   "level": "1-1",
+   "area": "main"
+  },
+  "title_muted": {
+   "name": null,
+   "has_element": false,
+   "paused": null,
+   "el_muted": null,
+   "t": null,
+   "muted": true,
+   "state": "title",
+   "level": "1-1",
+   "area": "main"
+  },
+  "playing_muted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": true,
+   "t": 1.46,
+   "muted": true,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  },
+  "unmuted": {
+   "name": "overworld",
+   "has_element": true,
+   "paused": false,
+   "el_muted": false,
+   "t": 2.55,
+   "muted": false,
+   "state": "play",
+   "level": "1-1",
+   "area": "main"
+  }
+ },
+ "G_errors": []
+}

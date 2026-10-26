@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Run, Jump, Flag</title>
+<style>
+  html, body { margin: 0; background: #111; color: #eee; font-family: monospace; }
+  body { display: flex; flex-direction: column; align-items: center; padding-top: 12px; }
+  canvas { background: #8fd3ff; image-rendering: pixelated; border: 2px solid #333; }
+  p { margin: 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="640" height="352"></canvas>
+<p>Left/Right or A/D: run &nbsp; Space/Up/W: jump &nbsp; R: restart</p>
+<script>
+(function () {
+  var TILE = 32, COLS = 20, ROWS = 11;
+  var GROUND_Y = 9 * TILE;              // top of the ground (rows 9-10)
+  var GAP_FROM = 9, GAP_TO = 10;        // gap tile columns, inclusive
+  var FLAG_COL = 17;
+  var FLAG_ROW = 5;                     // tile row of the flag (ground top is row 9)
+  var PLAYER = 28, SPEED = 200, GRAVITY = 1800, JUMP_V = 560;
+  var START_X = 40;
+
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var keys = {};
+  var state;
+  var jumpBuffer = 0;
+
+  function reset() {
+    state = { x: START_X, y: GROUND_Y - PLAYER, vx: 0, vy: 0, onGround: true,
+              dir: 1, won: false, deaths: state ? state.deaths : 0, time: 0, started: false };
+  }
+
+  function overGap(x0, x1) {
+    return x1 > GAP_FROM * TILE && x0 < (GAP_TO + 1) * TILE;
+  }
+
+  function flagBox() {
+    return { x: FLAG_COL * TILE, y: FLAG_ROW * TILE, w: TILE, h: TILE };
+  }
+
+  function step(dt) {
+    var s = state;
+    if (s.won) return;
+    var left = keys.ArrowLeft || keys.KeyA, right = keys.ArrowRight || keys.KeyD;
+    s.vx = ((right ? 1 : 0) - (left ? 1 : 0)) * SPEED;
+    if (s.vx) { s.dir = s.vx > 0 ? 1 : -1; s.started = true; }
+    if (jumpBuffer > 0) jumpBuffer -= dt;
+    if ((keys.Space || keys.ArrowUp || keys.KeyW || jumpBuffer > 0) && s.onGround) {
+      s.vy = -JUMP_V; s.onGround = false; s.started = true; jumpBuffer = 0;
+    }
+    if (s.started) s.time += dt;
+
+    s.x += s.vx * dt;
+    if (s.x < 0) s.x = 0;
+    if (s.x > canvas.width - PLAYER) s.x = canvas.width - PLAYER;
+
+    s.vy += GRAVITY * dt;
+    s.y += s.vy * dt;
+
+    var supported = !overGap(s.x, s.x + PLAYER);
+    if (supported && s.y + PLAYER >= GROUND_Y && s.y + PLAYER - s.vy * dt <= GROUND_Y + 1) {
+      s.y = GROUND_Y - PLAYER; s.vy = 0; s.onGround = true;
+    } else if (s.y + PLAYER > GROUND_Y + 1 && overGap(s.x, s.x + PLAYER) && s.onGround) {
+      s.onGround = false;               // walked off the edge
+    }
+    if (s.y > canvas.height + 60) { s.deaths++; var d = s.deaths; reset(); state.deaths = d; return; }
+
+    var f = flagBox();
+    if (s.x < f.x + f.w && s.x + PLAYER > f.x && s.y < f.y + f.h && s.y + PLAYER > f.y) s.won = true;
+  }
+
+  function draw() {
+    var s = state;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#8fd3ff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (var c = 0; c < COLS; c++) {
+      if (c >= GAP_FROM && c <= GAP_TO) continue;
+      ctx.fillStyle = '#6b4a2b'; ctx.fillRect(c * TILE, GROUND_Y, TILE, 2 * TILE);
+      ctx.fillStyle = '#3fa34d'; ctx.fillRect(c * TILE, GROUND_Y, TILE, 8);
+    }
+    var f = flagBox();
+    ctx.fillStyle = '#ddd'; ctx.fillRect(f.x + 4, f.y, 4, TILE);
+    ctx.fillStyle = '#e63946'; ctx.fillRect(f.x + 8, f.y + 2, 20, 14);
+    ctx.fillStyle = '#2b2d42'; ctx.fillRect(s.x, s.y, PLAYER, PLAYER);
+    ctx.fillStyle = '#fff'; ctx.fillRect(s.x + (s.dir > 0 ? 17 : 5), s.y + 7, 6, 6);
+    ctx.fillStyle = '#000'; ctx.font = '14px monospace';
+    ctx.fillText('Time ' + s.time.toFixed(1) + 's   Falls ' + s.deaths, 10, 20);
+    if (s.won) {
+      ctx.font = '28px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('You reached the flag!  (R to replay)', canvas.width / 2, 120);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'KeyR') { var d = state.deaths; reset(); state.deaths = d; }
+    keys[e.code] = true;
+    if (['Space', 'ArrowUp', 'KeyW'].indexOf(e.code) >= 0 && !e.repeat) jumpBuffer = 0.1;
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
+  });
+  window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+  window.addEventListener('blur', function () { keys = {}; });
+
+  var last = null;
+  function frame(t) {
+    if (last !== null) {
+      var dt = Math.min((t - last) / 1000, 0.05);
+      step(dt);
+    }
+    last = t;
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  reset();
+  state.deaths = 0;
+  window.__game = {
+    get state() { return state; },
+    consts: { TILE: TILE, GROUND_Y: GROUND_Y, GAP_FROM: GAP_FROM, GAP_TO: GAP_TO, PLAYER: PLAYER },
+    flag: flagBox
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

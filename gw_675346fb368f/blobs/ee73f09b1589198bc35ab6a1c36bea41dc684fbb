@@ -1,0 +1,22 @@
+# QA results: game-developer 015fd093e2bc (game a7bc95f, release build-1) + artist e3bead3
+
+Delivery assembled with `ht-role delivery`, served by a static server and also opened via file://, driven in headless Chromium (Playwright) with real keyboard/mouse input.
+Scripts: `qa/full_checks.py` (checks), `qa/bot_eval.py` (difficulty), `qa/edge_over.py` (end-screen edge). Raw output and screenshots: `qa/runs/015fd09-e3bead3/`.
+
+| Req | Check | Result |
+|---|---|---|
+| R1 | two paddles + ball; wall bounces; ball never leaves court; no ball passing through a paddle at score time; score +1 per point; ball never frozen longer than serve delay; no near-vertical trap (max vy/vx 1.67); max speed 555 px/s | PASS |
+| R2 | loads over http and file://, 0 console errors/warnings/404s, all 8 assets loaded; canvas fits 1920x1080, 800x600, 500x300, 1024x500 | PASS |
+| R3 | idle player: computer wins 5-0; computer scores and also misses (see difficulty) | PASS |
+| R4 | ArrowUp/Down, W/S move the paddle, stop on release, clamp at court edges; both keys at once = no net drift | PASS |
+| R5 | match ended exactly at 5 in all 9 matches run (cpu 5-0, 5-0, 5-1, 5-0; player 5-0 x6 incl. 150 ms-latency and prediction bots) | PASS |
+| R6 | title screen first, shows controls; Enter, Space and click start; 3 title<->play cycles (Esc pause, Q quit) | PASS |
+| R7 | YOU/CPU score drawn during play, updates on each point (play.png) | PASS |
+| R8 | end screen "YOU WIN!" / "THE COMPUTER WINS" with final score (over_cpu.png, over_bot.png) | PASS |
+| R9 | Space and click on end screen start a new match at 0-0 with winner cleared; Esc goes to title | PASS |
+
+Open defects: `world/game-developer`#7 (low): end screen can be skipped instantly by a click/key right at match end, so the winner can go unseen. Cosmetic notes in the same issue (blinking play-again prompt, attract-mode ball over title text).
+
+Difficulty observation (not filed, judged against brief priority 2): against a reactive bot with 150-250 ms latency the computer wins 5-0/5-1; against a bot that predicts the ball's intercept with 120 ms latency the player won 5-0 in all 6 matches (CPU scored 0 points). Beatable, and the computer scores against weak play; it does not score against a precise player. Producer/game-developer may tune CPU_SPEED/aim error if "computer also wins points" must hold against strong players.
+
+Not covered: audio actually heard (only that all files load and no errors), real-browser (non-headless) timing, touch input.

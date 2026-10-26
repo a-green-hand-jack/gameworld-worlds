@@ -1,0 +1,5 @@
+# Click Ten
+
+Open `index.html` in any modern web browser. Click **Click me** ten times to finish, then choose **Play again** to reset the counter to zero.
+
+The game is a single self-contained HTML file with inline style and script.

@@ -1,0 +1,54 @@
+# Acceptance record
+
+## Delivery 1 — game-developer@17c817841624e764530b705e233402d9252d955a + artist@b2daa7038200d3e5c5c85a5bae323c40fafb319b
+
+Handed to the playtest as release `playtest-1` (`pong-delivery-1.zip`, the assembled delivery from `ht-role delivery`).
+
+### Producer's own play (observed, 2026-10-19)
+Script `acceptance/play.py`, headless Chromium (Playwright 1.64), page opened from `file://`, real keyboard events; log and screenshots in `acceptance/delivery-1/`.
+- R1: runs from `file://` with no page or console errors; all scripts/assets relative.
+- R6: title screen on load (`1-title.png`): PONG logo, "You vs the computer — first to 5 points wins", controls W/S or ↑/↓, "PRESS ENTER OR SPACE TO START"; Enter started play.
+- R4: held ↑ moved the paddle 210→38 px in 0.4 s; held S moved it back to 210.
+- R2/R3/R5/R7: steering toward the ball with arrow keys, I won 1–0, 2–0 … 5–0 in 92 s; score visible and updating (`2-play.png`); play stopped at 5. Idle, the computer won 0–1 … 0–5. The computer moves by itself and can both lose and win.
+- R8: result screens "YOU WIN!" / "COMPUTER WINS" with the final score (`3-gameover-1.png`, `4-gameover-2.png`); Enter, and a click, each started a new match at 0–0. The play-again prompt appears 0.6 s after the match ends (by design; the screenshots at 0.5 s precede it).
+- Code read: `src/game.js` (rules: AI slower than player with aim error growing with rally length; ball speeds up 6% per hit to a cap), `src/main.js`, `index.html`.
+
+### Pending before a verdict
+- QA's checks: requested in `qa`#3.
+- Playtester's report on `playtest-1`: requested in `playtester`#2.
+
+### Playtest (playtester@90c7f8ff, `report.md`, on `playtest-1`)
+No defect against R1–R8, over `file://` and a static server; won 5–0, play again, lost 0–5, click to play again → 0–0. Pause and focus-loss pause work; scaling OK at 640x400. Audio not heard (headless), and its hooks fired without errors.
+
+### Audio (producer, inspected)
+Five WAVs, mono 16-bit 22050 Hz, 0.06–1.04 s, peak ≤15838 (no clipping); played through `assets.play`, which unlocks from the start key.
+
+### Difficulty (non-blocking; `acceptance/difficulty.py`, `delivery-1/difficulty.txt`)
+The playtester's simulated players only chase the ball's current height, and they lose: "average" won 0 of 40. My simulated players anticipate where the ball will cross, and they won 40 of 40 at every reaction/noise level tried (0.2–0.45 s, ±20–50 px). So a human who reads the ball beats the computer and one who chases loses. R3 is met (beatable, and it can win). The opponent is likely easy for anyone who anticipates, but tuning is not an input requirement, so I am not holding the release for it.
+
+## Delivery 2 — game-developer@e2970e952cdb0273617ac41c547a0d3cb3c81502 + artist@b2daa7038200d3e5c5c85a5bae323c40fafb319b
+
+The diff from delivery 1 is `src/main.js` only: the centre line is drawn only during play, not on the title or result screens (answering the artist's request in `game-developer`#4). The rules (`src/game.js`) are unchanged.
+
+### Producer's own play (observed, 2026-10-19)
+`acceptance/play.py` on the assembled delivery, opened from `file://`; log and screenshots in `acceptance/delivery-2/`. Title → Enter → play; ↑ and S move the paddle; won 5–0 → Enter → 0–0; idle, lost 0–5 → click → 0–0; no page errors. The title and result screens have no centre line through the text. Minor and non-blocking: the line still crosses "GET READY" during the serve pause.
+
+### QA (`qa`#3, closed; qa@a2a99ce1)
+R1–R8 all PASS on this revision and on delivery 1; no defects reproduced. Edge cases pass: paddle clamps at the edges, Up+Down together, key mashing, pause and blur, play again repeated 3×, Esc to title, layouts at 1920x1080, 640x400 and 420x800. Audio loads without errors (not judged by ear).
+
+### Playtest
+`playtest-1` (delivery 1) passed; see above. This revision is handed over as release `playtest-2`, and the report is requested in `playtester`#4.
+
+### Playtest (`playtester`#4, closed; playtester@82451a3c, `report-playtest-2.md`, `evidence2/`)
+No defects and no regressions; R1–R8 hold. Won 5–1, Enter → lost 0–5, click → fresh 0–0. Centre line gone on the title and both result screens and drawn during play. No console errors or failed requests over `file://` or HTTP. Sound not heard (headless).
+
+### QA match runs (qa@0bcaf15c, `qa/build3_matches.log`)
+Tracking-bot matches on this revision: 3/3 won 5–0, and idle matches lost 0–5. Play again works by Enter, Space and click. `DONE matches fail= 0`.
+
+## Conclusion — delivery 2 accepted
+The assembled delivery game-developer@e2970e952cdb0273617ac41c547a0d3cb3c81502 + artist@b2daa7038200d3e5c5c85a5bae323c40fafb319b is the game the input asks for. It is Pong in the browser, one player against a computer opponent, with the player's paddle on the keyboard and first to 5 winning. It has a title screen, a live score, and a result screen naming the winner with play again. R1–R8 were each observed by my own play, QA's checks and the playtest, with no open defect.
+
+Open, non-blocking:
+- The centre line crosses "GET READY" during the serve pause.
+- Difficulty depends on how the player plays: anticipating players win easily, ball-chasing players lose.
+- Audio has been verified by file inspection and load/play without errors, but no one has judged it by ear.

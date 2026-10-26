@@ -1,0 +1,6 @@
+# Brief: Click Ten
+Objective (quoted): "one page with a button and a counter; each click adds one, and at ten clicks the game shows "You did it!" and a button to play again, which resets the counter to zero. One HTML file with its script and style inside it; no images, sound or libraries."
+
+Focus: a single `index.html` at game-developer's repo root, fully self-contained. Counter starts at 0; click +1; at 10 show "You did it!" and a play-again button (resets to 0, hides message). Clicking must not go past 10.
+Art: none (no assets). Quality: game-developer checks it in a headless browser.
+Not established: filename (index.html chosen).

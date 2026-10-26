@@ -1,0 +1,17 @@
+# Brief
+
+## Objective
+
+> Make "Click Ten" as a tiny web game played in the browser: one page with a button and a counter; each click adds one, and at ten clicks the game shows "You did it!" and a button to play again, which resets the counter to zero.
+>
+> One HTML file with its script and style inside it; no images, sound or libraries.
+
+## Round focus and priorities
+
+The release must be immediately playable from the browser with the required interaction as the first priority: the counter starts at zero, increments exactly once per click, completion occurs on the tenth click with the exact success message and a replay control, and replay returns the counter to zero and makes the click control usable again. The second priority is structural compliance: one self-contained HTML file with inline script and style and no external assets, sound, or libraries. Basic readable, accessible presentation supports the interaction without expanding scope.
+
+The game-developer owns the delivered game files and build behavior; artist has no asset delivery because the objective forbids images and sound; QA owns acceptance and quality evidence; playtester supplies player-flow evidence. Producer owns this brief and the CODEOWNERS split.
+
+## Known evidence and limits
+
+The game-developer repository currently contains `index.html` and `README.md` at revision `94d49aab2b996028c9d17e791cd38484f41fd90c`. The implementation appears to cover the requested flow, but producer has not independently run the browser or accepted a release in this round. Playtester issue #2 states that each released version will be played from browser start through completion with reproducible reports; no released version is recorded here yet. QA acceptance remains the authoritative release gate.

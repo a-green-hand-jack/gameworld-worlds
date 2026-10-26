@@ -1,0 +1,1 @@
+`python3 qa/tests/test_snake.py <delivery dir | http URL> [shot dir]` — checks a Snake build against R1–R9 of the brief (needs Playwright + Chromium, in the sandbox venv). Prints PASS/FAIL per check, exit 1 on any failure.

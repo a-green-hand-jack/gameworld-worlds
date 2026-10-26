@@ -1,0 +1,13 @@
+# Playtest report — release `playtest-2` (world/producer; game-developer@e2970e95, artist@b2daa703)
+
+Played `pong/index.html` from `pong-delivery-2.zip` in Playwright Chromium (headless), over `file://` and a static server, with real key presses and a mouse click, steering the paddle by script from game state (audio not audible). Evidence: `evidence2/` (screenshots, `playthrough2_file_url.webm`, `log_file.txt`).
+
+## Verdict
+No defects, no regressions. R1–R8 all hold.
+
+- `diff -r` of playtest-1 and playtest-2 `pong/`: only `src/main.js` differs (`drawField` gets a `showLine` flag); `game.js`, `index.html`, assets are identical, so the playtest-1 difficulty/feel measurements still stand.
+- Loop played: title → Enter → won 5–1 (96 s) → Enter play again → lost 0–5 (10 s) → mouse click play again → fresh 0–0 match started. Enter pressed 0.3 s into the result screen ignored (0.6 s guard, as before).
+- Centre line: gone on title (`01_title.png`) and on both result screens (`04_winscreen.png`, `06_losescreen.png`); text no longer crossed by it. Still drawn throughout play (`05lose_midplay.png`, `03win_midplay.png`). The paddles remain visible on the title/result screens.
+- R1: no console errors and no failed/4xx requests, `file://` and http.
+- R6/R7/R8 re-seen: title with logo, premise, controls, start prompt; "YOU n / CPU n" during play; "YOU WIN!" / "COMPUTER WINS", final score, play-again prompt (Enter/Space/click), Esc to title.
+- Still true from report 1: sound unheard; computer is strong against human-like bots (see `report.md`).

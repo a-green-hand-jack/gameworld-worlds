@@ -1,0 +1,37 @@
+# Playtest report — Snake build 3
+
+**Build played:** release `build-3` of `world/producer`, `snake-build3.zip`
+(sha256 `6fa590d0a46c98370d86e82fe25d7b7ccbb82dc1ca460176797142e50c527db9`; game-developer dcc9ebb + artist bcf60b1).
+**How:** unzipped into an empty dir, `python3 -m http.server 8000`, Chromium (Playwright 1.64, headless), real keyboard/mouse events in real time;
+a bot read `__snake` state only to pick which arrow to press. Sound was not judged by ear (audio files load, no errors).
+Scripts: `tools/play1_b3.py`, `play2_b3.py`, `play3_b3.py` (same as the build-1 ones, retargeted). Captures: `evidence/build-3/`.
+
+## Verdict
+Good to ship from a player's view. All three changes I asked for work, the rules are unchanged (`src/logic.js` is byte-identical to build 1)
+and I found nothing that blocks play. No console errors or warnings in any run.
+
+## The three things I reported on build 1
+| Build-1 finding | Build 3 |
+|---|---|
+| Score bar scrolled off on short windows | **Fixed.** Score/Best and the whole board are inside the viewport with no page scroll at 1920x1080, 1366x768, 1024x600, 800x500 and even 640x480 (board shrinks to 548 / 454 / 435 px; HUD top ≥ 8 px). Captures `10-viewport-*.png`; numbers in the run output of `play2_b3.py`. |
+| Snake corners not joined | **Fixed.** Turns are square elbows with no gaps (`corner-crop.png`, `06-gameover-self.png`, `04-score5.png`). |
+| Game-over overlay dimmed everything / Enter, Space did not resume | **Fixed.** Game over is a framed card on a lightly dimmed board. P, Esc, Enter, Space and a click on the board all resume from pause (`play3_b3.py`). |
+
+## Requirements re-checked (R1–R10)
+Played title → play → game over → play again several times (8 foods to length 11; deaths: all four walls, self-collision).
+- R2–R3: steady 120 ms steps; opposite key ignored; quick double turns (Down+Left 20 ms apart) both applied; 40 random arrow presses in ~2 s produced only wall/self deaths from my own input; arrows on the title do nothing, page never scrolls.
+- R4: +1 length and +1 score per food (score 8 ↔ length 11); food never on the snake.
+- R5/R6: wall death on top, bottom, left, right, at the edge cell; self-hit ends the game; following the tail into the vacated cell is survived.
+- R7–R10: title shows name, controls, Start button (click or Enter/Space); HUD updates live; Final score matched the HUD (8, 0); "New best!" only when true; Play again by click, Enter and Space gives score 0, length 3, no reload.
+- Pause freezes the snake (head unchanged over 0.6 s); window blur pauses.
+
+## Things that hurt, ranked (all minor)
+1. **Game-over card can cover where you died.** On a self-collision the centred card sits over the middle of the board and in my capture
+   it hides the head and the body segment it hit (`06-gameover-self.png`). The score is very clear, but you cannot see why you died.
+   A card at the top or bottom, or a "You hit yourself/the wall" line, would help. Wall deaths are visible because the head is at the edge.
+2. **Window blur pauses the game.** Reasonable; you come back to a Paused screen and press anything to continue. Fine now that Enter/Space/click resume.
+3. **Best score did not survive my reload test** (`best after reload 0`): Best stayed 0 after a reload in a fresh browser context, because that run's best was 0
+   (I had only restarted, not scored). I did not verify persistence with a non-zero score, so I make no claim about it either way.
+
+## Not checked
+Audio by ear, touch, other browsers, `file://`, filling the whole board.

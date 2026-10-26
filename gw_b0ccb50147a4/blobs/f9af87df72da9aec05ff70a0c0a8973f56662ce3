@@ -1,0 +1,14 @@
+#!/bin/sh
+# Usage: tools/build.sh path/to/background.png  -> dist/star-catcher.zip (index.html at zip root)
+set -e
+cd "$(dirname "$0")/.."
+rm -rf dist/pkg && mkdir -p dist/pkg/assets
+cp index.html style.css game.js dist/pkg/
+cp "$1" dist/pkg/assets/bg.png
+(cd dist/pkg && python3 -c "
+import zipfile,os
+z=zipfile.ZipFile('../star-catcher.zip','w',zipfile.ZIP_DEFLATED)
+for r,_,fs in os.walk('.'):
+    for f in fs: z.write(os.path.join(r,f),os.path.relpath(os.path.join(r,f),'.'))
+")
+echo built dist/star-catcher.zip

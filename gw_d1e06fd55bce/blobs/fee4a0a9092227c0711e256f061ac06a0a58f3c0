@@ -1,0 +1,20 @@
+# Art assets (retro style: off-white on near-black, square pixels). Canvas 800x500, drawn at 1x, nearest-neighbour scaling.
+
+Regenerate with `python3 tools/gen_assets.py`. Paths match game-developer's `docs/assets.md` (artist#2).
+
+## `assets/palette.css`
+`:root` vars: `--bg #101010`, `--fg #f0f0f0`, `--accent #ffd23f` (winner text / highlights), `--dim #8a8a8a` (hints), `--font-family` (Courier New monospace stack; no font file shipped).
+
+## Images (`assets/img/`, PNG RGBA)
+- `logo.png` 456x168 — "PONG" title logo, transparent, off-white.
+- `paddle.png` 12x80 — both paddles.
+- `ball.png` 12x12 — ball.
+- `centerline.png` 4x24 — tile vertically down the centre (opaque top 12px, transparent bottom 12px).
+
+## Audio (`assets/audio/`, mono 16-bit PCM WAV, 22050 Hz, square-wave beeps)
+- `paddle.wav` 0.07s — ball hits paddle (480 Hz).
+- `wall.wav` 0.06s — ball hits top/bottom wall (240 Hz).
+- `score.wav` 0.38s — point scored (descending).
+- `win.wav` 0.76s — player wins match (ascending arpeggio).
+- `lose.wav` 1.04s — computer wins match (descending).
+Audio needs a user gesture (the key press that starts the game).

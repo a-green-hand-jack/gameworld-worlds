@@ -1,0 +1,69 @@
+"""NES 2C02 palette (FCEUX-style values) and small pixel-art helpers.
+
+Art is written as lists of strings, one character per pixel. '.' is transparent;
+every other letter is looked up in a palette dict that maps letters to NES
+palette indices. Keeping art as palette letters (not RGB) is what lets one
+drawing render in several palettes (fire Mario, star cycle, underground tiles).
+"""
+from PIL import Image
+
+NES = [
+    0x747474, 0x24188C, 0x0000A8, 0x44009C, 0x8C0074, 0xA80010, 0xA40000, 0x7C0800,
+    0x402C00, 0x004400, 0x005000, 0x003C14, 0x183C5C, 0x000000, 0x000000, 0x000000,
+    0xBCBCBC, 0x0070EC, 0x2038EC, 0x8000F0, 0xBC00BC, 0xE40058, 0xD82800, 0xC84C0C,
+    0x887000, 0x009400, 0x00A800, 0x009038, 0x008088, 0x000000, 0x000000, 0x000000,
+    0xFCFCFC, 0x3CBCFC, 0x5C94FC, 0xCC88FC, 0xF478FC, 0xFC74B4, 0xFC7460, 0xFC9838,
+    0xF0BC3C, 0x80D010, 0x4CDC48, 0x58F898, 0x00E8D8, 0x787878, 0x000000, 0x000000,
+    0xFCFCFC, 0xA8E4FC, 0xC4D4FC, 0xD4C8FC, 0xFCC4FC, 0xFCC4D8, 0xFCBCB0, 0xFCD8A8,
+    0xFCE4A0, 0xE0FCA0, 0xA8F0BC, 0xB0FCCC, 0x9CFCF0, 0xC4C4C4, 0x000000, 0x000000,
+]
+
+
+def rgb(idx):
+    v = NES[idx]
+    return ((v >> 16) & 255, (v >> 8) & 255, v & 255, 255)
+
+
+def check(name, rows, w, h):
+    assert len(rows) == h, f"{name}: {len(rows)} rows, want {h}"
+    for i, r in enumerate(rows):
+        assert len(r) == w, f"{name}: row {i} has {len(r)} px, want {w}: {r!r}"
+
+
+def render(rows, pal):
+    """rows: list of str; pal: letter -> NES index (or RGBA tuple)."""
+    h, w = len(rows), len(rows[0])
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    px = im.load()
+    for y, r in enumerate(rows):
+        for x, ch in enumerate(r):
+            if ch == '.' or ch == ' ':
+                continue
+            c = pal[ch]
+            px[x, y] = rgb(c) if isinstance(c, int) else c
+    return im
+
+
+def hflip(rows):
+    return [r[::-1] for r in rows]
+
+
+def vflip(rows):
+    return rows[::-1]
+
+
+def transpose(rows):
+    return ["".join(r[i] for r in rows) for i in range(len(rows[0]))]
+
+
+def recolor(rows, mapping):
+    return ["".join(mapping.get(c, c) for c in r) for r in rows]
+
+
+def pad(rows, w, h, align="bottom"):
+    """Place art in a w x h box, horizontally centred, aligned bottom or top."""
+    rw = len(rows[0])
+    lx = (w - rw) // 2
+    body = ["." * lx + r + "." * (w - rw - lx) for r in rows]
+    blank = ["." * w] * (h - len(rows))
+    return blank + body if align == "bottom" else body + blank

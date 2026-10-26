@@ -1,0 +1,8 @@
+{
+  "background": "#101820",
+  "text": "#f0f0e0",
+  "accent": "#7bd36b",
+  "danger": "#e0533b",
+  "font": "\"Press Start 2P\", monospace",
+  "fontFile": "assets/fonts/PressStart2P-Regular.ttf"
+}

@@ -1,0 +1,18 @@
+import sys, threading, http.server, functools, time
+from playwright.sync_api import sync_playwright
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self,*a): pass
+srv=http.server.ThreadingHTTPServer(("127.0.0.1",0),functools.partial(Q,directory=sys.argv[1])); threading.Thread(target=srv.serve_forever,daemon=True).start()
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={"width":1280,"height":720}); pg.goto(f"http://127.0.0.1:{srv.server_port}/index.html?seed=7")
+    pg.wait_for_function("window.pong.getState().screen!=='loading'"); pg.keyboard.press("Enter")
+    # idle until over, while repeatedly pressing Space (player mashing) / clicking at ~10Hz
+    t0=time.time(); first_over=None
+    while time.time()-t0<60:
+        s=pg.evaluate("window.pong.getState()")
+        if s["screen"]=="over": first_over=time.time(); break
+        pg.wait_for_timeout(10)
+    # click 50ms after the end screen first seen (stray click)
+    pg.wait_for_timeout(50); pg.mouse.click(640,360); pg.wait_for_timeout(100)
+    print("after click 150ms post-end:", pg.evaluate("window.pong.getState().screen"), pg.evaluate("window.pong.getState().score"))
+    b.close()

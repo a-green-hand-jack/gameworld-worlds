@@ -1,0 +1,239 @@
+"""Independent QA check of the Pong delivery (R1-R8). Usage:
+   python3 qa/check.py --root DELIVERY_DIR --section {basic,matches,edge} [--out DIR]
+Plays through the real keyboard in headless Chromium; window.pong is used only to read state."""
+import argparse, functools, http.server, json, threading, time, sys
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+RES = []
+def check(name, ok, detail=""):
+    RES.append({"check": name, "ok": bool(ok), "detail": str(detail)})
+    print(("PASS " if ok else "FAIL ") + name + (f"  [{detail}]" if detail else ""), flush=True)
+
+def serve(root):
+    class Q(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a): pass
+    h = functools.partial(Q, directory=str(root))
+    s = http.server.ThreadingHTTPServer(("127.0.0.1", 0), h)
+    threading.Thread(target=s.serve_forever, daemon=True).start()
+    return f"http://127.0.0.1:{s.server_address[1]}/"
+
+def st(p):
+    return p.evaluate("""()=>{const g=window.pong.game;return {state:g.state,score:{...g.score},winner:g.winner,
+      ball:{...g.ball},player:{...g.player},computer:{...g.computer},serveTimer:g.serveTimer,canRestart:g.canRestart(),hits:g.rallyHits}}""")
+
+def open_page(br, url, errs, w=1000, h=700):
+    ctx = br.new_context(viewport={"width": w, "height": h})
+    p = ctx.new_page()
+    p.on("console", lambda m: errs.append(("console." + m.type, m.text)) if m.type in ("error", "warning") else None)
+    p.on("pageerror", lambda e: errs.append(("pageerror", str(e))))
+    p.on("requestfailed", lambda r: errs.append(("requestfailed", r.url)))
+    p.on("response", lambda r: errs.append(("http%d" % r.status, r.url)) if r.status >= 400 else None)
+    p.goto(url)
+    p.wait_for_function("window.pong && window.pong.ready", timeout=10000)
+    return ctx, p
+
+def wait_state(p, state, timeout=60):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        if st(p)["state"] == state: return True
+        p.wait_for_timeout(50)
+    return False
+
+def start(p):
+    p.keyboard.press("Enter")
+    return wait_state(p, "play", 3)
+
+def play(p, mode, timeout=200):
+    """mode 'bot': track ball with arrows; 'idle': do nothing. Returns (final state, score history, ball samples)."""
+    held = set(); hist = []; t0 = time.time(); s = None
+    def hold(k, on):
+        if on and k not in held: p.keyboard.down(k); held.add(k)
+        elif not on and k in held: p.keyboard.up(k); held.discard(k)
+    while time.time() - t0 < timeout:
+        s = st(p); sc = (s["score"]["player"], s["score"]["computer"])
+        if not hist or hist[-1] != sc: hist.append(sc)
+        if s["state"] == "gameover": break
+        if mode == "bot":
+            tgt = s["ball"]["y"] + 6 if s["ball"]["vx"] < 0 else 250
+            c = s["player"]["y"] + 40
+            hold("ArrowUp", tgt < c - 6); hold("ArrowDown", tgt > c + 6)
+        p.wait_for_timeout(12)
+    for k in list(held): p.keyboard.up(k)
+    return s, hist
+
+def sec_basic(br, urls, out):
+    for label, url in urls.items():
+        errs = []
+        ctx, p = open_page(br, url, errs)
+        s = st(p)
+        check(f"[{label}] R6 title shown on load, no play yet", s["state"] == "title" and s["score"] == {"player": 0, "computer": 0})
+        p.screenshot(path=str(out / f"{label}_title.png"))
+        for k in ["ArrowUp", "ArrowDown", "KeyA", "KeyX", "Escape", "KeyP"]:
+            p.keyboard.press(k)
+        p.wait_for_timeout(200)
+        check(f"[{label}] R6 non-start keys do not start the game", st(p)["state"] == "title")
+        p.keyboard.press("Space")
+        check(f"[{label}] R6 Space starts play", wait_state(p, "play", 3))
+        p.screenshot(path=str(out / f"{label}_play_serve.png"))
+        if label == "file":
+            pass
+        # paddle controls
+        p.wait_for_timeout(200)
+        y0 = st(p)["player"]["y"]
+        # use a pause-free approach: ball may score meanwhile; just measure paddle
+        p.keyboard.down("ArrowUp"); p.wait_for_timeout(250); y1 = st(p)["player"]["y"]
+        p.wait_for_timeout(900); y2 = st(p)["player"]["y"]; p.keyboard.up("ArrowUp")
+        check(f"[{label}] R4 ArrowUp moves paddle up and clamps at top", y1 < y0 and y2 == 0, f"{y0:.0f}->{y1:.0f}->{y2:.0f}")
+        p.keyboard.down("ArrowDown"); p.wait_for_timeout(1300); y3 = st(p)["player"]["y"]; p.keyboard.up("ArrowDown")
+        check(f"[{label}] R4 ArrowDown moves paddle down and clamps at bottom (420)", y3 == 420, y3)
+        p.keyboard.down("KeyW"); p.wait_for_timeout(300); y4 = st(p)["player"]["y"]; p.keyboard.up("KeyW")
+        check(f"[{label}] R4 W moves up", y4 < y3, f"{y3:.0f}->{y4:.0f}")
+        p.keyboard.down("KeyS"); p.wait_for_timeout(300); y5 = st(p)["player"]["y"]; p.keyboard.up("KeyS")
+        check(f"[{label}] R4 S moves down", y5 > y4, f"{y4:.0f}->{y5:.0f}")
+        # both keys
+        ya = st(p)["player"]["y"]
+        p.keyboard.down("ArrowUp"); p.keyboard.down("ArrowDown"); p.wait_for_timeout(300); yb = st(p)["player"]["y"]
+        p.keyboard.up("ArrowUp"); p.keyboard.up("ArrowDown")
+        check(f"[{label}] edge: Up+Down together -> paddle stays", abs(yb - ya) < 20, f"{ya:.0f}->{yb:.0f}")
+        # release stops motion
+        p.keyboard.down("ArrowUp"); p.wait_for_timeout(100); p.keyboard.up("ArrowUp"); ya = st(p)["player"]["y"]; p.wait_for_timeout(200)
+        check(f"[{label}] edge: paddle stops on key release", abs(st(p)["player"]["y"] - ya) < 1)
+        # computer paddle is moved by game, player's paddle not by computer
+        p.wait_for_timeout(1500)
+        errs_f = [e for e in errs if not e[0].startswith("console.warning")]
+        check(f"[{label}] R1 no console/page errors, no failed/404 requests", not errs, errs[:5])
+        ctx.close()
+    # click to start, click on title
+    errs = []
+    ctx, p = open_page(br, urls["http"], errs)
+    p.mouse.click(400, 300); 
+    check("mouse click on canvas starts game (extra)", wait_state(p, "play", 3))
+    ctx.close()
+    # viewport sizes
+    for (w, h) in [(1920, 1080), (640, 400), (420, 800)]:
+        ctx, p = open_page(br, urls["http"], [], w, h)
+        box = p.evaluate("(()=>{const r=document.getElementById('game').getBoundingClientRect();return [r.width,r.height,r.left,r.top]})()")
+        ok = box[0] <= w + 1 and box[1] <= h + 1 and box[2] >= -1 and box[3] >= -1
+        check(f"layout {w}x{h}: canvas fits viewport", ok, box)
+        p.screenshot(path=str(out / f"viewport_{w}x{h}.png")); ctx.close()
+
+def sec_matches(br, urls, out):
+    url = urls["http"]
+    # idle player: computer must win; R5, R8
+    errs = []
+    ctx, p = open_page(br, url, errs)
+    check("start idle match", start(p))
+    s, hist = play(p, "idle")
+    check("R3/R5 idle player: match ends with computer winning at 5", s["state"] == "gameover" and s["winner"] == "computer" and s["score"]["computer"] == 5 and s["score"]["player"] < 5, (s["score"], hist))
+    mono = all((b[0] >= a[0] and b[1] >= a[1] and (b[0]-a[0]) + (b[1]-a[1]) == 1) for a, b in zip(hist, hist[1:]))
+    check("R2/R7 score increments one at a time (history)", mono, hist)
+    p.screenshot(path=str(out / "gameover_computer.png"))
+    a = st(p); p.wait_for_timeout(2500); b = st(p)
+    check("R5 no play continues after match end (ball frozen, score fixed)", a["ball"] == b["ball"] and a["score"] == b["score"] and b["state"] == "gameover")
+    p.keyboard.down("ArrowUp"); p.wait_for_timeout(300); p.keyboard.up("ArrowUp")
+    # play again restarts
+    check("R8 play again becomes available", st(p)["canRestart"])
+    p.keyboard.press("Enter")
+    check("R8 Enter on win screen starts fresh match at 0-0", wait_state(p, "play", 3) and st(p)["score"] == {"player": 0, "computer": 0})
+    errs and print("errs", errs)
+    # second match, idle again, then play again via Space, third via click
+    s, hist = play(p, "idle")
+    check("repeat match 2 ends", s["state"] == "gameover", hist)
+    p.wait_for_timeout(800); p.screenshot(path=str(out / "gameover_with_prompt.png"))
+    p.keyboard.press("Space")
+    check("Space also plays again", wait_state(p, "play", 3))
+    s, hist = play(p, "idle")
+    p.wait_for_timeout(800)
+    p.mouse.click(400, 250)
+    check("click plays again (extra)", wait_state(p, "play", 3))
+    check("R1 no errors during idle matches", not errs, errs[:5])
+    ctx.close()
+    # bot player: human can beat computer
+    for i in range(3):
+        errs = []
+        ctx, p = open_page(br, url, errs)
+        start(p)
+        s, hist = play(p, "bot", 300)
+        p.screenshot(path=str(out / f"gameover_bot{i}.png"))
+        check(f"R3 bot-human match {i}: ended; result {s['winner']} {s['score']}", s["state"] == "gameover" and 5 in (s["score"]["player"], s["score"]["computer"]), hist)
+        if s["state"] == "gameover":
+            check(f"R5 match {i}: winner field matches higher score & other < 5", (s["winner"] == "player") == (s["score"]["player"] == 5) and min(s["score"].values()) < 5, s["score"])
+        RES.append({"check": f"bot_result_{i}", "ok": True, "detail": s["winner"]})
+        ctx.close()
+
+def sec_replay(br, urls, out):
+    errs = []
+    ctx, p = open_page(br, urls["http"], errs)
+    start(p)
+    for i, key in enumerate(["Space", "Enter", "Space"]):
+        s, hist = play(p, "idle")
+        check(f"replay {i}: match ends computer 5", s["state"] == "gameover" and s["score"]["computer"] == 5, hist)
+        p.wait_for_timeout(800)
+        p.screenshot(path=str(out / f"gameover_prompt_{i}.png"))
+        p.keyboard.press(key)
+        check(f"R8 {key} on win screen starts fresh 0-0 match", wait_state(p, "play", 3) and st(p)["score"] == {"player": 0, "computer": 0})
+    check("R1 no errors", not errs, errs[:5])
+    ctx.close()
+
+def sec_edge(br, urls, out):
+    url = urls["http"]
+    errs = []
+    ctx, p = open_page(br, url, errs)
+    start(p)
+    # sample ball for geometry, 6 seconds
+    samples = []; t0 = time.time(); maxspeed = 0; walls_ok = True; first = st(p)["score"]
+    while time.time() - t0 < 12:
+        s = st(p); b = s["ball"]
+        if b["y"] < -0.01 or b["y"] + 12 > 500.01: walls_ok = False
+        maxspeed = max(maxspeed, (b["vx"]**2 + b["vy"]**2) ** .5)
+        samples.append((b["x"], b["y"]))
+        p.wait_for_timeout(8)
+    check("R2 ball stays within top/bottom walls while sampled", walls_ok)
+    # pause
+    s0 = st(p)
+    if s0["state"] == "play":
+        p.keyboard.press("KeyP"); p.wait_for_timeout(100)
+        a = st(p); p.keyboard.down("ArrowDown"); p.wait_for_timeout(500); p.keyboard.up("ArrowDown"); b = st(p)
+        check("pause: state paused, ball and paddles frozen even with keys", a["state"] == "paused" and a["ball"] == b["ball"] and a["player"] == b["player"] and a["computer"] == b["computer"])
+        p.screenshot(path=str(out / "paused.png"))
+        p.keyboard.press("KeyP"); check("pause: P resumes", wait_state(p, "play", 2))
+        p.evaluate("window.dispatchEvent(new Event('blur'))"); p.wait_for_timeout(100)
+        check("window blur pauses play", st(p)["state"] == "paused")
+        p.keyboard.press("Enter"); wait_state(p, "play", 2)
+    # held key across game over / restart
+    ctx.close()
+    ctx, p = open_page(br, url, errs); start(p)
+    p.keyboard.down("ArrowUp")
+    s, hist = play(p, "idle")
+    # idle play() doesnt release our hold; ArrowUp held whole match
+    p.keyboard.up("ArrowUp")
+    check("match ends with ArrowUp held (paddle parked at top)", s["state"] == "gameover", s["score"])
+    # immediate restart press right at gameover
+    p.keyboard.press("Enter"); p.wait_for_timeout(100)
+    imm = st(p)["state"]
+    check("early Enter (<0.6s after end) ignored (info: guard against accidental skip)", imm == "gameover", imm)
+    p.wait_for_timeout(700)
+    p.keyboard.press("Escape")
+    check("Esc on win screen returns to title", wait_state(p, "title", 2))
+    p.screenshot(path=str(out / "title_after_esc.png"))
+    check("title after match: Enter starts fresh 0-0", start(p) and st(p)["score"] == {"player": 0, "computer": 0})
+    # Enter held with repeat should not do double things; press Enter while playing
+    p.keyboard.press("Enter"); p.wait_for_timeout(100)
+    check("Enter during play does nothing", st(p)["state"] == "play")
+    # rapid key mash
+    for k in ["ArrowUp", "ArrowDown", "KeyW", "KeyS"] * 10:
+        p.keyboard.down(k); p.keyboard.up(k)
+    check("R1 no errors", not errs, errs[:5])
+    ctx.close()
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(); ap.add_argument("--root", required=True); ap.add_argument("--section", required=True); ap.add_argument("--out", default="qa/out")
+    a = ap.parse_args(); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    root = Path(a.root).resolve(); urls = {"http": serve(root), "file": (root / "index.html").as_uri()}
+    with sync_playwright() as pw:
+        br = pw.chromium.launch()
+        {"basic": sec_basic, "matches": sec_matches, "edge": sec_edge, "replay": sec_replay}[a.section](br, urls, out)
+        br.close()
+    (out / f"results_{a.section}.json").write_text(json.dumps(RES, indent=1))
+    print("DONE", a.section, "fail=", sum(not r["ok"] for r in RES), flush=True)

@@ -1,0 +1,61 @@
+{
+ "results": [
+  {
+   "match": 1,
+   "winner": "player",
+   "score": [
+    5,
+    1
+   ],
+   "secs": 90,
+   "longest_rally_hits": 69,
+   "ball_stuck": false
+  },
+  {
+   "match": 2,
+   "winner": "player",
+   "score": [
+    5,
+    0
+   ],
+   "secs": 63,
+   "longest_rally_hits": 52,
+   "ball_stuck": false
+  },
+  {
+   "match": 3,
+   "winner": "player",
+   "score": [
+    5,
+    1
+   ],
+   "secs": 119,
+   "longest_rally_hits": 100,
+   "ball_stuck": false
+  }
+ ],
+ "errors": [],
+ "log": [
+  "match 1: score 1-0 at 4s",
+  "match 1: score 1-1 at 20s",
+  "match 1: score 2-1 at 51s",
+  "match 1: score 3-1 at 68s",
+  "match 1: score 4-1 at 80s",
+  "{\"match\": 1, \"winner\": \"player\", \"score\": [5, 1], \"secs\": 90, \"longest_rally_hits\": 69, \"ball_stuck\": false}",
+  "match 1: mashed Enter/Space 9x in 0.8s after the end; still on end screen (endLocked seen: True)",
+  "match 2: score 1-0 at 12s",
+  "match 2: score 2-0 at 33s",
+  "match 2: score 3-0 at 55s",
+  "match 2: score 4-0 at 61s",
+  "{\"match\": 2, \"winner\": \"player\", \"score\": [5, 0], \"secs\": 63, \"longest_rally_hits\": 52, \"ball_stuck\": false}",
+  "match 2: mashed Enter/Space 9x in 0.8s after the end; still on end screen (endLocked seen: True)",
+  "match 3: score 1-0 at 22s",
+  "match 3: score 2-0 at 42s",
+  "match 3: score 3-0 at 58s",
+  "match 3: score 3-1 at 89s",
+  "match 3: score 4-1 at 101s",
+  "{\"match\": 3, \"winner\": \"player\", \"score\": [5, 1], \"secs\": 119, \"longest_rally_hits\": 100, \"ball_stuck\": false}",
+  "match 3: mashed Enter/Space 9x in 0.8s after the end; still on end screen (endLocked seen: True)",
+  "console/page errors: []"
+ ]
+}

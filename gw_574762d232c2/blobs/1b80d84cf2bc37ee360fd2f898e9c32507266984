@@ -1,0 +1,41 @@
+import asyncio, json
+from playwright.async_api import async_playwright
+JS = """
+(sig)=>{
+let fake=1e6; performance.now=()=>fake;
+const g=window.__game; const key=()=>window.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',key:' '}));
+function gauss(){let u=0,v=0;while(!u)u=Math.random();v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const outs=[]; 
+for(let run=0;run<150;run++){
+  if(!g.state.started) key(); else if(g.state.over){fake+=1000;key();}
+  else {g.state.obstacles.push({x:100,y:260,w:20,h:20}); g.step(.01); fake+=1000; key();}
+  let t=0, plan=new Map(), died=null;
+  const dt=1/120;
+  while(t<90){
+    const s=g.state, p=s.player;
+    // plan jump decision per obstacle group once, with noise
+    for(const o of s.obstacles){ if(!plan.has(o)) plan.set(o,gauss()*sig*s.speed); }
+    for(const o of s.obstacles){
+      const dist=o.x-(p.x+p.w);
+      if(dist>-10 && s.player.onGround){
+        // jump when dist <= 0.17*speed + noise (noise sampled per obstacle)
+        if(dist <= s.speed*0.17 + plan.get(o)){ key(); break; }
+      }
+    }
+    g.step(dt); t+=dt;
+    if(g.state.over){ const o=g.state.obstacles.find(o=>o.x< p.x+p.w+5 && o.x+o.w>p.x-5)||{}; died={t:+t.toFixed(1),speed:Math.round(g.state.speed),h:Math.round(o.h||0),w:Math.round(o.w||0)}; break;}
+  }
+  outs.push(died||{t:90,alive:true});
+}
+const alive=outs.filter(o=>o.alive).length; const ts=outs.map(o=>o.t).sort((a,b)=>a-b);
+return {sigma_ms:sig*1000,alive90:alive,median:ts[75],p10:ts[15],deaths_early_under10s:outs.filter(o=>o.t<10).length, sample:outs.filter(o=>!o.alive).slice(0,6)};
+}
+"""
+async def main():
+    async with async_playwright() as pw:
+        b=await pw.chromium.launch(); p=await (await b.new_context()).new_page()
+        await p.goto("file:///hutian/work/game/index.html")
+        for sig in [0.0,0.02,0.04,0.06,0.09]:
+            print(json.dumps(await p.evaluate(JS,sig)))
+        await b.close()
+asyncio.run(main())

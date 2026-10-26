@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Tiny text adventure: two rooms, one item, one way to win."""
+import sys
+
+
+def main():
+    room, has_key = "cellar", False
+    print("You wake in a dark cellar. Commands: look, take key, go up, go down, unlock door, quit.")
+    for line in sys.stdin:
+        cmd = line.strip().lower()
+        if cmd == "quit":
+            print("Goodbye.")
+            return
+        if cmd == "look":
+            if room == "cellar":
+                print("A damp cellar. " + ("" if has_key else "A brass key lies on the floor. ") + "Stairs lead up.")
+            else:
+                print("A hall with a locked oak door. Stairs lead down.")
+        elif cmd in ("take key", "take"):
+            if room == "cellar" and not has_key:
+                has_key = True
+                print("You take the brass key.")
+            else:
+                print("Nothing to take.")
+        elif cmd == "go up" and room == "cellar":
+            room = "hall"
+            print("You climb to the hall.")
+        elif cmd == "go down" and room == "hall":
+            room = "cellar"
+            print("You descend to the cellar.")
+        elif cmd == "unlock door" and room == "hall":
+            if has_key:
+                print("The door opens onto daylight. You win!")
+                return
+            print("The door is locked. You need a key.")
+        else:
+            print("You can't do that.")
+    print()
+
+
+if __name__ == "__main__":
+    main()

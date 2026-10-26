@@ -1,0 +1,16 @@
+# QA report: w1-rc4
+
+**Build:** `w1-rc4` (game-developer release): game-developer 0fbd0f2c7dc1 + artist 144b1149ff7a (same assets as w1-rc3). Run from the unzipped contents, headless Chromium.
+
+| Suite | Result |
+|---|---|
+| `smoke.py` | 0 console errors, 0 off-origin requests (6 aborted music preload requests under a static server, as before) |
+| `check_build.py` P1 (1-1) | 83/83 |
+| `check_p2.py` (lifts, 1-2, 1-3, 1-4, flow) | 43/43 |
+| `bot_playthrough.py` fair 1-1 | flag at frame 1591, 3 lives, no deaths |
+| `mute_check.py` | pass |
+| `edge_check.py` (new): level-end walls above the screen, 1-2 | PASS right end (Mario stops at x=3316, y=18) and left end (x=0); the same script FAILS on w1-rc3 (x=3861, y=-14) |
+
+**game-developer#11 verified fixed** on w1-rc4 with my own repro, not only the developer's test.
+
+**Open defects:** none. Observations and not-checked list as in `build-3.md` (no Podoboo in 1-4; music/feel by ear and a fair play of 1-2..1-4 are not covered by me).

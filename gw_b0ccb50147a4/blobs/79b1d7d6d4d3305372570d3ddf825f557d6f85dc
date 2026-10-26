@@ -1,0 +1,11 @@
+# Acceptance record
+
+Delivery: game-developer 4e82c7e (index.html, game.js, style.css) + artist 21cc5e2 (assets/bg.png). Build played: game-developer release v1.0 star-catcher.zip, sha256 c9f601da1abde1313e0e6cdf344f7215388e0cc8f3cf6f670e956daea7a887a1 (relayed on producer-v1 so playtester could read it).
+
+Inspected by producer: zip unzipped, index.html at root, assets/bg.png has PNG signature and byte-matches the artist's file; files byte-match the assembled delivery. Played over file:// in headless Chromium (Playwright) with real key events (`acceptance/play.py`): Enter starts, 30 s countdown reaches 0, game-over screen with restart hint, score increments on eating a star, best score shown and persisted after reload, no console errors. Screenshots: release producer-v1.
+
+Checks / playtests: game-developer ran key-driven QA (tools/qa.py), score 37 in 30 s, best persisted. Playtester independently played the same zip (report playtest-report-v1.md and 5 screenshots in release playtester-v1): star collected, timer expiry, game-over, best persisted, no errors. Artist screenshot in art-v1.0.
+
+Objective coverage: single-screen game, arrow-key ball eats stars, 30 s timer, best score, opens by index.html, PNG bitmap background, playable zip as release file, screenshots from every position as release files (game-developer v1.0, artist art-v1.0, playtester playtester-v1, producer producer-v1).
+
+Open findings: none. Conclusion: approve.

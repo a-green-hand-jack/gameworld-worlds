@@ -1,0 +1,59 @@
+# Level data: `src/levels/W-L.js`
+
+One ES module per level, `export default { id, time, locations, areas }`,
+imported by `src/levels/index.js` (`LEVELS`, `ORDER`).
+
+## Source
+
+Layouts were converted by `tools/convert-fsm.mjs` from the public level maps
+of FullScreenMario (MIT; see `ATTRIBUTION.md`), and corrected by hand in
+`tools/level-fixes.mjs` against public descriptions of the NES levels. Only
+positions were taken over. Regenerate with
+
+    node tools/convert-fsm.mjs <dir with FSM maps.js and 1-1.js … 8-4.js> [W-L …]
+
+## Shape
+
+- `time` — level timer at start (400 / 300 …, as the original).
+- `locations[]` — the places Mario can enter: `{area, entry, x?, pipe?}`.
+  Location 0 is where the level starts. `entry` is `plain` (stand at x 42, or `x`+40 if given),
+  `walk` (1-2 style intro: walk right into a pipe), `fall` (drop in from the
+  top, underground bonus rooms), `pipeUp` (rise out of the pipe at
+  `pipe.col,row`), `castle` (castle start ledge).
+  `?level=W-L&area=N` enters location N.
+- `areas[]` — tile maps:
+  - `theme` overworld | underground | underwater | castle; `sky` day |
+    night | black; `tiles` optional tile variant (e.g. `snow`).
+  - `rows[15]` — strings, one character per 16×16 tile, row 0 at the top,
+    rows 13–14 the floor. `width` in px.
+  - `contents` — `"col,row": what` for blocks: `coin` (default for `?`),
+    `coins` (multi-coin brick), `power` (mushroom or flower by Mario's
+    form), `oneup`, `star`, `vine`.
+  - `things[]` — `[type, xLeftPx, topPx, opts]`: enemies (`goomba`, `koopa`
+    with `{red, para, fly}`, `beetle`, `piranha` (x at the pipe centre,
+    y the raised top), `hammerbro`, `lakitu`, `cheep`, `blooper`, `podoboo`,
+    `firebar {len, dir, speed}`, `bowser`, `cannon`), objects (`lift`,
+    `liftgen`, `scale`, `spring`, `flagpole`, `axe`, `npc`).
+  - `pipes[]` — `{col, row, dir: 'down'|'right', to}`: enterable pipes;
+    `to` is a location index or `{map: 'W-L'}` (warp).
+  - `triggers[]` — `scrollStop` (camera stops at x), `castle` (end of a
+    level, walk-in point and `to`), `halfway`, `warpzone`, `loop` (castle
+    maze checks), `toad`.
+  - `scenery[]` — `[name, xLeftPx, bottomPx, opts]` background pictures
+    (hills, bushes, clouds, fences, trees, castles).
+
+## Tile characters
+
+| char | tile | solid | | char | tile | solid |
+|---|---|---|---|---|---|---|
+| `G` | ground | yes | | `T` | tree/platform top | yes |
+| `S` | hard block | yes | | `t` / `Z` | trunk (Z solid) | Z |
+| `B` | brick | yes | | `M` | mushroom platform top | yes |
+| `?` | question block | yes | | `i` / `Y` | mushroom stem (Y solid) | Y |
+| `U` | used block | yes | | `C` / `c` | cannon top / body | yes |
+| `h` | hidden block (only from below) | head | | `K` | coral | yes |
+| `o` | coin | no | | `w` / `W` | water surface / water | no |
+| `[` `]` | pipe top left / right | yes | | `l` / `L` | lava surface / lava | no |
+| `{` `}` | pipe body left / right | yes | | `=` | castle bridge | yes |
+| `m` `n` | side pipe mouth top / bottom | yes | | `D` | cloud block | yes |
+| `q` `r` | side pipe body top / bottom | yes | | `X` | Bowser's bridge (falls with the axe) | yes |

@@ -1,0 +1,13 @@
+import sys
+sys.path.insert(0,'/hutian/repo/qa')
+from harness import Game
+for tag,d in (('build-3','/hutian/b5/w1'),('rc3','/hutian/b6/w1-rc3')):
+    g=Game(d,'#level=1-1'); g.press('start'); g.step(300)
+    st="(()=>{const S=SMB.Sound,m=S.music;return [S.musicName,S.muted,m?m.muted:null,m?m.paused:null]})()"
+    print(tag,'start',g.js(st))
+    g.press('mute'); g.step(2); print('muted',g.js(st))
+    g.js("SMB.Sound.setFast('overworld')"); g.step(2); print('fast while muted',g.js(st))
+    g.js("SMB.Sound.playMusic('underground', true)"); g.step(2); print('track changed while muted',g.js(st))
+    g.press('mute'); g.step(2); print('unmuted',g.js(st))
+    g.press('mute'); g.step(2); g.press('start'); g.step(5); g.press('start'); g.step(5); g.press('mute'); g.step(2); print('mute+pause cycle then unmute',g.js(st), g.js("SMB.game.state"))
+    g.close()

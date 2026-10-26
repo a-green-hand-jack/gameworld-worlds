@@ -1,0 +1,7 @@
+# Click Ten playtest record
+
+## 2026-10-25 — pending first release
+
+The objective requires a one-page browser game where each click increments a counter and ten clicks show “You did it!” with a replay button resetting to zero.
+
+No release was present in `world/result` at the time of this check, so there was no playable revision to launch. No interaction, completion claim, screenshot, or runtime log can be recorded yet. The playtest remains pending the first released version.

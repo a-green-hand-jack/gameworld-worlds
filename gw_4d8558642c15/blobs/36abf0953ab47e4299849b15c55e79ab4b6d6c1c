@@ -1,0 +1,9 @@
+# game-developer
+
+Flag Run: one-screen platformer. A green square runs (arrows / A D) and jumps (Space / Up / W) over two gaps to a flag.
+
+Start: open `index.html` in a browser (needs `level.json` beside it; if the browser blocks `fetch` on `file://`, an embedded copy of the same level is used — `window.__game.levelSource` says which). Headless check: `python tools/check.py` (Playwright; a scripted bot plays and exits 0 only if the flag is reached). After editing `level.json` run `python tools/sync.py`.
+
+Test hooks: `window.__game` exposes `state` (`playing`/`won`), `won`, `player`, `flag`, `keys`, `step()`.
+
+Releases: `build-1` (flag one tile too high, known defect), `build-2` (fixed).

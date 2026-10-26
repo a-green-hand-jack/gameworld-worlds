@@ -1,0 +1,521 @@
+{
+ "build": "file:///hutian/builds/build-1/game/index.html",
+ "url": "file:///hutian/builds/build-1/game/index.html",
+ "console": [
+  [
+   0.09,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "error",
+   "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+  ]
+ ],
+ "pageerrors": [],
+ "failed": [
+  [
+   0.09,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/question.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_tl.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_tr.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_l.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_r.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_mouth_t.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_mouth_b.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_body_t.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_body_b.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_join_t.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/pipe_side_join_b.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.1,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/treetop_l.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/treetop_m.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/treetop_r.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/trunk.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/bridge.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/chain.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/axe.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/lava_top.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/lava.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/flag_ball.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/underground/flag_pole.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/question.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_tl.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_tr.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_l.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_r.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_mouth_t.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_mouth_b.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_body_t.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_body_b.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_join_t.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.11,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/pipe_side_join_b.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/treetop_l.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/treetop_m.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/treetop_r.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/trunk.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/flag_ball.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ],
+  [
+   0.12,
+   "file:///hutian/builds/build-1/game/assets/tiles/castle/flag_pole.png",
+   "net::ERR_FILE_NOT_FOUND"
+  ]
+ ],
+ "evals": {
+  "boot": "{\"smb\":\"object\",\"loaded\":true,\"state\":\"title\"}",
+  "player_after_run": "{\"x\":317.6142578125,\"y\":273.25,\"vx\":2.5625}"
+ },
+ "steps": [
+  [
+   0.27,
+   {
+    "wait": 1500
+   }
+  ],
+  [
+   1.77,
+   {
+    "shot": "01_title"
+   }
+  ],
+  [
+   1.82,
+   {
+    "eval": "JSON.stringify({smb: typeof SMB, loaded: window.SMB&&SMB.loaded, state: window.SMB&&SMB.game&&SMB.game.state})",
+    "as": "boot"
+   }
+  ],
+  [
+   1.83,
+   {
+    "press": "Enter"
+   }
+  ],
+  [
+   1.92,
+   {
+    "wait": 300
+   }
+  ],
+  [
+   2.22,
+   {
+    "shot": "02_after_enter_300ms"
+   }
+  ],
+  [
+   2.25,
+   {
+    "wait": 2500
+   }
+  ],
+  [
+   4.76,
+   {
+    "shot": "03_after_enter_2800ms"
+   }
+  ],
+  [
+   4.8,
+   {
+    "wait": 1500
+   }
+  ],
+  [
+   6.31,
+   {
+    "shot": "04_gameplay_start"
+   }
+  ],
+  [
+   6.35,
+   {
+    "down": "ArrowRight"
+   }
+  ],
+  [
+   6.35,
+   {
+    "wait": 1500
+   }
+  ],
+  [
+   7.85,
+   {
+    "shot": "05_walk_1500ms"
+   }
+  ],
+  [
+   7.93,
+   {
+    "down": "KeyZ"
+   }
+  ],
+  [
+   7.93,
+   {
+    "wait": 2500
+   }
+  ],
+  [
+   10.43,
+   {
+    "shot": "06_run_2500ms"
+   }
+  ],
+  [
+   10.5,
+   {
+    "eval": "JSON.stringify(SMB.game.player&&{x:SMB.game.player.x,y:SMB.game.player.y,vx:SMB.game.player.vx})",
+    "as": "player_after_run"
+   }
+  ],
+  [
+   10.51,
+   {
+    "up": "KeyZ"
+   }
+  ],
+  [
+   10.51,
+   {
+    "up": "ArrowRight"
+   }
+  ]
+ ]
+}

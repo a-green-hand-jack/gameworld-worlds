@@ -1,0 +1,28 @@
+# Playtest: jump game v1.2 (game-developer release `v1.2`, source rev 74ba904c973dacc63235eee878dc806893f6a562)
+
+## How it was played
+- Build: `index.html` taken from the assembled delivery (`ht-role delivery`), which is game-developer `main` 74ba904c973d, the revision producer says matches release v1.2 / `jump-game-v1.2.zip`.
+- **Limitation:** I cannot read game-developer's releases (only producer's are visible to me), so I did NOT unzip `jump-game-v1.2.zip` itself; "index.html at zip root" and that the zip equals this revision are unverified by me. Producer/game-developer should confirm.
+- Played in headless Chromium 156 (Playwright 1.64) at a 1000x500 viewport via `file://.../index.html` (no server), with real keyboard Space presses. No human with eyes/hands was involved: "feel" notes are from state sampling plus screenshots, not a person.
+- Scripts: `playtest/tools/play.py`; log `playtest/evidence/play-log.txt`; screenshots `playtest/evidence/01..07-*.png`.
+
+## Results against the brief
+| Requirement | Result | Evidence |
+|---|---|---|
+| Opens from file://, single screen, no network | OK. Title "跳方块", 800x300 canvas centred, no console/page errors | 01-start.png, log |
+| Space jumps a square | OK. First Space starts the run and jumps (y 200 -> 125 at 120 ms) | 02-first-jump.png |
+| Obstacles approach from the right | OK. Red blocks, one at a time, ~2 s to the first one | 05 |
+| Collision ends game, restart with Space | OK. Idle run died at score 20 -> "游戏结束 / 按空格键重新开始"; Space restarted with score 0 | 03, log "restart" |
+| Score + high score always visible | OK, top-left 分数, top-right 最高分, also on start/game-over screens | 01,05,06 |
+| High score persists | OK. Best 20 kept across restart and after page reload (file://, localStorage worked) | log "after reload" |
+| Fair at capped speed (560 px/s, after ~40 s) | OK. Real-Space bot survived 50 s (score ~500, capped speed) and then 6x40 s runs with +-80 ms timing noise, plus fixed leads of 0.08/0.12/0.3/0.4 s before contact, all alive at speed 560 (score ~3900 total) | log |
+
+## Issues / observations (none blocking)
+1. **Too easy / flat difficulty (design, minor).** Only one obstacle at a time, edge gap >= 0.9 s, speed caps at ~28 s (330 -> 560), one obstacle shape. Every timing from 0.08 s to 0.4 s before contact survived, so there is almost no way to die once awake; the run is long and repetitive. Suggest a tighter cap on the gap at high speed or occasional paired obstacles if "fun" is a priority; the producer decides.
+2. **High score does not update live (minor).** During a run score 500 sat next to 最高分 20 (05-capped-speed-midplay.png); best only updates on death. Players beating their record get no feedback until they die.
+3. **Instant restart on Space after death (minor, from code reading, not exercised by a human).** `jump()` restarts the moment state is `over`, with no delay, so a player who is still tapping when they hit an obstacle may skip the game-over screen unseen. A ~0.3-0.5 s lockout would avoid this.
+4. Obstacles are pure rectangles, player a plain square, no jump/death feedback or sound; acceptable for the brief (art in code).
+5. Not tested: touch input, tabs/focus loss, very small windows, browsers other than headless Chromium, Safari/Firefox localStorage behaviour under file://.
+
+## Verdict
+Playable, completable loop; all five brief requirements observed working except the zip-structure part of requirement 5, which I could not inspect. No blocker found in the game itself.

@@ -1,0 +1,10 @@
+"""Tile screenshots into one contact sheet at half size: sheet.py OUT.png IMG..."""
+import sys
+from PIL import Image
+ims = [Image.open(p).convert('RGB') for p in sys.argv[2:]]
+w, h = ims[0].width // 2, ims[0].height // 2
+cols = 3
+s = Image.new('RGB', (w * cols, h * ((len(ims) + cols - 1) // cols)))
+for i, im in enumerate(ims):
+    s.paste(im.resize((w, h), Image.NEAREST), ((i % cols) * w, (i // cols) * h))
+s.save(sys.argv[1])

@@ -1,0 +1,21 @@
+# Snake assets (manifest)
+
+Cell size **32×32 px**. All PNGs are RGBA; palette: bg `#0b1020`, grid `#121a33`, head `#7dffb2`, body `#2fd17a`/`#27b868`, food `#ff4d6d`, wall `#3b4a8a`, text `#e8f0ff`.
+Regenerate everything with `python3 tools/gen_assets.py` (deterministic). File names are stable; revisions keep them.
+
+| File | Size / length | Purpose |
+|---|---|---|
+| img/tile.png | 32×32 | board background cell (draw on every cell, or fill canvas with `#0b1020`) ; 1 px grid line `#32447f` on fill `#0d1428` (~1.8:1), dimmer than the wall |
+| img/snake_head.png | 32×32 | head, **faces right**; rotate 90° steps for up/down/left (eyes stay symmetric, so flipping is also fine) |
+| img/snake_body.png, img/snake_body_alt.png | 32×32 | body segments; alternate by index for a striped look (or use one) |
+| img/food.png | 32×32 | food (apple) |
+| img/wall.png | 32×32 | optional wall/border cell |
+| img/logo.png | 320×120 | title-screen logo |
+| img/gameover.png | 400×120 | "GAME OVER" banner (draw final score and "play again" prompt as text beneath, colour `#e8f0ff`) |
+| audio/eat.wav | 0.20 s | food eaten |
+| audio/gameover.wav | 0.83 s | collision / game over |
+| audio/start.wav | 0.38 s | game start from title screen |
+| audio/turn.wav | 0.04 s | optional tick on direction change |
+
+Audio: 22.05 kHz mono 16-bit WAV, peak-normalised to 0.7, short fades (no clicks). Browsers require a user gesture before audio plays; start sounds after the first key press.
+The build may equally ignore any file and draw shapes with the palette above.

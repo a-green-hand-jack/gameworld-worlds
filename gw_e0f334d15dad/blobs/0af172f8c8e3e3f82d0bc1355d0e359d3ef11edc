@@ -1,0 +1,67 @@
+// Headless smoke test: node smoke.mjs [path-to-index.html]
+// Needs the `playwright` npm package and its chromium (see README.md).
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+
+let chromium;
+try { ({ chromium } = await import('playwright')); }
+catch { ({ chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/hutian/tools/node_modules/playwright/index.mjs')); }
+
+const file = resolve(process.argv[2] || 'index.html');
+const browser = await chromium.launch();
+const page = await browser.newPage();
+const errors = [];
+page.on('pageerror', e => errors.push(String(e)));
+await page.goto(pathToFileURL(file).href);
+
+const st = () => page.evaluate(() => ({ ...window.__game.state }));
+const results = [];
+const check = (name, ok, info = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'} ${name} ${info}`); };
+
+let s = await st();
+check('start: player on the ground, not won', s.onGround && !s.won, `x=${s.x.toFixed(0)}`);
+
+await page.keyboard.down('ArrowRight');
+await page.waitForTimeout(300);
+await page.keyboard.up('ArrowRight');
+let s2 = await st();
+check('run right', s2.x > s.x + 20, `x ${s.x.toFixed(0)} -> ${s2.x.toFixed(0)}`);
+
+await page.keyboard.down('ArrowLeft');
+await page.waitForTimeout(300);
+await page.keyboard.up('ArrowLeft');
+let s3 = await st();
+check('run left', s3.x < s2.x - 20, `x ${s2.x.toFixed(0)} -> ${s3.x.toFixed(0)}`);
+
+await page.keyboard.press('Space');
+await page.waitForTimeout(150);
+let s4 = await st();
+check('jump leaves the ground', !s4.onGround && s4.y < s3.y - 10, `y ${s3.y.toFixed(0)} -> ${s4.y.toFixed(0)}`);
+await page.waitForTimeout(800);
+
+// restart, run to the gap edge, jump across it
+await page.keyboard.press('KeyR');
+await page.keyboard.down('ArrowRight');
+await page.waitForFunction(() => window.__game.state.x > 240);
+await page.keyboard.press('Space');
+await page.waitForFunction(() => window.__game.state.x > 400, null, { timeout: 5000 });
+await page.waitForTimeout(300);
+let g = await st();
+check('cross the gap', g.deaths === 0 && g.onGround && g.x > 400, `x=${g.x.toFixed(0)} falls=${g.deaths}`);
+
+// run to the flag and jump at it
+const flag = await page.evaluate(() => window.__game.flag());
+await page.waitForFunction(f => window.__game.state.x > f.x - 60, flag);
+for (let i = 0; i < 6 && !(await st()).won; i++) {
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(700);
+}
+await page.keyboard.up('ArrowRight');
+const f = await st();
+check('reach the flag', f.won, `won=${f.won} flag=(${flag.x},${flag.y}) player=(${f.x.toFixed(0)},${f.y.toFixed(0)})`);
+check('no page errors', errors.length === 0, errors.join('; '));
+
+await browser.close();
+const failed = results.filter(r => !r).length;
+console.log(failed ? `SMOKE FAILED (${failed})` : 'SMOKE OK');
+process.exit(failed ? 1 : 0);

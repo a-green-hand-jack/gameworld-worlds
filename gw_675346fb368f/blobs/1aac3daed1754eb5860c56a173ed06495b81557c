@@ -1,0 +1,19 @@
+import sys, time, pathlib
+from playwright.sync_api import sync_playwright
+game = pathlib.Path(sys.argv[1]).resolve(); out = pathlib.Path(sys.argv[2]); out.mkdir(exist_ok=True)
+with sync_playwright() as p:
+    b = p.chromium.launch(); errs = []
+    for name, vp in [("1024x768", (1024, 768)), ("1280x720", (1280, 720)), ("600x400", (600, 400))]:
+        page = b.new_page(viewport={"width": vp[0], "height": vp[1]})
+        page.on("pageerror", lambda e: errs.append(str(e))); page.on("console", lambda m: errs.append(m.text) if m.type in ("error", "warning") else None)
+        page.goto((game / "index.html").as_uri()); page.wait_for_function("window.pong && pong.getState().screen==='title'")
+        time.sleep(0.6); page.screenshot(path=str(out / f"new-title-{name}.png"))
+        page.keyboard.press("Enter"); time.sleep(2.5); page.screenshot(path=str(out / f"new-play-{name}.png"))
+        if name == "1024x768":
+            page.keyboard.press("p"); time.sleep(0.3); print("paused", page.evaluate("pong.getState().paused")); page.screenshot(path=str(out / "new-paused.png"))
+            s1 = page.evaluate("pong.getState().ball"); time.sleep(1); print("ball frozen while paused", s1 == page.evaluate("pong.getState().ball"))
+            page.keyboard.press("p"); print("resumed", not page.evaluate("pong.getState().paused"))
+            page.keyboard.press("Escape"); page.keyboard.press("q"); print("Esc,q ->", page.evaluate("pong.getState().screen"))
+            page.keyboard.press("Escape"); page.keyboard.press("q"); print("after pause+q ->", page.evaluate("pong.getState().screen"))
+        page.close()
+    print("errors", errs)

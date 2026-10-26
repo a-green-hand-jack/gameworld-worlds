@@ -1,0 +1,18 @@
+title state {'s': 'title', 'score': '0', 'best': '0', 'g': None}
+scroll dims [800, 800, 737]
+after ArrowUp on title title
+started {'s': 'playing', 'score': '0', 'best': '0', 'g': {'len': 3, 'dir': 'right', 'score': 0, 'over': False, 'reason': None, 'head': {'x': 11, 'y': 10}, 'food': {'x': 15, 'y': 6}, 'body': [{'x': 11, 'y': 10}, {'x': 10, 'y': 10}, {'x': 9, 'y': 10}]}}
+after 180 reverse press: state playing dir right len 3
+after 1st food 1 4 1
+score5 5 len 8 internal 5
+paused paused head same while paused: True
+resumed playing
+score8 8 11
+after loop attempt gameover self 8
+final score text 8 hud 8 best 8
+after play again click playing 0 3
+wall run gameover wall
+final score text 0 new best shown none
+after Space restart playing 0 3
+quick double (down,left from right): playing left None
+console []

@@ -1,0 +1,31 @@
+from playwright.sync_api import sync_playwright
+JS='''(cfg)=>{
+ const G=window.PongGame; const res=[];
+ for(let m=0;m<cfg.n;m++){
+  const g=new G({seed:1000+m}); g.startMatch();
+  let rt=0, err=0, tgt=250, hits=0, rallies=[], cur=0, maxRally=0, t=0;
+  const inp={up:false,down:false}; let prevSc=0;
+  while(g.state==='play'&&t<1200){
+    // human-like: re-aim every cfg.react seconds with noise cfg.noise px; follow ball y only when ball heads left
+    rt-=1/120;
+    if(rt<=0){ rt=cfg.react; const b=g.ball; tgt=(b.vx<0? b.y+6 : 250)+(Math.random()*2-1)*cfg.noise; }
+    const c=g.player.y+40, d=tgt-c;
+    inp.up=d<-cfg.dead; inp.down=d>cfg.dead;
+    const hb=g.rallyHits; g.update(1/120,inp); t+=1/120;
+    maxRally=Math.max(maxRally,g.rallyHits);
+  }
+  res.push({p:g.score.player,c:g.score.computer,t:Math.round(t),maxRally});
+ }
+ return res;}'''
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(); pg.goto('file:///hutian/work/pong/index.html'); pg.wait_for_function('window.pong&&window.pong.ready')
+    out=[]
+    for name,cfg in [('perfect',dict(n=40,react=1/120,noise=0,dead=4)),('good (react .15s, +-25px)',dict(n=40,react=.15,noise=25,dead=8)),('average (react .3s, +-45px)',dict(n=40,react=.3,noise=45,dead=10)),('poor (react .5s, +-70px)',dict(n=40,react=.5,noise=70,dead=15))]:
+        r=pg.evaluate(JS,cfg); w=sum(1 for x in r if x['p']>x['c']); 
+        line=f"{name}: player won {w}/{len(r)}; avg score {sum(x['p'] for x in r)/len(r):.1f}-{sum(x['c'] for x in r)/len(r):.1f}; avg match {sum(x['t'] for x in r)/len(r):.0f}s; longest rally {max(x['maxRally'] for x in r)} hits"
+        print(line); out.append(line)
+    # idle player
+    r=pg.evaluate('''()=>{const o=[];for(let m=0;m<30;m++){const g=new PongGame({seed:5+m});g.startMatch();let t=0;while(g.state==='play'&&t<600){g.update(1/120,{});t+=1/120}o.push([g.score.player,g.score.computer,Math.round(t)])}return o}''')
+    line=f"idle player: computer won {sum(1 for x in r if x[1]>x[0])}/30, avg match {sum(x[2] for x in r)/30:.0f}s"; print(line); out.append(line)
+    open('evidence/ai_sim.txt','w').write('\n'.join(out))
+    b.close()

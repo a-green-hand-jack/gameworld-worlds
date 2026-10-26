@@ -1,0 +1,2 @@
+# Snake assets
+Paths relative to `assets/`. Cell size 32px; see `manifest.json` for every file and its use. Head sprites exist for 4 directions (no code rotation needed). Alternate tile_a/tile_b in a checkerboard. Audio: 22.05kHz mono 16-bit WAV, short.

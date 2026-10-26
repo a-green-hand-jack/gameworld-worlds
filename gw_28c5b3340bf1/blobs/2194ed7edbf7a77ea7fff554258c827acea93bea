@@ -1,0 +1,118 @@
+/* Palette from the artist's manifest (assets/README.md). */
+:root {
+  --bg: #0b1020;
+  --board: #0b1020;
+  --grid: #121a33;
+  --wall: #3b4a8a;
+  --text: #e8f0ff;
+  --accent: #7dffb2;
+  --button: #2fd17a;
+  --danger: #ff4d6d;
+  --snake: #2fd17a;
+  --snake-head: #7dffb2;
+  --food: #ff4d6d;
+  --overlay: rgba(6, 9, 20, 0.84);
+  --font: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+#app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+#hud {
+  width: min(92vw, calc(100vh - 110px), 704px);
+  display: flex;
+  justify-content: space-between;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+#hud strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+#stage {
+  position: relative;
+  width: min(92vw, calc(100vh - 110px), 704px);
+  aspect-ratio: 1 / 1;
+}
+
+#board {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  background: var(--board);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  background: var(--overlay);
+}
+#gameover-screen h2 { color: var(--danger); }
+
+.screen-art { max-width: 88%; max-height: 32%; image-rendering: pixelated; }
+.screen-art.missing { display: none; }
+
+h1, h2 { margin: 0; color: var(--accent); letter-spacing: 0.12em; }
+h1 { font-size: 64px; }
+h2 { font-size: 48px; }
+
+.hint { margin: 0; line-height: 1.5; opacity: 0.9; }
+.small { font-size: 14px; opacity: 0.7; }
+.final { margin: 6px 0; font-size: 28px; }
+.final strong { color: var(--accent); font-size: 40px; font-variant-numeric: tabular-nums; }
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 4px;
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+button {
+  margin-top: 8px;
+  padding: 10px 28px;
+  font: inherit;
+  font-size: 22px;
+  color: var(--bg);
+  background: var(--button);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+
+.hidden { display: none !important; }
+.invisible { visibility: hidden; }
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

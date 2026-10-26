@@ -1,0 +1,31 @@
+# Playtest report: gap runner build-2
+
+**Build played:** release `build-2-for-playtest` in world/producer, asset `gap-runner-build-2.zip` (index.html + level.json; game-developer build-2, source 1a6508b9818d).
+**How:** Headless Chromium (Playwright, chrome-headless-shell 156) with real keyboard events and real-time play (no `?manual`), once over http (`levelSource: level.json`) and once opened by file:// (`levelSource: built-in copy`). Scripts: evidence/play.py (full run) and evidence/neg.py (walk off a gap without jumping).
+
+## Result: the flag is reachable and `window.game.state` becomes `won`. Both runs reached it in about 3 seconds.
+
+| Step | http | file:// |
+|---|---|---|
+| Start: player on left platform, state `playing`, no errors | ok | ok (one console error: fetch of level.json blocked on file://, as documented; fallback used) |
+| Run right 0.5 s | x 36 to 126 | 36 to 123 |
+| Run left 0.4 s | 126 to 57 | 123 to 54 |
+| R restarts to start position | ok | ok |
+| Jump gap 1 (jump at x>=160) | cleared, landed on middle platform | cleared |
+| Jump gap 2 (jump at x>=352) | cleared, landed on right platform | cleared |
+| Jump to flag (jump at x>=520, flag at 2 tiles above ground) | state `won` at frame 179, overlay "You reached the flag!" | same |
+| Walk right without jumping | falls into gap 1 and restarts at the start (neg.py) | |
+
+Screenshots in evidence/: *_1_start, *_2_before_gap1/gap2/flag, *_3_air_gap1/gap2/flag, *_4_end (http_ and file_ prefixes), neg_fall.png.
+
+## Experience / confusion
+- No blocking problems; it is playable and finishable. Controls match the brief.
+- Minor: the win triggers as soon as the player touches the flag tile in mid-air, so the player is drawn next to the flag, not on it. Fine for a tiny game.
+- Minor: falling into a gap resets with no message; clear enough from the immediate restart.
+- Minor: the page needs a jump started close to the gap edge; the gaps are 2 tiles wide and jumps cover about 3 tiles, so the margin is generous.
+
+## `ht-role status` excerpts (verbatim, taken during this turn)
+
+`requests`: [{"asked_by": "producer", "number": 2, "open_seconds": 105, "owner": "playtester", "owner_replied": false, "pull_request": false, "title": "Play build-2 of the gap runner and report"}]
+
+`owed`: {"playtester": [{"asker": "producer", "key": "request:playtester#2", "kind": "request", "new": false, "number": 2, "owed_seconds": 105, "repository": "playtester", "title": "Play build-2 of the gap runner and report"}], "producer": [{"key": "verdict", "kind": "verdict", "message": "the delivery has no open gaps and no current approval: approve it, or send findings to the positions that own them", "new": false, "owed_seconds": 147}]}

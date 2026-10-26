@@ -1,0 +1,33 @@
+const { chromium } = require('/tmp/playwright-runner/node_modules/playwright');
+const path = require('path');
+
+(async () => {
+  const browser = await chromium.launch({headless: true});
+  const context = await browser.newContext({viewport: {width: 1000, height: 800}});
+  const page = await context.newPage();
+  const errors = [];
+  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+  await page.goto('file://' + path.resolve('/tmp/star-catcher/index.html'));
+  const initial = await page.evaluate(() => ({state: window.__game.state, score: document.querySelector('#score').textContent, time: document.querySelector('#time').textContent, best: document.querySelector('#best').textContent}));
+  await page.screenshot({path: 'playtest-start.png'});
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(250);
+  const started = await page.evaluate(() => ({state: window.__game.state, score: window.__game.score, time: window.__game.timeLeft, stars: window.__game.stars.length, ball: {...window.__game.ball}}));
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(350);
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(350);
+  await page.keyboard.up('ArrowUp');
+  const moved = await page.evaluate(() => ({score: window.__game.score, time: window.__game.timeLeft, ball: {...window.__game.ball}}));
+  await page.screenshot({path: 'playtest-playing.png'});
+  await page.waitForTimeout(30500);
+  const over = await page.evaluate(() => ({state: window.__game.state, score: window.__game.score, time: window.__game.timeLeft, best: document.querySelector('#best').textContent, title: document.querySelector('#title').textContent, msg: document.querySelector('#msg').textContent}));
+  await page.screenshot({path: 'playtest-gameover.png'});
+  await page.reload();
+  const reloaded = await page.evaluate(() => ({state: window.__game.state, best: document.querySelector('#best').textContent, title: document.querySelector('#title').textContent}));
+  await page.screenshot({path: 'playtest-reload-best.png'});
+  console.log(JSON.stringify({initial, started, moved, over, reloaded, errors}, null, 2));
+  await browser.close();
+})();

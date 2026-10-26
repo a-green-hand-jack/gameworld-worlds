@@ -1,0 +1,77 @@
+import asyncio, json, time
+from playwright.async_api import async_playwright
+URL="file:///hutian/work/game/index.html"
+async def st(p): return await p.evaluate("(()=>{const s=window.__game.state;return {score:s.score,best:s.best,speed:s.speed,over:s.over,started:s.started,py:s.player.y,og:s.player.onGround,obs:s.obstacles.map(o=>[o.x,o.w,o.h])}})()")
+async def bot(p, maxsec, errs):
+    t=time.time(); jumps=0; lastj=0
+    while time.time()-t<maxsec:
+        s=await st(p)
+        if s['over']: return s,jumps,time.time()-t
+        # jump when nearest obstacle ahead within distance scaled by speed
+        for x,w,h in s['obs']:
+            if x+w>100 and x-140 < s['speed']*0.17 and s['og'] and time.time()-lastj>0.2:
+                await p.keyboard.press('Space'); jumps+=1; lastj=time.time(); break
+        await asyncio.sleep(0.008)
+    return await st(p),jumps,time.time()-t
+async def main():
+    out={}
+    async with async_playwright() as pw:
+        b=await pw.chromium.launch()
+        ctx=await b.new_context(viewport={'width':1000,'height':500})
+        p=await ctx.new_page(); errs=[]
+        p.on('console',lambda m: errs.append(('console',m.type,m.text)))
+        p.on('pageerror',lambda e: errs.append(('pageerror',str(e))))
+        p.on('requestfailed',lambda r: errs.append(('reqfail',r.url)))
+        await p.goto(URL); await asyncio.sleep(0.5)
+        await p.screenshot(path='ev/01-title.png')
+        out['title']=await st(p)
+        # idle: no key, obstacles should not move
+        await asyncio.sleep(1.5); out['idle']=await st(p)
+        # do nothing after start -> should die
+        await p.keyboard.press('Space'); await asyncio.sleep(0.3)
+        await p.screenshot(path='ev/02-first-jump.png')
+        t=time.time()
+        while time.time()-t<10:
+            s=await st(p)
+            if s['over']: break
+            await asyncio.sleep(0.05)
+        out['die_by_standing_after_jump_s']=round(time.time()-t,2); out['dead1']=await st(p)
+        await asyncio.sleep(0.1); await p.screenshot(path='ev/03-gameover.png')
+        # restart too early (<400ms) ignored?
+        await p.keyboard.press('Space'); out['restart_early']=(await st(p))['over']
+        await asyncio.sleep(0.6); await p.keyboard.press('Space'); await asyncio.sleep(0.1)
+        out['restarted']=await st(p)
+        # bot run
+        async def shots():
+            for i in range(3):
+                await asyncio.sleep(4); await p.screenshot(path=f'ev/04-bot-run-{i}.png')
+        sh=asyncio.create_task(shots())
+        s,j,d=await bot(p,60,errs); out['botrun1']=dict(final=s,jumps=j,secs=round(d,1))
+        sh.cancel()
+        await p.screenshot(path='ev/05-bot-gameover.png')
+        out['best_after_run1']=s['best']
+        # restart + persist
+        await asyncio.sleep(0.5)
+        if s['over']:
+            await p.keyboard.press('Space'); await asyncio.sleep(0.1)
+        out['after_restart']=await st(p)
+        await asyncio.sleep(0.2)
+        # hold space for 3 sec (key repeat)
+        await p.keyboard.down('Space')
+        for _ in range(10):
+            await p.keyboard.down('Space'); await asyncio.sleep(0.05)
+        await p.keyboard.up('Space')
+        out['after_hold']=await st(p)
+        # reload -> best persists?
+        await p.reload(); await asyncio.sleep(0.3)
+        out['reload']=await st(p)
+        await p.screenshot(path='ev/06-after-reload.png')
+        # resize
+        await p.set_viewport_size({'width':400,'height':300}); await asyncio.sleep(0.3)
+        await p.screenshot(path='ev/07-small-viewport.png')
+        await p.set_viewport_size({'width':1920,'height':1080}); await asyncio.sleep(0.3)
+        await p.screenshot(path='ev/08-large-viewport.png')
+        out['errs']=errs
+        await b.close()
+    print(json.dumps(out,indent=1))
+asyncio.run(main())

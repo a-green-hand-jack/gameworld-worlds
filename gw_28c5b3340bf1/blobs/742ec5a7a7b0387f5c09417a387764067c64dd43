@@ -1,0 +1,105 @@
+import sys, json, time
+from playwright.sync_api import sync_playwright
+G='/hutian/b1/x/index.html'
+OUT='/hutian/repo/evidence/build-1/'
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+def st(p): return p.evaluate("({s:__snake.screen,score:__snake.score,snake:__snake.snake,food:__snake.food,dir:__snake.direction,over:__snake.over,cause:__snake.cause})")
+def vis(p,sel): return p.evaluate("s=>{const e=document.querySelector(s);return !!e&&!e.classList.contains('hidden')&&getComputedStyle(e).display!='none'}",sel)
+with sync_playwright() as pw:
+    b=pw.chromium.launch()
+    ctx=b.new_context(viewport={'width':1366,'height':768},record_video_dir=OUT+'video',record_video_size={'width':1366,'height':768})
+    p=ctx.new_page()
+    errs=[]
+    p.on('console',lambda m: errs.append(m.type+': '+m.text) if m.type in('error','warning') else None)
+    p.on('pageerror',lambda e: errs.append('pageerror '+str(e)))
+    p.on('requestfailed',lambda r: errs.append('reqfail '+r.url))
+    p.goto('file://'+G+'?seed=7')
+    p.wait_for_function("__snake.ready")
+    p.screenshot(path=OUT+'01-title.png')
+    L('title: screen',st(p)['s'],'title visible',vis(p,'#title-screen'),'hud hidden',p.evaluate("document.getElementById('hud').classList.contains('invisible')"))
+    L('page scroll size',p.evaluate("[document.documentElement.scrollHeight,innerHeight,document.documentElement.scrollWidth,innerWidth]"))
+    # arrow key on title
+    p.keyboard.press('ArrowRight'); time.sleep(0.3); L('arrow on title -> screen',st(p)['s'])
+    p.keyboard.press('Enter'); time.sleep(0.05)
+    s0=st(p); L('after Enter',s0['s'],s0['snake'],s0['dir'])
+    time.sleep(0.5); p.screenshot(path=OUT+'02-playing.png')
+    s1=st(p); L('0.5s later head',s1['snake'][0],'moved',s1['snake'][0]['x']-s0['snake'][0]['x'],'cells (tick 120ms => ~4)')
+    # reverse
+    p.keyboard.press('ArrowLeft'); time.sleep(0.3); s=st(p); L('reverse press: over',s['over'],'dir',s['dir'])
+    # quick double turn within one tick: Up then Left (from right)
+    p.keyboard.press('ArrowUp'); p.keyboard.press('ArrowLeft'); time.sleep(0.4); s=st(p)
+    L('quick Up+Left from right: dir',s['dir'],'over',s['over'],'head',s['snake'][0])
+    # restart for bot
+    def bot_game(label, target_score, shot_after=None):
+        # steering bot: BFS avoiding body, issues real key presses
+        from collections import deque
+        K={'up':'ArrowUp','down':'ArrowDown','left':'ArrowLeft','right':'ArrowRight'}
+        D={'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
+        opp={'up':'down','down':'up','left':'right','right':'left'}
+        t0=time.time(); prevlen=None; lens=[]
+        while time.time()-t0<120:
+            s=st(p)
+            if s['over'] or s['score']>=target_score: return s
+            if prevlen is not None and len(s['snake'])!=prevlen: lens.append((s['score'],len(s['snake'])))
+            prevlen=len(s['snake'])
+            body=set((c['x'],c['y']) for c in s['snake'][:-1]); h=s['snake'][0]; f=s['food']
+            q=deque([((h['x'],h['y']),None)]); seen={(h['x'],h['y'])}; first=None
+            while q:
+                (x,y),fd=q.popleft()
+                if (x,y)==(f['x'],f['y']): first=fd; break
+                for d,(dx,dy) in D.items():
+                    n=(x+dx,y+dy)
+                    if not(0<=n[0]<20 and 0<=n[1]<20) or n in body or n in seen: continue
+                    if fd is None and d==opp[s['dir']]: continue
+                    seen.add(n); q.append((n,fd or d))
+            if first and first!=s['dir']: p.keyboard.press(K[first])
+            time.sleep(0.03)
+        return st(p)
+    p.keyboard.press('ArrowUp')
+    # let it die by wall: current dir left or up
+    t0=time.time()
+    while not st(p)['over'] and time.time()-t0<10: time.sleep(0.1)
+    s=st(p); L('idle death: cause',s['cause'],'screen',s['s'])
+    time.sleep(0.3); p.screenshot(path=OUT+'03-gameover-wall.png')
+    L('gameover visible',vis(p,'#gameover-screen'),'final',p.inner_text('#final-score'),'cause text',p.inner_text('#gameover-cause'),'button',p.inner_text('#restart-button'))
+    # play again with Enter
+    p.keyboard.press('Enter'); time.sleep(0.1); s=st(p)
+    L('play again 1: screen',s['s'],'score',s['score'],'len',len(s['snake']),'head',s['snake'][0],'dir',s['dir'])
+    # eat food and check growth
+    lens_before=len(s['snake'])
+    r=bot_game('g2',3)
+    L('bot: score',r['score'],'len',len(r['snake']),'over',r['over'])
+    time.sleep(0.15); p.screenshot(path=OUT+'04-after-eating.png')
+    L('hud score text',p.inner_text('#score'))
+    # check len=3+score at several points
+    # continue to 8 then crash into self deliberately? first pause test
+    p.keyboard.press('p'); time.sleep(0.3); a=st(p)['snake'][0]; time.sleep(0.4); b2=st(p)['snake'][0]
+    L('paused screen',st(p)['s'],'head frozen',a==b2); p.screenshot(path=OUT+'05-paused.png')
+    p.keyboard.press('p'); time.sleep(0.2); L('resumed',st(p)['s'])
+    r=bot_game('g2b',10)
+    L('bot2: score',r['score'],'len',len(r['snake']),'over',r['over'],'hud',p.inner_text('#score'))
+    p.screenshot(path=OUT+'06-long-snake.png')
+    # self collision: coil. snake dir; make spiral Up,Left,Down quickly
+    s=st(p); d=s['dir']
+    seq={'right':['ArrowDown','ArrowLeft','ArrowUp'],'left':['ArrowUp','ArrowRight','ArrowDown'],'up':['ArrowRight','ArrowDown','ArrowLeft'],'down':['ArrowLeft','ArrowUp','ArrowRight']}[d]
+    for k in seq:
+        p.keyboard.press(k); time.sleep(0.16)
+    t0=time.time()
+    while not st(p)['over'] and time.time()-t0<5: time.sleep(0.05)
+    s=st(p); L('self-collision attempt: over',s['over'],'cause',s['cause'],'len',len(s['snake']))
+    time.sleep(0.3); p.screenshot(path=OUT+'07-gameover-self.png')
+    if s['over']: L('final shown',p.inner_text('#final-score'),'score',s['score'],'newbest',vis(p,'#new-best'),p.inner_text('#gameover-cause'))
+    # play again via button click, then again via space
+    p.click('#restart-button'); time.sleep(0.1); s=st(p); L('play again 2 (click): screen',s['s'],'score',s['score'],'len',len(s['snake']),'hud',p.inner_text('#score'))
+    # held Enter doesn't double? die quickly
+    t0=time.time()
+    while not st(p)['over'] and time.time()-t0<15: time.sleep(0.1)
+    p.keyboard.press('Space'); time.sleep(0.1); s=st(p); L('play again 3 (Space): screen',s['s'],'score',s['score'],'len',len(s['snake']))
+    # rapid key mashing
+    for k in ['ArrowUp','ArrowLeft','ArrowDown','ArrowRight']*3: p.keyboard.press(k)
+    time.sleep(0.5); s=st(p); L('after mash: over',s['over'],s['cause'])
+    L('console issues',errs)
+    ctx.close(); b.close()
+open(OUT+'play-log.txt','w').write('\n'.join(log)+'\n')

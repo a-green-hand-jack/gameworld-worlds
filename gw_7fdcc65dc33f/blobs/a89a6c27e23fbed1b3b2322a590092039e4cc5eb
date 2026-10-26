@@ -1,0 +1,7 @@
+{"assignment_schema": 1,
+ "items": [
+  {"owner": "game-developer", "work": "game code and behaviour, web build (R1-R8)", "paths": ["index.html"]},
+  {"owner": "artist", "work": "hit sound and its generator (R9); visual look", "paths": ["sound/"]},
+  {"owner": "qa", "work": "systematic checks R1-R10, listening.md in qa repo", "paths": []},
+  {"owner": "playtester", "work": "play each build, experience report", "paths": []}
+ ]}

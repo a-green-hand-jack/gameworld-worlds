@@ -1,0 +1,66 @@
+// Fast difficulty measurement: runs src/game.js unchanged in Node with stubbed browser APIs and
+// simulated time, driving the player's paddle with key events from a bot with input latency.
+// Usage: node checks/sim.js <bot: attentive|casual|idle> <matches> [seed] [latency_ms]
+"use strict";
+const fs = require("fs"), vm = require("vm"), path = require("path");
+const [bot = "attentive", n = "5", seed0 = "1", latArg] = process.argv.slice(2);
+const LAT = Number(latArg ?? (bot === "attentive" ? 120 : 200)) / 1000;
+
+function runMatches(seed) {
+  const listeners = {};
+  const noop = () => {};
+  const ctx2d = new Proxy({}, { get: (t, k) => (k in t ? t[k] : noop), set: (t, k, v) => ((t[k] = v), true) });
+  const canvas = { getContext: () => ctx2d, addEventListener: (t, f) => (listeners["c" + t] = f), focus: noop };
+  let raf = null;
+  const win = {
+    addEventListener: (t, f) => (listeners[t] = f),
+    location: { search: "?seed=" + seed, protocol: "file:" },
+    document: { getElementById: () => canvas },
+    requestAnimationFrame: (f) => (raf = f),
+    URLSearchParams, Math, JSON, Date, Number, String, Object, Set, Promise, console,
+    PongAssets: { images: {}, report: { loaded: [], missing: [] }, load: () => ({ then: (f) => f() }),
+      play: noop, color: () => "#fff", font: () => "monospace", isMuted: () => false, toggleMute: noop },
+  };
+  win.window = win;
+  vm.runInNewContext(fs.readFileSync(process.env.GAME_JS || path.join(__dirname, "../src/game.js"), "utf8"), win);
+  const pong = win.pong;
+  const key = (type, code) => listeners[type]({ code, repeat: false, preventDefault: noop });
+  let t = 0, held = null;
+  const frame = () => { t += 1000 / 60; raf(t); };
+  const H = 600, B = 16, PH = pong.constants.PADDLE_H;
+  function predict(b, px) {
+    if (b.vx >= 0) return null;
+    const tt = (b.x - px) / -b.vx; let y = b.y + b.vy * tt; const span = H - B;
+    y = ((y % (2 * span)) + 2 * span) % (2 * span); if (y > span) y = 2 * span - y; return y + B / 2;
+  }
+  const results = [];
+  for (let m = 0; m < Number(n); m++) {
+    frame(); key("keydown", "Enter"); key("keyup", "Enter");
+    const hist = [];
+    let hits = 0, lastR = 0;
+    while (pong.getState().screen === "play" && t < 1e9) {
+      frame();
+      const s = pong.getState();
+      hist.push([t / 1000, s]);
+      while (hist.length > 2 && hist[1][0] <= t / 1000 - LAT) hist.shift();
+      const o = hist[0][1];
+      let tgt = null;
+      if (bot === "attentive") tgt = predict(o.ball, 40) ?? H / 2;
+      else if (bot === "casual") tgt = o.ball.vx < 0 ? o.ball.y + B / 2 : H / 2;
+      if (tgt !== null) {
+        const c = s.player.y + PH / 2, dead = bot === "casual" ? 20 : 8;
+        const want = tgt < c - dead ? "ArrowUp" : tgt > c + dead ? "ArrowDown" : null;
+        if (want !== held) { if (held) key("keyup", held); if (want) key("keydown", want); held = want; }
+      }
+    }
+    if (held) { key("keyup", held); held = null; }
+    const s = pong.getState();
+    results.push({ score: [s.score.player, s.score.cpu], winner: s.winner, rallies: s.rallies, secs: Math.round(t / 1000) });
+    for (let i = 0; i < 90; i++) frame();   // wait out the end-screen lock
+  }
+  return results;
+}
+const res = runMatches(Number(seed0));
+for (const r of res) console.log(JSON.stringify(r));
+const pts = res.reduce((a, r) => [a[0] + r.score[0], a[1] + r.score[1]], [0, 0]);
+console.log(`${bot} latency ${LAT * 1000}ms: player won ${res.filter((r) => r.winner === "player").length}/${res.length}, points player ${pts[0]} cpu ${pts[1]}`);

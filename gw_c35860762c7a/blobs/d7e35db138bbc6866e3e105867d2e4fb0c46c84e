@@ -1,0 +1,164 @@
+// Scenario checks of World 1-1 mechanics, run through tools/smoke.mjs:
+//   node tools/smoke.mjs <site> <out> tools/check11.mjs
+// Each check sets up a situation through window.smb, plays it frame by frame
+// and records what happened (result.checks: name, pass, observed values).
+export default async function ({ page, st, step, hold, shot, result }) {
+  const checks = (result.checks = []);
+  const ev = (fn, arg) => page.evaluate(fn, arg);
+  const check = (name, pass, observed) => checks.push({ name, pass: !!pass, observed });
+  const start = (level = '1-1', loc = 0) => ev(([l, n]) => window.smb.start(l, n), [level, loc]);
+  const put = (o) => ev((o) => { const p = window.smb.game.player; Object.assign(p, o); }, o);
+  const release = () => hold({ left: false, right: false, up: false, down: false, a: false, b: false, start: false });
+  const until = async (pred, max, buttons) => {
+    for (let i = 0; i < max; i++) {
+      if (buttons) await hold(buttons);
+      const s = await step(1);
+      if (pred(s)) return { s, frames: i + 1 };
+    }
+    return { s: await st(), frames: -1 };
+  };
+
+  // --- jump heights (feel): standing and running full jumps of small Mario
+  async function jumpHeight(run) {
+    await start();
+    await release();
+    await put({ x: 40, y: 192, vx: 0, vy: 0 });
+    if (run) { await hold({ right: true, b: true }); await step(90); }
+    const y0 = (await st()).player.y;
+    const vx0 = (await st()).player.vx;
+    let minY = y0, frames = 0, air = 0;
+    await hold({ right: run, b: run, a: true });
+    for (; frames < 120; frames++) {
+      const s = await step(1);
+      minY = Math.min(minY, s.player.y);
+      if (!s.player.onGround) air++;
+      if (s.player.onGround && frames > 4) break;
+    }
+    await release();
+    return { height: Math.round((y0 - minY) * 10) / 10, airFrames: air, takeoffSpeed: Math.round(vx0 * 1000) / 1000 };
+  }
+  const stand = await jumpHeight(false);
+  check('standing full jump of small Mario rises about 4 blocks (60-70 px)', stand.height >= 60 && stand.height <= 70, stand);
+  const runj = await jumpHeight(true);
+  check('running full jump rises about 5 blocks (70-85 px), run speed 2.5 px/f', runj.height >= 70 && runj.height <= 85 && Math.abs(runj.takeoffSpeed - 2.5) < 0.01, runj);
+
+  // short hop: A tapped for 2 frames
+  await start(); await release(); await step(1); await put({ x: 40, y: 192, vx: 0, vy: 0 });
+  await hold({ a: true }); await step(2); await release();
+  let hopMin = 192;
+  for (let i = 0; i < 60; i++) { const s = await step(1); hopMin = Math.min(hopMin, s.player.y); if (s.player.onGround && i > 2) break; }
+  check('tapping A gives a short hop (< 30 px)', 192 - hopMin < 30, { height: 192 - hopMin });
+
+  // --- walk speed and run speed caps
+  await start(); await release(); await put({ x: 40, y: 192, vx: 0 });
+  await hold({ right: true }); const w = await step(120);
+  check('walking caps at 1.5 px/f', Math.abs(w.player.vx - 1.5) < 0.01, { vx: w.player.vx });
+
+  // skid: running right then pressing left
+  await start(); await release(); await put({ x: 40, y: 192, vx: 2.5 });
+  let skidFrames = 0;
+  for (; skidFrames < 60; skidFrames++) { await hold({ left: true, b: true }); const s = await step(1); if (s.player.vx <= 0) break; }
+  check('skid from full run reverses within about 25 frames', skidFrames > 8 && skidFrames < 30, { frames: skidFrames });
+
+  // --- ? block at col 16 row 9 gives a coin
+  await start(); await release();
+  await put({ x: 16 * 16 + 2, y: 192, vx: 0, vy: 0 });
+  const before = await st();
+  await hold({ a: true });
+  const hit = await until((s) => s.coins > before.coins, 40);
+  await release(); await step(40);
+  const afterQ = await st();
+  const tileQ = await ev(() => window.smb.game.area.get(16, 9));
+  check('first ? block (col 16) gives a coin: +1 coin, +200, block used', hit.frames > 0 && afterQ.score - before.score === 200 && tileQ === 'U', { coins: afterQ.coins, score: afterQ.score, tile: tileQ });
+
+  // --- stomp the first goomba
+  await start(); await release();
+  // the second goomba (x 680) walks in the open between two pipes
+  await ev(() => { const g = window.smb.game; g.camX = 500; for (const s of g.area.spawns) if (s.x < 600) s.spawned = true; g.spawn(); });
+  await step(1);
+  const g = (await st()).ents.find((e) => e.type === 'Goomba');
+  // drop Mario from just above it (an area starts with the slow fall force)
+  await put({ x: (g?.x ?? 680) - 4, y: (g?.y ?? 192) - 28, vx: 0, vy: 1, onGround: false });
+  const stomp = await until((s) => s.score > 0 || s.seq === 'death', 80);
+  const gs = await st();
+  check('landing on a goomba stomps it: +100, Mario bounces', stomp.s.score === 100 && gs.seq !== 'death' && gs.player.vy < 0, { score: stomp.s.score, seq: gs.seq, vy: gs.player.vy, frames: stomp.frames });
+  await shot('check-stomp');
+
+  // --- walking into a goomba kills small Mario
+  await start(); await release(); await step(1);
+  await ev(() => { const g = window.smb.game; g.camX = 200; g.spawn(); });
+  await put({ x: 300, y: 192, vx: 0 });
+  const side = await until((s) => s.seq === 'death', 120, { right: true });
+  check('walking into a goomba kills small Mario', side.frames > 0, { frames: side.frames });
+
+  // --- mushroom from col 21 row 9, makes Mario big
+  await start(); await release(); await step(1);
+  await ev(() => { const g = window.smb.game; g.ents = g.ents.filter((e) => e.constructor.name !== 'Goomba'); for (const s of g.area.spawns) s.spawned = true; });
+  await put({ x: 21 * 16 + 2, y: 192, vx: 0, vy: 0 });
+  await hold({ a: true }); await step(30); await release();
+  const mush = await until((s) => s.ents.some((e) => e.type === 'PowerUp'), 60);
+  const m0 = mush.s.ents.find((e) => e.type === 'PowerUp');
+  await step(60);
+  const m1 = (await st()).ents.find((e) => e.type === 'PowerUp');
+  check('? block at col 21 releases a mushroom that slides right', m0 && m1 && m1.x > m0.x, { first: m0, later: m1 });
+  // walk into it
+  const grow = await until((s) => s.player.form === 'big' || s.seq === 'grow', 240, { right: true });
+  await release(); await step(70);
+  const big = await st();
+  check('touching the mushroom makes Mario big (+1000)', big.player.form === 'big' && big.player.h === 32 && big.score >= 1000, { form: big.player.form, h: big.player.h, score: big.score, frames: grow.frames });
+
+  // --- big Mario breaks a brick (col 20 row 9)
+  await put({ x: 20 * 16 + 2, y: 208 - 32, vx: 0, vy: 0 });
+  await ev(() => { window.smb.game.player.onGround = true; });
+  const sc0 = (await st()).score;
+  await hold({ a: true }); await step(30); await release(); await step(30);
+  const brick = await ev(() => window.smb.game.area.get(20, 9));
+  check('big Mario breaks a brick (+50)', brick === ' ' && (await st()).score - sc0 === 50, { tile: brick, gained: (await st()).score - sc0 });
+
+  // --- damage: big Mario touching a goomba shrinks and blinks
+  await ev(() => { const g = window.smb.game; for (const s of g.area.spawns) s.spawned = false; g.camX = 200; g.spawn(); });
+  await put({ x: 300, y: 176, vx: 0, vy: 0 });
+  const hurt = await until((s) => s.player.form === 'small' || s.seq === 'shrink' || s.seq === 'death', 200, { right: true });
+  await release();
+  const h1 = await st();
+  check('big Mario hit by a goomba shrinks instead of dying', h1.seq !== 'death' && hurt.frames > 0, { seq: h1.seq, form: h1.player.form });
+
+  // --- the bonus pipe (col 57) leads underground and back out at col 163
+  await start(); await release();
+  await put({ x: 57 * 16 + 10, y: 144 - 16, vx: 0, vy: 0 });
+  await step(5);
+  const onPipe = await st();
+  const down = await until((s) => s.area === 1 && s.seq === null, 200, { down: true });
+  await release();
+  await step(5);
+  await shot('check-bonus-room');
+  const bonus = await st();
+  check('down on the col 57 pipe enters the bonus room', down.frames > 0 && bonus.area === 1, { onPipeY: onPipe.player.y, area: bonus.area, location: bonus.location, frames: down.frames });
+  // walk along the floor and leave by the side pipe
+  await put({ x: 180, y: 192, vx: 0, vy: 0 });
+  await step(2);
+  const out = await until((s) => s.area === 0 && s.seq === null, 900, { right: true });
+  await release();
+  const back = await st();
+  await shot('check-pipe-exit');
+  check('right through the bonus room side pipe comes out of the col 163 pipe', out.frames > 0 && back.area === 0 && Math.abs(back.player.x - (163 * 16 + 10)) < 24, { area: back.area, x: back.player.x, coins: back.coins, frames: out.frames });
+
+  // --- flagpole, tally, castle and on to 1-2
+  await start(); await release();
+  await ev(() => { const g = window.smb.game; for (const s of g.area.spawns) if (s.type !== 'flagpole') s.spawned = true; g.camX = 2900; g.spawn(); g.time = 321; });
+  await put({ x: 3090, y: 192, vx: 0 });
+  const flag = await until((s) => (s.seq || '').startsWith('flag'), 300, { right: true, b: true });
+  await release();
+  const f0 = await st();
+  check('running into the flagpole starts the flag sequence', flag.frames > 0, { seq: f0.seq, score: f0.score, x: f0.player.x });
+  const tally = await until((s) => s.seq === 'flag:castleFlag' || s.seq === 'flag:fireworks' || s.state !== 'play', 1500);
+  await shot('check-tally');
+  const t1 = await st();
+  check('time tally converts the timer to points (50 each)', t1.time === 0 && t1.score >= 321 * 50, { time: t1.time, score: t1.score, seq: t1.seq });
+  const next = await until((s) => s.state === 'intermission' && s.level === '1-2', 900);
+  check('after the castle the game goes to WORLD 1-2', next.frames > 0, { state: next.s.state, level: next.s.level });
+  await shot('check-1-2-intermission');
+
+  result.passed = checks.filter((c) => c.pass).length;
+  result.failed = checks.filter((c) => !c.pass).map((c) => c.name);
+}

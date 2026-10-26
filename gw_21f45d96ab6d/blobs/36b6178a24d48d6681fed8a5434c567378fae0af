@@ -1,0 +1,5 @@
+# Design notes: tiny text adventure
+- Two rooms: Cellar (start) and Hall. One item: a brass key (in the Cellar). 
+- One way to win: take the key, go to the Hall, `unlock door` / `use key` to open the exit and escape.
+- Commands: look, take key, go <dir>, use key, quit. Single Python file `game.py`, stdlib only, runs with `python3 game.py`, reads stdin so it can be scripted.
+- Win prints a clear "You win" message and exits 0. Without the key the exit stays locked.

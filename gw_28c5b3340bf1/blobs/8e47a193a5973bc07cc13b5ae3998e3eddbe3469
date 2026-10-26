@@ -1,0 +1,46 @@
+# Assets the game loads
+
+The game loads everything below by relative URL from the delivery root, so
+the artist's `assets/` directory must sit next to `index.html` (it is the
+artist's delivered path; this repository does not contain it). The loader is
+`js/assets.js` (sprites, sounds) plus two `<img>` tags in `index.html`. A
+missing file logs a warning and the game draws a plain shape in the palette
+instead, so the build never breaks on art; the delivered game is expected to
+have every file. Names follow the artist's manifest, `assets/README.md`.
+
+## Board
+
+- Playing field: 20 columns x 20 rows, cell size **32 px**, surrounded by one
+  ring of wall cells; canvas 704 x 704 px (22 x 22 cells), scaled by CSS to
+  fit the window with pixelated scaling.
+- Score / best HUD is HTML text above the board; title, pause and game-over
+  screens are HTML overlays over the board.
+
+## Images
+
+| File | Size | How the game uses it |
+| --- | --- | --- |
+| `assets/img/snake_head.png` | 32 x 32 | Head, faces right; rotated in 90 deg steps to the heading. |
+| `assets/img/snake_body.png` | 32 x 32 | Even body segments (not rotated). |
+| `assets/img/snake_body_alt.png` | 32 x 32 | Odd body segments, for stripes (not rotated). |
+| `assets/img/food.png` | 32 x 32 | Food. |
+| `assets/img/tile.png` | 32 x 32 | Every playing-field cell. |
+| `assets/img/wall.png` | 32 x 32 | The ring of wall cells around the field. |
+| `assets/img/logo.png` | 320 x 120 | Title screen; replaces the text heading "SNAKE". |
+| `assets/img/gameover.png` | 400 x 120 | Game-over screen; replaces the text heading. Cause, final score and Play again stay as text below. |
+
+## Sounds (WAV)
+
+| File | Played when |
+| --- | --- |
+| `assets/audio/start.wav` | a game starts (Start / Play again) |
+| `assets/audio/eat.wav` | the snake eats food |
+| `assets/audio/turn.wav` | an arrow key changes the heading |
+| `assets/audio/gameover.wav` | the snake hits a wall or itself |
+
+## Palette
+
+`css/style.css` takes its colours from the manifest's palette (`--bg`,
+`--grid`, `--wall`, `--text`, `--accent`, `--food`, ...). If the palette
+changes, tell game-developer or ship an `assets/theme.css` overriding those
+custom properties and ask for it to be linked.

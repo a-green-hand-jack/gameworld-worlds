@@ -1,0 +1,32 @@
+// Draws text with the artist's 8x8 font (manifest "font").
+export class Font {
+  constructor(assets) {
+    this.assets = assets;
+    const f = assets.manifest.font;
+    this.font = f;
+    this.img = f ? assets.images.get(f.file) : null;
+    this.map = new Map();
+    if (f) [...f.chars].forEach((ch, i) => this.map.set(ch, i));
+    if (!this.img) assets.reportMissing('font');
+  }
+
+  draw(ctx, text, x, y) {
+    const [cw, ch] = this.font?.cell || [8, 8];
+    const cols = this.font?.columns || 16;
+    let cx = Math.round(x);
+    for (const c of String(text).toUpperCase()) {
+      const glyph = c === '×' ? 'x' : c;
+      if (glyph !== ' ') {
+        const i = this.map.get(glyph) ?? this.map.get(c);
+        if (this.img && i !== undefined) {
+          ctx.drawImage(this.img, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch, cx, Math.round(y), cw, ch);
+        } else {
+          if (!this.img || i === undefined) this.assets.reportMissing(`font glyph ${JSON.stringify(c)}`);
+          ctx.fillStyle = '#ff00ff';
+          ctx.fillRect(cx + 1, Math.round(y) + 1, cw - 2, ch - 2);
+        }
+      }
+      cx += cw;
+    }
+  }
+}

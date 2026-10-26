@@ -1,0 +1,36 @@
+# Brief — Snake (round 1)
+
+## What the input asks (quoted from `producer`#1, the Game objective)
+
+> Make Snake as a web game played in the browser: the snake moves on a grid and is turned with the arrow keys, eating food makes it one cell longer and adds a point, and running into a wall or itself ends the game. It has a title screen, the score during play, and a game-over screen with the final score and a way to play again.
+
+No other material is supplied.
+
+## Requirements (the standard each part is judged against)
+
+- **R1 Browser game** — opens from `index.html` at the delivery root in a current desktop browser (Chromium), with no build step, server-side code or network access needed to play.
+- **R2 Grid movement** — the snake moves on a visible grid, one cell per step, at a steady pace, continuing in its current direction without input.
+- **R3 Arrow-key turning** — the four arrow keys turn the snake. Pressing the direct reverse of the current direction does not kill it instantly (it is ignored); two quick key presses within one step are not lost or turned into a self-reversal. Arrow keys do not scroll the page.
+- **R4 Eating** — food appears on a free cell (never under the snake). Eating it makes the snake exactly one cell longer and adds exactly one point; new food then appears.
+- **R5 Death** — moving into a wall (grid edge) or into the snake's own body ends the game. (Moving into the cell the tail is leaving in the same step is not a collision.)
+- **R6 Title screen** — shown on load before play: the game's name and how to start/play (e.g. "Press Enter/Space or an arrow key to start; arrow keys to steer").
+- **R7 Score during play** — the current score is visible at all times during play and updates the moment food is eaten.
+- **R8 Game-over screen** — shown when the game ends, with the final score and a way to play again (key and/or button). Playing again starts a fresh game: score 0, initial length and position, new food.
+- **R9 Presentation** — snake, food, grid/play field, score and screens are clearly legible and visually consistent; the game fits a typical laptop viewport without scrolling.
+
+## Focus and priorities for this round
+
+1. Correct core loop first (R2–R5): this is what makes it Snake.
+2. Complete screen flow (R6–R8): title → play → game over → play again, repeatable without reloading.
+3. Presentation and feel (R9): consistent art; sound is optional and must not block play.
+
+Out of scope unless cheap: high scores persistence, difficulty settings, mobile/touch controls, speed ramp. None of these may replace or weaken R1–R9.
+
+## Who does what
+
+See `assignment.json` (`ht-role assignment`): `game-developer` delivers the game (repository root, `index.html` entry); `artist` delivers `assets/` (visual style and any images/sounds the game uses). `qa` checks each build against R1–R9 with reproducible defect reports; `playtester` plays each build and reports the experience with evidence. `producer` accepts or sends back the build against this brief.
+
+## What I could not establish
+
+- Grid size, speed and colour palette are not specified: left to `game-developer`/`artist`, judged only by R2 and R9 (playable pace, legible field).
+- Whether "a way to play again" must be a button or a key: either is accepted if it is shown on the game-over screen.

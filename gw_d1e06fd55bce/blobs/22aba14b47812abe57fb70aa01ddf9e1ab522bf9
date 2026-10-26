@@ -1,0 +1,31 @@
+# Asset contract
+
+The game loads every asset from `assets/` (owned and delivered by `artist`).
+Paths are relative to the delivery root. Every asset is optional at load time:
+if a file is missing or fails to load, the game falls back to plain drawn
+shapes / silence and logs `asset missing: <path>` to the console, so a build is
+always playable. The final build is expected to have all of them.
+
+The game is drawn on a fixed logical canvas of **800 x 500 px**, scaled to the
+window with nearest-neighbour (pixelated) scaling, so pixel art should be drawn
+at 1x for that size.
+
+| Path | Format | Size | Used for |
+|---|---|---|---|
+| `assets/img/logo.png` | PNG, transparent | up to 640 x 200 | Title screen logo, centred, top third |
+| `assets/img/paddle.png` | PNG | 12 x 80 (drawn stretched to the paddle rect if different) | Both paddles (the player's is on the left) |
+| `assets/img/ball.png` | PNG | 12 x 12 | Ball |
+| `assets/img/centerline.png` | PNG, transparent | 4 x 24 tile (repeated vertically) | Dashed centre line |
+| `assets/palette.css` | CSS | — | `:root` custom properties `--bg`, `--fg`, `--accent`, `--dim` (colours); `--font-family` (font-family stack) used for all text |
+| `assets/fonts/*` | woff2/ttf | — | Declared with `@font-face` inside `palette.css`, family named in `--font-family` |
+| `assets/audio/paddle.wav` | WAV | < 1 s | Ball hits a paddle |
+| `assets/audio/wall.wav` | WAV | < 1 s | Ball bounces off top/bottom wall |
+| `assets/audio/score.wav` | WAV | < 1 s | A point is scored |
+| `assets/audio/win.wav` | WAV | < 2 s | Player wins the match |
+| `assets/audio/lose.wav` | WAV | < 2 s | Computer wins the match |
+
+Where it is loaded: `src/assets.js` (the list above is `ASSET_PATHS` there),
+`index.html` (`<link rel="stylesheet" href="assets/palette.css">`).
+
+Fallback colours when `palette.css` is absent: bg `#0b0f14`, fg `#e8f0e8`,
+accent `#7cff9a`, dim `#3a4a40`; font `monospace`.

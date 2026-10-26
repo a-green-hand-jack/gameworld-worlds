@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>陨石躲避 Meteor Dodge</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  html,body{margin:0;height:100%;background:#05060f;color:#cde;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
+  canvas{background:#05060f;width:min(100vw,133.33vh);height:auto;box-shadow:0 0 30px #1a3a8a66}
+</style>
+</head>
+<body>
+<canvas id="game" width="800" height="600" tabindex="0"></canvas>
+<script src="game.js"></script>
+</body>
+</html>

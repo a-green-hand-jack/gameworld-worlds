@@ -1,0 +1,29 @@
+import sys, time, json, subprocess
+from playwright.sync_api import sync_playwright
+site, out = sys.argv[1], sys.argv[2]
+import os; os.makedirs(out, exist_ok=True)
+srv = subprocess.Popen(["python3","-m","http.server","8765","-d",site],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+time.sleep(1)
+logs=[]
+try:
+  with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={"width":1024,"height":960})
+    pg.on("console", lambda m: logs.append(f"{m.type}: {m.text}"))
+    pg.on("pageerror", lambda e: logs.append(f"pageerror: {e}"))
+    pg.goto("http://localhost:8765/"+(sys.argv[3] if len(sys.argv)>3 else ""))
+    pg.wait_for_function("document.body.dataset.ready=='1'",timeout=20000)
+    time.sleep(1); pg.screenshot(path=f"{out}/00-title.png")
+    pg.keyboard.press("Enter"); time.sleep(3.5); pg.screenshot(path=f"{out}/01-start.png")
+    st=lambda: pg.evaluate("JSON.stringify((({state,level,area,score,coins,lives,time,player})=>({state,level,area,score,coins,lives,time,px:player&&player.x,py:player&&player.y,form:player&&player.form}))(window.smb.state()))")
+    # walk right, jump periodically (simple player)
+    pg.keyboard.down("ArrowRight"); pg.keyboard.down("z")
+    for i in range(60):
+      pg.keyboard.down("x"); time.sleep(0.35); pg.keyboard.up("x"); time.sleep(0.25)
+      if i%5==0:
+        pg.screenshot(path=f"{out}/run-{i:02d}.png"); logs.append("STATE "+st())
+    pg.keyboard.up("ArrowRight"); pg.keyboard.up("z")
+    pg.screenshot(path=f"{out}/zz-end.png"); logs.append("STATE "+st())
+    b.close()
+finally:
+  srv.terminate()
+open(f"{out}/log.txt","w").write("\n".join(logs)); print("\n".join(logs))

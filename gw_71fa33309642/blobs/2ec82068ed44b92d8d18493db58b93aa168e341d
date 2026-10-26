@@ -1,0 +1,398 @@
+[
+ {
+  "viewport": [
+   256,
+   240
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   256,
+   240
+  ],
+  "left": 0,
+  "top": 0,
+  "right": 0,
+  "bottom": 0,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 256,
+  "scrollH": 240,
+  "inner": [
+   256,
+   240
+  ],
+  "state": "title",
+  "scale_x": 1.0,
+  "scale_y": 1.0,
+  "device_px_scale": 1.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   512,
+   480
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   512,
+   480
+  ],
+  "left": 0,
+  "top": 0,
+  "right": 0,
+  "bottom": 0,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 512,
+  "scrollH": 480,
+  "inner": [
+   512,
+   480
+  ],
+  "state": "title",
+  "scale_x": 2.0,
+  "scale_y": 2.0,
+  "device_px_scale": 2.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   800,
+   600
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   512,
+   480
+  ],
+  "left": 144,
+  "top": 60,
+  "right": 144,
+  "bottom": 60,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 800,
+  "scrollH": 600,
+  "inner": [
+   800,
+   600
+  ],
+  "state": "title",
+  "scale_x": 2.0,
+  "scale_y": 2.0,
+  "device_px_scale": 2.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   1280,
+   720
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   768,
+   720
+  ],
+  "left": 256,
+  "top": 0,
+  "right": 256,
+  "bottom": 0,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 1280,
+  "scrollH": 720,
+  "inner": [
+   1280,
+   720
+  ],
+  "state": "title",
+  "scale_x": 3.0,
+  "scale_y": 3.0,
+  "device_px_scale": 3.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   1920,
+   1080
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   1024,
+   960
+  ],
+  "left": 448,
+  "top": 60,
+  "right": 448,
+  "bottom": 60,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 1920,
+  "scrollH": 1080,
+  "inner": [
+   1920,
+   1080
+  ],
+  "state": "title",
+  "scale_x": 4.0,
+  "scale_y": 4.0,
+  "device_px_scale": 4.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   1366,
+   768
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   768,
+   720
+  ],
+  "left": 299,
+  "top": 24,
+  "right": 299,
+  "bottom": 24,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 1366,
+  "scrollH": 768,
+  "inner": [
+   1366,
+   768
+  ],
+  "state": "title",
+  "scale_x": 3.0,
+  "scale_y": 3.0,
+  "device_px_scale": 3.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   3840,
+   2160
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   2304,
+   2160
+  ],
+  "left": 768,
+  "top": 0,
+  "right": 768,
+  "bottom": 0,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 3840,
+  "scrollH": 2160,
+  "inner": [
+   3840,
+   2160
+  ],
+  "state": "title",
+  "scale_x": 9.0,
+  "scale_y": 9.0,
+  "device_px_scale": 9.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   1280,
+   720
+  ],
+  "dpr": 2,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   768,
+   720
+  ],
+  "left": 256,
+  "top": 0,
+  "right": 256,
+  "bottom": 0,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 1280,
+  "scrollH": 720,
+  "inner": [
+   1280,
+   720
+  ],
+  "state": "title",
+  "scale_x": 3.0,
+  "scale_y": 3.0,
+  "device_px_scale": 6.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   390,
+   844
+  ],
+  "dpr": 3,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   256,
+   240
+  ],
+  "left": 67,
+  "top": 302,
+  "right": 67,
+  "bottom": 302,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 390,
+  "scrollH": 844,
+  "inner": [
+   390,
+   844
+  ],
+  "state": "title",
+  "scale_x": 1.0,
+  "scale_y": 1.0,
+  "device_px_scale": 3.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   844,
+   390
+  ],
+  "dpr": 3,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   256,
+   240
+  ],
+  "left": 294,
+  "top": 75,
+  "right": 294,
+  "bottom": 75,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 844,
+  "scrollH": 390,
+  "inner": [
+   844,
+   390
+  ],
+  "state": "title",
+  "scale_x": 1.0,
+  "scale_y": 1.0,
+  "device_px_scale": 3.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ },
+ {
+  "viewport": [
+   320,
+   200
+  ],
+  "dpr": 1,
+  "canvas_attr": [
+   256,
+   240
+  ],
+  "css": [
+   256,
+   240
+  ],
+  "left": 32,
+  "top": -20,
+  "right": 32,
+  "bottom": -20,
+  "imageRendering": "crisp-edges",
+  "bodyBg": "rgb(0, 0, 0)",
+  "scrollW": 320,
+  "scrollH": 200,
+  "inner": [
+   320,
+   200
+  ],
+  "state": "title",
+  "scale_x": 1.0,
+  "scale_y": 1.0,
+  "device_px_scale": 1.0,
+  "integer_css_scale": true,
+  "integer_device_scale": true,
+  "aspect_ok": true,
+  "centered": true,
+  "page_errors": []
+ }
+]

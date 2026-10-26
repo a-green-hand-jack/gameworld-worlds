@@ -1,0 +1,222 @@
+// Wires the game to the page: keyboard input, fixed-step loop, drawing, sound.
+(function () {
+  'use strict';
+
+  var Game = window.PongGame;
+  var assets = window.PongAssets;
+  var W = Game.W, H = Game.H;
+  var STEP = 1 / 120;
+
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+
+  var params = new URLSearchParams(location.search);
+  var seed = params.has('seed') ? parseInt(params.get('seed'), 10) : undefined;
+  var game = new Game({ seed: seed });
+  var ready = false;
+
+  // ---- Input -------------------------------------------------------------
+  var keys = { up: false, down: false };
+  var UP = { ArrowUp: 1, KeyW: 1 };
+  var DOWN = { ArrowDown: 1, KeyS: 1 };
+  var HANDLED = { ArrowUp: 1, ArrowDown: 1, KeyW: 1, KeyS: 1, Space: 1, Enter: 1, NumpadEnter: 1, Escape: 1, KeyP: 1, KeyM: 1 };
+
+  function confirmKey(code) { return code === 'Enter' || code === 'NumpadEnter' || code === 'Space'; }
+
+  window.addEventListener('keydown', function (e) {
+    if (HANDLED[e.code]) e.preventDefault();
+    if (UP[e.code]) keys.up = true;
+    if (DOWN[e.code]) keys.down = true;
+    if (e.repeat || !ready) return;
+    if (e.code === 'KeyM') { assets.muted = !assets.muted; return; }
+    switch (game.state) {
+      case 'title':
+        if (confirmKey(e.code)) game.startMatch();
+        break;
+      case 'play':
+        if (e.code === 'KeyP' || e.code === 'Escape') game.togglePause();
+        break;
+      case 'paused':
+        if (e.code === 'KeyP' || e.code === 'Escape' || confirmKey(e.code)) game.togglePause();
+        break;
+      case 'gameover':
+        if (!game.canRestart()) break;
+        if (confirmKey(e.code)) game.startMatch();
+        else if (e.code === 'Escape') game.setState('title');
+        break;
+    }
+  });
+  window.addEventListener('keyup', function (e) {
+    if (UP[e.code]) keys.up = false;
+    if (DOWN[e.code]) keys.down = false;
+  });
+  window.addEventListener('blur', function () {
+    keys.up = keys.down = false;
+    if (game.state === 'play') game.togglePause();
+  });
+  canvas.addEventListener('pointerdown', function () {
+    canvas.focus();
+    if (!ready) return;
+    if (game.state === 'title') game.startMatch();
+    else if (game.state === 'gameover' && game.canRestart()) game.startMatch();
+    else if (game.state === 'paused') game.togglePause();
+  });
+
+  // ---- Sound -------------------------------------------------------------
+  game.on(function (type, data) {
+    if (type === 'paddle') assets.play('paddle');
+    else if (type === 'wall') assets.play('wall');
+    else if (type === 'score' && game.score[data.by] < Game.WIN_SCORE) assets.play('score');
+    else if (type === 'gameover') assets.play(data.winner === 'player' ? 'win' : 'lose');
+  });
+
+  // ---- Layout ------------------------------------------------------------
+  function fit() {
+    var scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+    // Whole-number scaling keeps pixel art crisp when the window allows it.
+    if (scale >= 1) scale = Math.floor(scale * 4) / 4;
+    canvas.style.width = Math.round(W * scale) + 'px';
+    canvas.style.height = Math.round(H * scale) + 'px';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  // ---- Drawing -----------------------------------------------------------
+  function font(px) { return px + 'px ' + assets.palette.font; }
+
+  function text(str, x, y, px, color, align) {
+    ctx.font = font(px);
+    ctx.fillStyle = color;
+    ctx.textAlign = align || 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(str, x, y);
+  }
+
+  function drawCentreLine(color) {
+    var img = assets.images.centerline;
+    if (img) {
+      var x = Math.round((W - img.width) / 2);
+      for (var y = 0; y < H; y += img.height) ctx.drawImage(img, x, y);
+      return;
+    }
+    ctx.fillStyle = color;
+    for (var yy = 6; yy < H; yy += 24) ctx.fillRect(W / 2 - 2, yy, 4, 12);
+  }
+
+  function drawPaddle(p, color) {
+    var img = assets.images.paddle;
+    if (img) ctx.drawImage(img, Math.round(p.x), Math.round(p.y), p.w, p.h);
+    else { ctx.fillStyle = color; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.w, p.h); }
+  }
+
+  function drawBall(b, color) {
+    var img = assets.images.ball;
+    if (img) ctx.drawImage(img, Math.round(b.x), Math.round(b.y), b.size, b.size);
+    else { ctx.fillStyle = color; ctx.fillRect(Math.round(b.x), Math.round(b.y), b.size, b.size); }
+  }
+
+  // The centre line belongs to the court in play; on the title and result
+  // screens it would run through the centred text, so it is left out there.
+  function drawField(pal, showBall, showLine) {
+    if (showLine) drawCentreLine(pal.dim);
+    drawPaddle(game.player, pal.fg);
+    drawPaddle(game.computer, pal.fg);
+    if (showBall) drawBall(game.ball, pal.fg);
+  }
+
+  function drawScore(pal) {
+    text(String(game.score.player), W / 2 - 80, 50, 48, pal.fg);
+    text(String(game.score.computer), W / 2 + 80, 50, 48, pal.fg);
+    text('YOU', W / 2 - 80, 88, 14, pal.dim);
+    text('CPU', W / 2 + 80, 88, 14, pal.dim);
+  }
+
+  function dimOverlay(pal) {
+    ctx.save();
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = pal.bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  // Prompts pulse but never disappear, so they are readable at any moment.
+  function prompt(str, x, y, px, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.8 + 0.2 * Math.cos(game.time * 4);
+    text(str, x, y, px, color);
+    ctx.restore();
+  }
+
+  function render() {
+    var pal = assets.palette;
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = pal.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    if (!ready) {
+      text('LOADING…', W / 2, H / 2, 20, pal.dim);
+      return;
+    }
+
+    if (game.state === 'title') {
+      drawField(pal, false, false);
+      dimOverlay(pal);
+      var logo = assets.images.logo;
+      if (logo) {
+        var lw = Math.min(logo.width, 640), lh = logo.height * (lw / logo.width);
+        ctx.drawImage(logo, Math.round((W - lw) / 2), Math.round(150 - lh / 2), Math.round(lw), Math.round(lh));
+      } else {
+        text('PONG', W / 2, 150, 96, pal.fg);
+      }
+      text('You vs the computer — first to ' + Game.WIN_SCORE + ' points wins', W / 2, 260, 18, pal.fg);
+      text('Move: W / S  or  ↑ / ↓      Pause: P      Mute: M', W / 2, 300, 16, pal.dim);
+      prompt('PRESS ENTER OR SPACE TO START', W / 2, 380, 22, pal.accent);
+      return;
+    }
+
+    drawField(pal, game.state !== 'gameover' && game.serveTimer <= 0, game.state !== 'gameover');
+    drawScore(pal);
+
+    if (game.state === 'play' && game.serveTimer > 0) {
+      text('GET READY', W / 2, H / 2 + 60, 18, pal.dim);
+    }
+
+    if (game.state === 'paused') {
+      dimOverlay(pal);
+      text('PAUSED', W / 2, H / 2 - 10, 48, pal.fg);
+      text('Press P or Enter to resume', W / 2, H / 2 + 40, 18, pal.dim);
+    }
+
+    if (game.state === 'gameover') {
+      dimOverlay(pal);
+      var won = game.winner === 'player';
+      text(won ? 'YOU WIN!' : 'COMPUTER WINS', W / 2, H / 2 - 40, 64, won ? pal.accent : pal.fg);
+      text('Final score  ' + game.score.player + ' – ' + game.score.computer, W / 2, H / 2 + 20, 22, pal.fg);
+      if (game.canRestart()) {
+        prompt('PRESS ENTER OR SPACE TO PLAY AGAIN', W / 2, H / 2 + 90, 20, pal.accent);
+        text('Esc: title screen', W / 2, H / 2 + 125, 14, pal.dim);
+      }
+    }
+  }
+
+  // ---- Loop --------------------------------------------------------------
+  var last = performance.now();
+  var acc = 0;
+  function frame(now) {
+    acc += Math.min((now - last) / 1000, 0.25);
+    last = now;
+    while (acc >= STEP) {
+      game.update(STEP, keys);
+      acc -= STEP;
+    }
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // Read-only handle for automated checks (tests/) and debugging.
+  window.pong = { game: game, assets: assets, keys: keys, ready: false };
+
+  canvas.focus();
+  assets.load().then(function () { ready = true; window.pong.ready = true; });
+})();

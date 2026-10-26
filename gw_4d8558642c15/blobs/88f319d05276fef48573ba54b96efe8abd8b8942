@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Flag Run</title>
+<style>body{margin:0;background:#222;color:#eee;font:14px sans-serif;text-align:center}canvas{background:#8cd3ff;display:block;margin:8px auto}</style></head>
+<body><canvas id="c" width="960" height="384"></canvas>
+<div>Arrows / A D to run, Space / Up / W to jump. Reach the flag.</div>
+<script id="level-fallback" type="application/json">
+{"tileSize": 32, "cols": 30, "rows": 12, "grid": ["..............................", "..............................", "..............................", "..............................", "..............................", "..............................", "..............................", "..............................", "..............................", "..............................", "#########..#######..##########", "#########..#######..##########"], "player": {"col": 2, "row": 9}, "flag": {"col": 27, "row": 7}}
+</script>
+<script>
+(function(){
+var T=32, GRAV=1800, JUMP=455, SPEED=180, PW=28, PH=28, DT=1/60;
+// Browsers block fetch() of level.json when opened via file://; then the embedded copy (kept in sync by tools/sync.py) is used.
+var FALLBACK=JSON.parse(document.getElementById('level-fallback').textContent);
+var cv=document.getElementById('c'), ctx=cv.getContext('2d');
+var keys={}, L=null, g={state:'loading',won:false,player:null,flag:null,level:null,ticks:0,levelSource:null};
+window.__game=g;
+function solid(c,r){ if(r<0||c<0||c>=L.cols) return false; if(r>=L.rows) return false; return L.grid[r][c]==='#'; }
+function overlapsSolid(x,y){
+  var c0=Math.floor(x/T),c1=Math.floor((x+PW-0.001)/T),r0=Math.floor(y/T),r1=Math.floor((y+PH-0.001)/T);
+  for(var r=r0;r<=r1;r++)for(var c=c0;c<=c1;c++) if(solid(c,r)) return true;
+  return false;
+}
+function reset(){
+  var p=L.player;
+  g.player={x:p.col*T+(T-PW)/2,y:(p.row+1)*T-PH,vx:0,vy:0,onGround:false};
+  g.flag={x:L.flag.col*T,y:L.flag.row*T,w:T,h:T};
+  g.won=false; g.state='playing'; g.ticks=0;
+}
+function step(){
+  if(g.state!=='playing') return;
+  var p=g.player;
+  var left=keys.ArrowLeft||keys.a||keys.A, right=keys.ArrowRight||keys.d||keys.D;
+  var jump=keys[' ']||keys.ArrowUp||keys.w||keys.W;
+  p.vx=((right?1:0)-(left?1:0))*SPEED;
+  if(jump&&p.onGround){p.vy=-JUMP;p.onGround=false;}
+  p.vy+=GRAV*DT; if(p.vy>900)p.vy=900;
+  var nx=p.x+p.vx*DT;
+  if(nx<0)nx=0; if(nx>L.cols*T-PW)nx=L.cols*T-PW;
+  if(!overlapsSolid(nx,p.y)) p.x=nx;
+  var ny=p.y+p.vy*DT; p.onGround=false;
+  if(overlapsSolid(p.x,ny)){
+    if(p.vy>0){ p.y=Math.floor((ny+PH)/T)*T-PH; p.onGround=true; }
+    else { p.y=(Math.floor(ny/T)+1)*T; }
+    p.vy=0;
+  } else p.y=ny;
+  if(p.y>L.rows*T+100){ reset(); }
+  var f=g.flag;
+  if(p.x<f.x+f.w&&p.x+PW>f.x&&p.y<f.y+f.h&&p.y+PH>f.y){ g.won=true; g.state='won'; }
+  g.ticks++;
+}
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(!L) return;
+  ctx.fillStyle='#5a3b1e';
+  for(var r=0;r<L.rows;r++)for(var c=0;c<L.cols;c++) if(L.grid[r][c]==='#') ctx.fillRect(c*T,r*T,T,T);
+  var f=g.flag, gr=0; while(gr<L.rows&&!(L.grid[gr].indexOf('#')>=0)) gr++;
+  ctx.fillStyle='#ddd'; ctx.fillRect(f.x+14,f.y,4,gr*T-f.y);
+  ctx.fillStyle='#e22'; ctx.beginPath(); ctx.moveTo(f.x+18,f.y); ctx.lineTo(f.x+32,f.y+8); ctx.lineTo(f.x+18,f.y+16); ctx.fill();
+  var p=g.player; ctx.fillStyle='#2a4'; ctx.fillRect(p.x,p.y,PW,PH);
+  if(g.won){ctx.fillStyle='#000';ctx.font='32px sans-serif';ctx.textAlign='center';ctx.fillText('You reached the flag!',cv.width/2,80);}
+}
+var acc=0,last=null;
+function frame(t){
+  if(last!==null){acc+=Math.min((t-last)/1000,0.25); while(acc>=DT){step();acc-=DT;}}
+  last=t; draw(); requestAnimationFrame(frame);
+}
+window.addEventListener('keydown',function(e){keys[e.key]=true; if(e.key===' '||e.key.indexOf('Arrow')==0)e.preventDefault();});
+window.addEventListener('keyup',function(e){keys[e.key]=false;});
+g.step=step; g.keys=keys; g.reset=reset;
+function start(level,src){ L=level; g.level=level; g.levelSource=src; reset(); requestAnimationFrame(frame); }
+fetch('level.json').then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+ .then(function(j){start(j,'level.json');})
+ .catch(function(e){ g.state='error'; g.error=String(e); console.error('level.json failed to load',e);
+   if(FALLBACK) start(FALLBACK,'fallback'); });
+})();
+</script></body></html>

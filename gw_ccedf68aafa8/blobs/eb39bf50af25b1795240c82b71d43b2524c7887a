@@ -1,0 +1,43 @@
+# Brief — Snake (round 1)
+
+Owner: `producer` (direction, acceptance). Source: `producer`#1 "Game objective". No other frozen material was supplied.
+
+## What the input asks (quoted)
+
+> Make Snake as a web game played in the browser: the snake moves on a grid and is turned with the arrow keys, eating food makes it one cell longer and adds a point, and running into a wall or itself ends the game. It has a title screen, the score during play, and a game-over screen with the final score and a way to play again.
+
+## Requirements (each is judged as written)
+
+- R1 **Web game in the browser.** Opens from the delivery's `index.html` in a current desktop browser (Chromium) with no build step and no network access needed at play time.
+- R2 **Grid movement.** The snake moves cell by cell on a visible grid, continuously, at a steady pace.
+- R3 **Arrow-key steering.** Arrow keys turn the snake. Reversing straight into its own neck must not kill it instantly (ignore the 180° turn); two quick presses inside one tick must not let it turn into itself.
+- R4 **Eating.** Food appears on a free cell (never on the snake). Eating it makes the snake exactly one cell longer and adds exactly one point; new food then appears.
+- R5 **Death.** Moving into a wall (grid edge) or into its own body ends the game. Nothing else ends it.
+- R6 **Title screen** shown first, naming the game and saying how to start and how to steer.
+- R7 **Score during play**, visible at all times while playing and updated on each food.
+- R8 **Game-over screen** showing the final score and a way to play again (key and/or button); playing again starts a fresh game (score 0, initial length, new food) without reloading the page.
+
+## Focus and priorities for this round
+
+1. The complete loop title → play → game over → play again, correct to R1–R8. This comes before any polish.
+2. Correctness of the rules: growth by exactly one, score by exactly one, wall and self collision, no unfair deaths from input handling.
+3. Readable, consistent look: the snake, its head, the food, the grid/board and the three screens are clearly distinguishable; text legible. Visual (and optional sound) assets come from `artist` and must be consistent with each other.
+4. Polish beyond that (sound effects, high score, speed-up) is welcome only once 1–3 hold, and must not break any of them.
+
+## How the delivery is judged
+
+`producer` accepts a release only when the assembled delivery (`ht-role delivery`) is the game above and plays: I play it myself in a browser, `qa` has checked the build against R1–R8 with reproducible results, and `playtester` has played that build and reported on the experience with evidence. Open defects against R1–R8 block acceptance.
+
+## What I could not establish
+
+- Grid size, speed, colours and art style are not specified: `game-developer` and `artist` choose them; the standard is that the game is playable and readable at a normal desktop window size.
+- Whether sound is wanted is not stated: optional.
+- Whether "wall" may be absent (wrap-around) — not allowed: the input says running into a wall ends the game, so the board has walls.
+
+## Work assignment (see `assignment.json`, `ht-role assignment`)
+
+- `game-developer`: the game — repository root of `game-developer`, entry point `index.html`.
+- `artist`: `assets/` — the delivered `assets/` directory comes from `artist`'s repository (it overrides any `assets/` in the game developer's root), so the game loads its art/audio from there.
+- `qa`: checks each build against R1–R8 and files reproducible defects with `game-developer`/`artist`; reports results to `producer`. No delivered path.
+- `playtester`: plays each build `producer` hands over and reports the experience with evidence. No delivered path.
+- `producer`: this brief, the assignment, the acceptance record and the approval.

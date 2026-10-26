@@ -1,0 +1,77 @@
+"""Render every sheet module to assets/ and write assets/gfx.json.
+
+Usage (from repo root):  python3 tools/gfx/build_gfx.py [--preview DIR]
+
+Each module in MODULES defines sheets() -> list of (Sheet, themes, dest),
+where themes is a list of THEMES keys (one PNG per theme, identical rects)
+or None for a single un-themed PNG, and dest is the path under assets/.
+"""
+import importlib
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+from lib import preview, NES  # noqa: E402
+from palettes import PALETTES, THEMES, BACKGROUND  # noqa: E402
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+ASSETS = os.path.join(ROOT, "assets")
+MODULES = [m for m in ["player", "enemies", "items", "tiles", "ui"]
+           if m not in os.environ.get("GFX_SKIP", "").split(",")]
+
+
+def main():
+    prev = None
+    if "--preview" in sys.argv:
+        prev = sys.argv[sys.argv.index("--preview") + 1]
+        os.makedirs(prev, exist_ok=True)
+    only = [a for a in sys.argv[1:] if a in MODULES]
+    out = {"sheets": {}, "palette": {t: "#" + NES[i] for t, i in BACKGROUND.items()}}
+    for modname in MODULES:
+        try:
+            mod = importlib.import_module(modname)
+        except ModuleNotFoundError as e:
+            if e.name == modname:
+                print("skip (missing):", modname)
+                continue
+            raise
+        for sheet, themes, dest in mod.sheets():
+            entry = {"file": None, "frames": None}
+            if sheet.anims:
+                entry["anims"] = sheet.anims
+            entry.update(sheet.meta)
+            if themes:
+                entry["variants"] = {}
+                for i, t in enumerate(themes):
+                    im, rects = sheet.render(PALETTES, THEMES[t])
+                    rel = dest.replace("{theme}", t)
+                    if i == 0:
+                        entry["file"] = rel
+                    else:
+                        entry["variants"][t] = rel
+                    save(im, rel, prev, only, modname)
+            else:
+                im, rects = sheet.render(PALETTES)
+                entry["file"] = dest
+                save(im, dest, prev, only, modname)
+            entry["frames"] = rects
+            out["sheets"][sheet.name] = entry
+            print(f"{sheet.name}: {len(rects)} frames, {im.size}")
+        if hasattr(mod, "extras"):
+            out.update(mod.extras(ASSETS))
+    os.makedirs(os.path.join(ROOT, "build"), exist_ok=True)
+    with open(os.path.join(ROOT, "build", "gfx.json"), "w") as f:
+        json.dump(out, f, indent=1)
+
+
+def save(im, rel, prev, only, modname):
+    path = os.path.join(ASSETS, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    im.save(path, optimize=True)
+    if prev and (not only or modname in only):
+        preview(im, os.path.join(prev, rel.replace("/", "_")))
+
+
+if __name__ == "__main__":
+    main()

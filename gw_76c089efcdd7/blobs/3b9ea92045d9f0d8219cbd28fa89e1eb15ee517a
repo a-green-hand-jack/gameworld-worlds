@@ -1,0 +1,2 @@
+# Beep
+Start: `python3 -m http.server 8000` in this directory, open http://localhost:8000/ . Click the button to hear `sound/beep.wav` (0.3 s 660 Hz fading tone + 0.2 s silence, 44.1 kHz) and see the click count.

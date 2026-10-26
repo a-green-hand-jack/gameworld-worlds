@@ -1,0 +1,29 @@
+import time,json
+from playwright.sync_api import sync_playwright
+INIT="""window.__plays=[];const _p=HTMLMediaElement.prototype.play;
+HTMLMediaElement.prototype.play=function(){const r=_p.apply(this,arguments);window.__plays.push([this.currentSrc.split('/').pop(),performance.now()]);return r};"""
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required']); pg=b.new_page(viewport={'width':1280,'height':800}); errs=[]
+    pg.on('console',lambda m: errs.append(m.text) if m.type in('error','warning') else None); pg.on('pageerror',lambda e:errs.append(str(e)))
+    pg.add_init_script(INIT); pg.goto('file:///tmp/d2/index.html'); pg.click('#start-btn'); t0=time.time(); hits=0; dbl=0;emp=0
+    last=None
+    while time.time()-t0<31:
+        s=pg.evaluate('[__whack.phase,__whack.upHole]')
+        if s[0]!='playing': break
+        u=s[1]
+        if u>=0 and u!=last:
+            last=u; time.sleep(0.12)
+            if pg.evaluate('__whack.upHole')==u:
+                bb=pg.locator('.hole').nth(u).bounding_box(); c=(bb['x']+bb['width']/2,bb['y']+bb['height']/2)
+                a=pg.evaluate('__whack.score'); pg.mouse.click(*c); b2=pg.evaluate('__whack.score'); hits+=b2-a
+                pg.mouse.click(*c); dbl+=pg.evaluate('__whack.score')-b2
+                e=pg.locator('.hole').nth((u+1)%9).bounding_box(); pg.mouse.click(e['x']+e['width']/2,e['y']+e['height']/2); emp+=pg.evaluate('__whack.score')-b2-(pg.evaluate('__whack.score')-b2)
+        elif u<0: last=None
+        time.sleep(0.01)
+    pg.wait_for_function('__whack.phase=="ended"',timeout=5000); time.sleep(0.5)
+    print(json.dumps({'wall':round(time.time()-t0,1),'score':pg.evaluate('__whack.score'),'plays':len(pg.evaluate('__plays')),'play_srcs':sorted(set(x[0] for x in pg.evaluate('__plays'))),'soundsPlayed':pg.evaluate('__whack.soundsPlayed'),'dbl_extra':dbl,'dur':pg.evaluate('window.__whackSound&&__whackSound.duration'),'errs':errs}))
+    # rapid hits distinct plays? replay and check restart
+    pg.click('#again-btn'); print('replay',pg.evaluate('[__whack.phase,__whack.score,__whack.timeLeft]'))
+    # protocol
+    print(pg.url)
+    b.close()

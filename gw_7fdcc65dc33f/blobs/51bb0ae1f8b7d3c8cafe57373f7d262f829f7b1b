@@ -1,0 +1,167 @@
+(() => {
+  'use strict';
+
+  const ROUND_SECONDS = 30;
+  const HOLES = 9;
+  const UP_MIN_MS = 550;   // a mole stays up between UP_MIN_MS and UP_MAX_MS
+  const UP_MAX_MS = 900;   // always under one second
+  const GAP_MIN_MS = 250;  // pause before the next mole appears
+  const GAP_MAX_MS = 600;
+  const HIT_SOUND = 'sound/hit.wav';
+
+  const $ = (id) => document.getElementById(id);
+  const screens = { title: $('title-screen'), game: $('game-screen'), end: $('end-screen') };
+  const grid = $('grid');
+  const scoreEl = $('score');
+  const timeEl = $('time');
+  const finalEl = $('final-score');
+
+  const state = {
+    phase: 'title',      // title | playing | ended
+    score: 0,
+    timeLeft: ROUND_SECONDS,
+    upHole: -1,          // index of the hole whose mole is up, -1 if none
+    hits: 0,
+    misses: 0,           // moles that hid without being hit
+  };
+  window.__whack = state; // read-only view for automated checks
+
+  // ---- sound -------------------------------------------------------------
+  // Web Audio for low-latency playback when served over HTTP; browsers refuse
+  // fetch() on file://, so there the sound plays through <audio> elements.
+  const viaElement = location.protocol === 'file:';
+  let audioCtx = null;
+  let hitBuffer = null;
+  const hitBytes = viaElement ? Promise.resolve(null)
+    : fetch(HIT_SOUND).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+  const hitElement = viaElement ? new Audio(HIT_SOUND) : null;
+  if (hitElement) {
+    hitElement.preload = 'auto';
+    hitElement.addEventListener('loadedmetadata', () => { window.__whackSound = { duration: hitElement.duration }; });
+    hitElement.addEventListener('error', () => console.warn('hit sound not found at', HIT_SOUND));
+  }
+
+  function ensureAudio() {
+    if (audioCtx || viaElement) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = new Ctx();
+    hitBytes.then((bytes) => {
+      if (!bytes) { console.warn('hit sound not found at', HIT_SOUND); return; }
+      audioCtx.decodeAudioData(bytes.slice(0), (buf) => { hitBuffer = buf; window.__whackSound = buf; },
+        (err) => console.warn('could not decode', HIT_SOUND, err));
+    });
+  }
+
+  function playHit() {
+    if (hitElement) {
+      // a fresh clone per hit so quick successive hits overlap instead of cutting off
+      const el = hitElement.cloneNode();
+      el.play().then(() => { state.soundsPlayed = (state.soundsPlayed || 0) + 1; },
+        (err) => console.warn('could not play', HIT_SOUND, err));
+      return;
+    }
+    if (!audioCtx || !hitBuffer) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const src = audioCtx.createBufferSource();
+    src.buffer = hitBuffer;
+    src.connect(audioCtx.destination);
+    src.start();
+    state.soundsPlayed = (state.soundsPlayed || 0) + 1;
+  }
+
+  // ---- board -------------------------------------------------------------
+  const holes = [];
+  const moleClass = 'mole css-mole';
+
+  for (let i = 0; i < HOLES; i++) {
+    const el = document.createElement('div');
+    el.className = 'hole';
+    el.dataset.index = String(i);
+    const mole = document.createElement('div');
+    mole.className = moleClass;
+    mole.innerHTML = '<span class="nose"></span>';
+    el.appendChild(mole);
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); whack(i); });
+    grid.appendChild(el);
+    holes.push({ el, mole });
+  }
+
+  // ---- round -------------------------------------------------------------
+  let moleTimer = 0;
+  let tickTimer = 0;
+  let endAt = 0;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  function show(name) {
+    Object.entries(screens).forEach(([k, el]) => el.classList.toggle('active', k === name));
+  }
+
+  function hideMole() {
+    if (state.upHole >= 0) holes[state.upHole].el.classList.remove('up');
+    state.upHole = -1;
+  }
+
+  function popMole() {
+    if (state.phase !== 'playing') return;
+    let next;
+    do { next = Math.floor(Math.random() * HOLES); } while (next === state.lastHole);
+    state.lastHole = next;
+    state.upHole = next;
+    const h = holes[next];
+    h.el.classList.remove('hit');
+    h.el.classList.add('up');
+    moleTimer = setTimeout(() => {
+      if (state.upHole === next) { state.misses++; hideMole(); }
+      moleTimer = setTimeout(popMole, rand(GAP_MIN_MS, GAP_MAX_MS));
+    }, rand(UP_MIN_MS, UP_MAX_MS));
+  }
+
+  function whack(i) {
+    if (state.phase !== 'playing' || state.upHole !== i) return;
+    state.score++;
+    state.hits++;
+    scoreEl.textContent = String(state.score);
+    playHit();
+    const h = holes[i];
+    h.el.classList.add('hit');
+    hideMole();
+    clearTimeout(moleTimer);
+    moleTimer = setTimeout(() => { h.el.classList.remove('hit'); popMole(); }, rand(GAP_MIN_MS, GAP_MAX_MS));
+  }
+
+  function tick() {
+    const left = Math.max(0, endAt - performance.now());
+    state.timeLeft = Math.ceil(left / 1000);
+    timeEl.textContent = String(state.timeLeft);
+    if (left <= 0) endRound();
+  }
+
+  function startRound() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    clearTimeout(moleTimer);
+    clearInterval(tickTimer);
+    Object.assign(state, { phase: 'playing', score: 0, hits: 0, misses: 0, timeLeft: ROUND_SECONDS, upHole: -1, lastHole: -1 });
+    holes.forEach((h) => h.el.classList.remove('up', 'hit'));
+    scoreEl.textContent = '0';
+    timeEl.textContent = String(ROUND_SECONDS);
+    show('game');
+    endAt = performance.now() + ROUND_SECONDS * 1000;
+    tickTimer = setInterval(tick, 100);
+    moleTimer = setTimeout(popMole, 500);
+  }
+
+  function endRound() {
+    state.phase = 'ended';
+    clearTimeout(moleTimer);
+    clearInterval(tickTimer);
+    hideMole();
+    finalEl.textContent = String(state.score);
+    show('end');
+  }
+
+  $('start-btn').addEventListener('click', startRound);
+  $('again-btn').addEventListener('click', startRound);
+})();

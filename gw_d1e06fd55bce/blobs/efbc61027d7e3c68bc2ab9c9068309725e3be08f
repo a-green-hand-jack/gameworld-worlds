@@ -1,0 +1,12 @@
+http: loaded, errors []
+Space starts -> play
+P -> paused
+P again -> play
+window blur -> paused
+Enter resumes -> play
+ArrowDown 0.5s moved paddle 210 px
+W 0.3s moved -129 px
+serve ball speed (px/s) 0
+Esc during play -> paused
+Esc again -> play
+canvas css size at 640x400 ['640px', '400px']

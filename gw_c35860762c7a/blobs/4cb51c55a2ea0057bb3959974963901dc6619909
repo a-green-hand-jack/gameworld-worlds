@@ -1,0 +1,5 @@
+{"commitment_schema": 1, "delivers": [
+{"what": "Quality checklist derived from the objective (faithful web remake of classic Super Mario Bros. 1): controls, physics feel, enemies, power-ups, blocks, pipes, flagpole, timer/score/lives, World 1-1 and beyond, game over/restart, edge cases", "standard": "Each item is checkable and traceable to the objective; kept in qa repo (checklist.md) and updated as the build grows"},
+{"what": "Systematic test report per game-developer build (headless-browser automated checks plus manual-style scripted play), run on the released/playable build", "standard": "Every report names the build revision/release and URL, lists pass/fail per checklist item, and keeps logs/screenshots as evidence"},
+{"what": "Reproducible defect issues opened in the owning position's repository (game-developer for behavior, artist for assets, etc.)", "standard": "One issue per defect, with build revision, exact repro steps, expected vs observed per the objective, and evidence; closed-loop retest on the fixed build"}
+]}

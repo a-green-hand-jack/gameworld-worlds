@@ -1,0 +1,43 @@
+# Snake
+
+Browser Snake game: steer the snake around a 20x20 grid with the arrow keys,
+eat food to grow one cell and score a point, and don't hit a wall or yourself.
+Title screen, live score, game-over screen with final score and Play again.
+
+## Start it
+
+From the delivery root (the directory containing `index.html`):
+
+```sh
+python3 -m http.server 8000
+# then open http://localhost:8000/ in a browser
+```
+
+Opening `index.html` directly from disk (`file://`) also plays; only
+`assets/theme.json` (colours/font) is skipped there, as browsers block it.
+
+## Controls
+
+| Key | Action |
+|---|---|
+| Arrow keys | Turn the snake (reversing straight back is ignored; two quick turns are buffered) |
+| Enter / Space, or click the button | Start from the title screen; play again from game over |
+| P or Esc | Pause; resume with P, Esc, Enter, Space or a click (the game also pauses when the window loses focus) |
+
+Speed: one cell every 120 ms. The board scales to fit the window (from 800x500 up, and narrow portrait windows) so the score, board and screens are always fully visible. Best score is kept in the browser's localStorage.
+
+## Layout
+
+- `index.html`, `src/style.css` — page and screens (title, HUD, pause, game over)
+- `src/logic.js` — pure game rules (movement, growth, scoring, collisions, food placement)
+- `src/main.js` — state machine, input, timing loop, canvas rendering, sound, asset loading
+- `assets/` — images, audio and theme from the `artist` position; what the game
+  loads is specified in `docs/assets.md`. Missing files fall back to plain shapes.
+- `tests/check.py` — headless Chromium checks of every rule and screen, plus
+  that every asset loads with no console errors:
+  `python3 tests/check.py [DELIVERY_DIR]` (needs Playwright for Python; run it
+  on the assembled delivery, i.e. with `assets/` present);
+  screenshots and `report.json` go to `tests/out/`.
+
+Test hooks: `?seed=N` makes food placement reproducible, `?manual=1` stops the
+clock so `window.__snake.tick()` advances the game one step.

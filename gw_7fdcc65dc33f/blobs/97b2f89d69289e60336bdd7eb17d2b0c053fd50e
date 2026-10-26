@@ -1,0 +1,16 @@
+import json
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1280,'height':800})
+    pg.goto('http://localhost:8000/'); pg.click('#start-btn')
+    pg.evaluate("""()=>{window.__c=[];document.querySelectorAll('.hole').forEach((h,i)=>h.addEventListener('pointerdown',()=>{window.__c.push([i,window.__whack.upHole===i,window.__whack.score])},true))}""")
+    for k in range(60):
+        up=pg.evaluate("window.__whack.upHole")
+        i=(up+1+k%8)%9 if up>=0 else k%9
+        bx=pg.locator('.hole').nth(i).bounding_box()
+        pg.mouse.click(bx['x']+bx['width']/2,bx['y']+bx['height']/2)
+        pg.wait_for_timeout(100)
+    c=pg.evaluate("window.__c"); sc=pg.evaluate("window.__whack.score")
+    wrong=[x for x in c if not x[1]]
+    print(len(c),'clicks; clicks that landed on an up-mole:',sum(1 for x in c if x[1]),'final score',sc)
+    b.close()

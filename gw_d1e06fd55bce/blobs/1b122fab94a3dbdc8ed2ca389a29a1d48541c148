@@ -1,0 +1,199 @@
+// Pong rules and simulation, independent of drawing and input devices.
+(function () {
+  'use strict';
+
+  var W = 800, H = 500;
+  var WIN_SCORE = 5;
+  var PADDLE_W = 12, PADDLE_H = 80, PADDLE_MARGIN = 24;
+  var BALL = 12;
+  var PLAYER_SPEED = 430;          // px/s
+  var AI_SPEED = 300;              // px/s, slower than the player so the computer can be beaten
+  var BALL_START_SPEED = 340;      // px/s
+  var BALL_SPEEDUP = 1.06;         // per paddle hit
+  var BALL_MAX_SPEED = 820;
+  var MAX_BOUNCE = Math.PI / 3;    // 60 degrees off horizontal at the paddle's edge
+  var SERVE_DELAY = 0.9;           // s before the ball moves after a point
+  var END_INPUT_DELAY = 0.6;       // s before the game-over screen accepts "play again"
+
+  // Small seedable RNG so a match can be replayed (?seed=N).
+  function makeRng(seed) {
+    var s = (seed >>> 0) || 1;
+    return function () {
+      s ^= s << 13; s >>>= 0;
+      s ^= s >>> 17;
+      s ^= s << 5; s >>>= 0;
+      return s / 4294967296;
+    };
+  }
+
+  function Game(opts) {
+    opts = opts || {};
+    this.rng = makeRng(opts.seed != null ? opts.seed : Date.now());
+    this.listeners = [];
+    this.state = 'title';      // 'title' | 'play' | 'paused' | 'gameover'
+    this.time = 0;
+    this.resetMatch();
+  }
+
+  Game.W = W; Game.H = H; Game.WIN_SCORE = WIN_SCORE;
+  Game.PADDLE_W = PADDLE_W; Game.PADDLE_H = PADDLE_H; Game.BALL = BALL;
+
+  Game.prototype.on = function (fn) { this.listeners.push(fn); };
+  Game.prototype.emit = function (type, data) {
+    for (var i = 0; i < this.listeners.length; i++) this.listeners[i](type, data || {});
+  };
+
+  Game.prototype.resetMatch = function () {
+    this.score = { player: 0, computer: 0 };
+    this.winner = null;
+    this.player = { x: PADDLE_MARGIN, y: (H - PADDLE_H) / 2, w: PADDLE_W, h: PADDLE_H };
+    this.computer = { x: W - PADDLE_MARGIN - PADDLE_W, y: (H - PADDLE_H) / 2, w: PADDLE_W, h: PADDLE_H };
+    this.ball = { x: (W - BALL) / 2, y: (H - BALL) / 2, vx: 0, vy: 0, size: BALL };
+    this.rallyHits = 0;
+    this.aiError = 0;
+    this.stateTime = 0;
+  };
+
+  Game.prototype.setState = function (state) {
+    this.state = state;
+    this.stateTime = 0;
+    this.emit('state', { state: state });
+  };
+
+  Game.prototype.startMatch = function () {
+    this.resetMatch();
+    this.setState('play');
+    this.serve(this.rng() < 0.5 ? -1 : 1);
+  };
+
+  // dir: -1 serves toward the player (left), +1 toward the computer (right).
+  Game.prototype.serve = function (dir) {
+    var b = this.ball;
+    b.x = (W - BALL) / 2;
+    b.y = H * (0.3 + 0.4 * this.rng()) - BALL / 2;
+    var angle = (this.rng() * 2 - 1) * (Math.PI / 6);
+    b.vx = 0; b.vy = 0;
+    this.serveDir = dir;
+    this.serveAngle = angle;
+    this.serveTimer = SERVE_DELAY;
+    this.rallyHits = 0;
+    this.pickAiError();
+  };
+
+  Game.prototype.pickAiError = function () {
+    // Where on its paddle the computer aims to meet the ball; the larger the
+    // error the more often it just misses. Grows as the rally speeds up.
+    var spread = PADDLE_H * (0.35 + 0.08 * this.rallyHits);
+    this.aiError = (this.rng() * 2 - 1) * spread;
+  };
+
+  Game.prototype.togglePause = function () {
+    if (this.state === 'play') this.setState('paused');
+    else if (this.state === 'paused') this.setState('play');
+  };
+
+  Game.prototype.canRestart = function () {
+    return this.state === 'gameover' && this.stateTime >= END_INPUT_DELAY;
+  };
+
+  // input: { up: bool, down: bool }
+  Game.prototype.update = function (dt, input) {
+    this.time += dt;
+    this.stateTime += dt;
+    if (this.state !== 'play') return;
+
+    // Player paddle
+    var dir = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+    this.player.y = clamp(this.player.y + dir * PLAYER_SPEED * dt, 0, H - PADDLE_H);
+
+    this.updateAi(dt);
+
+    if (this.serveTimer > 0) {
+      this.serveTimer -= dt;
+      if (this.serveTimer <= 0) {
+        var speed = BALL_START_SPEED;
+        this.ball.vx = this.serveDir * speed * Math.cos(this.serveAngle);
+        this.ball.vy = speed * Math.sin(this.serveAngle);
+        this.emit('serve', {});
+      }
+      return;
+    }
+
+    this.updateBall(dt);
+  };
+
+  Game.prototype.updateAi = function (dt) {
+    var c = this.computer, b = this.ball;
+    var target;
+    if (b.vx > 0) {
+      // Predict where the ball crosses the computer's paddle line, folding wall bounces.
+      var t = (c.x - (b.x + BALL)) / b.vx;
+      var y = b.y + b.vy * Math.max(0, t);
+      var span = H - BALL;
+      y = ((y % (2 * span)) + 2 * span) % (2 * span);
+      if (y > span) y = 2 * span - y;
+      target = y + BALL / 2 + this.aiError;
+    } else {
+      target = H / 2; // drift back to the middle while the ball goes away
+    }
+    var centre = c.y + PADDLE_H / 2;
+    var delta = target - centre;
+    var step = AI_SPEED * dt;
+    if (Math.abs(delta) > 4) c.y += clamp(delta, -step, step);
+    c.y = clamp(c.y, 0, H - PADDLE_H);
+  };
+
+  Game.prototype.updateBall = function (dt) {
+    var b = this.ball;
+    var prevX = b.x;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    if (b.y < 0) { b.y = -b.y; b.vy = Math.abs(b.vy); this.emit('wall', {}); }
+    else if (b.y + BALL > H) { b.y = 2 * (H - BALL) - b.y; b.vy = -Math.abs(b.vy); this.emit('wall', {}); }
+
+    // Only the paddle's face returns the ball: a ball already past the face is a miss.
+    var p = this.player, c = this.computer;
+    if (b.vx < 0 && prevX >= p.x + p.w && hits(b, p)) this.bounce(p, 1);
+    else if (b.vx > 0 && prevX + BALL <= c.x && hits(b, c)) this.bounce(c, -1);
+
+    if (b.x + BALL < 0) this.point('computer');
+    else if (b.x > W) this.point('player');
+  };
+
+  Game.prototype.bounce = function (paddle, dir) {
+    var b = this.ball;
+    var rel = ((b.y + BALL / 2) - (paddle.y + PADDLE_H / 2)) / (PADDLE_H / 2 + BALL / 2);
+    rel = clamp(rel, -1, 1);
+    var angle = rel * MAX_BOUNCE;
+    var speed = Math.min(Math.hypot(b.vx, b.vy) * BALL_SPEEDUP, BALL_MAX_SPEED);
+    b.vx = dir * speed * Math.cos(angle);
+    b.vy = speed * Math.sin(angle);
+    b.x = dir > 0 ? paddle.x + paddle.w : paddle.x - BALL;
+    this.rallyHits++;
+    this.pickAiError();
+    this.emit('paddle', { by: paddle === this.player ? 'player' : 'computer' });
+  };
+
+  Game.prototype.point = function (who) {
+    this.score[who]++;
+    this.emit('score', { by: who, score: { player: this.score.player, computer: this.score.computer } });
+    if (this.score[who] >= WIN_SCORE) {
+      this.winner = who;
+      this.ball.vx = this.ball.vy = 0;
+      this.setState('gameover');
+      this.emit('gameover', { winner: who });
+      return;
+    }
+    // Serve toward whoever just lost the point.
+    this.serve(who === 'player' ? 1 : -1);
+  };
+
+  function hits(b, p) {
+    return b.x < p.x + p.w && b.x + BALL > p.x && b.y < p.y + p.h && b.y + BALL > p.y;
+  }
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+  window.PongGame = Game;
+})();

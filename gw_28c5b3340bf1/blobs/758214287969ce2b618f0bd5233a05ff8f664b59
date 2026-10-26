@@ -1,0 +1,297 @@
+// Screens, input, timing and drawing for Snake.
+(function () {
+  'use strict';
+
+  var COLS = 20;
+  var ROWS = 20;
+  var CELL = 32;
+  var TICK_MS = 120;
+  var FRAME = 1; // wall cells drawn around the board on each side
+
+  var params = new URLSearchParams(location.search);
+  var seed = params.has('seed') ? Number(params.get('seed')) : null;
+  var tickMs = params.has('tick') ? Math.max(20, Number(params.get('tick'))) : TICK_MS;
+
+  var canvas = document.getElementById('board');
+  var ctx = canvas.getContext('2d');
+  canvas.width = (COLS + 2 * FRAME) * CELL;
+  canvas.height = (ROWS + 2 * FRAME) * CELL;
+
+  var el = {
+    hud: document.getElementById('hud'),
+    score: document.getElementById('score'),
+    best: document.getElementById('best'),
+    title: document.getElementById('title-screen'),
+    pause: document.getElementById('pause-screen'),
+    gameover: document.getElementById('gameover-screen'),
+    finalScore: document.getElementById('final-score'),
+    cause: document.getElementById('gameover-cause'),
+    newBest: document.getElementById('new-best'),
+    gameoverText: document.getElementById('gameover-text'),
+    start: document.getElementById('start-button'),
+    restart: document.getElementById('restart-button')
+  };
+
+  // Screen art replaces the text heading when the artist supplies it.
+  [['title-art', 'title-text'], ['gameover-art', 'gameover-text']].forEach(function (pair) {
+    var img = document.getElementById(pair[0]);
+    var heading = document.getElementById(pair[1]);
+    function shown() { heading.classList.add('visually-hidden'); }
+    function missing() { img.classList.add('missing'); heading.classList.remove('visually-hidden'); }
+    if (img.complete && img.naturalWidth) shown();
+    else if (img.complete) missing();
+    img.addEventListener('load', shown);
+    img.addEventListener('error', missing);
+  });
+
+  var game = new SnakeGame({
+    cols: COLS,
+    rows: ROWS,
+    random: seed !== null ? SnakeGame.makeRng(seed) : Math.random
+  });
+  var screen = 'title'; // 'title' | 'playing' | 'paused' | 'gameover'
+  var assets = { images: {}, sounds: {} };
+  var best = readBest();
+  var lastTick = 0;
+  var accumulator = 0;
+
+  function readBest() {
+    try { return Number(localStorage.getItem('snake.best')) || 0; } catch (e) { return 0; }
+  }
+  function writeBest(v) {
+    try { localStorage.setItem('snake.best', String(v)); } catch (e) { /* storage blocked */ }
+  }
+
+  function play(name) {
+    var a = assets.sounds[name];
+    if (!a) return;
+    try {
+      a.currentTime = 0;
+      var p = a.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* audio unavailable */ }
+  }
+
+  function show(name) {
+    screen = name;
+    el.title.classList.toggle('hidden', name !== 'title');
+    el.pause.classList.toggle('hidden', name !== 'paused');
+    el.gameover.classList.toggle('hidden', name !== 'gameover');
+    el.hud.classList.toggle('invisible', name === 'title');
+    document.body.dataset.screen = name;
+  }
+
+  function updateHud() {
+    el.score.textContent = String(game.score);
+    el.best.textContent = String(best);
+  }
+
+  function startGame() {
+    game.reset();
+    accumulator = 0;
+    lastTick = performance.now();
+    updateHud();
+    show('playing');
+    play('start');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  function endGame() {
+    var isBest = game.score > best;
+    if (isBest) { best = game.score; writeBest(best); }
+    el.finalScore.textContent = String(game.score);
+    el.cause.textContent = game.won ? 'You filled the whole board!'
+      : game.deathCause === 'wall' ? 'You ran into the wall.'
+      : 'You ran into yourself.';
+    el.gameoverText.textContent = game.won ? 'YOU WIN' : 'GAME OVER';
+    el.newBest.classList.toggle('hidden', !(isBest && game.score > 0));
+    updateHud();
+    show('gameover');
+    play('gameover');
+    el.restart.focus();
+  }
+
+  var KEY_DIRS = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'
+  };
+
+  document.addEventListener('keydown', function (e) {
+    var dir = KEY_DIRS[e.key];
+    if (dir) e.preventDefault(); // keep arrows from scrolling the page
+    if (screen === 'playing') {
+      if (dir && game.turn(dir)) play('turn');
+      else if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') show('paused');
+      return;
+    }
+    if (screen === 'paused') {
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        lastTick = performance.now();
+        show('playing');
+      }
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); // one start per key press, not a button click as well
+      if (!e.repeat) startGame();
+    }
+  });
+  el.start.addEventListener('click', startGame);
+  el.restart.addEventListener('click', startGame);
+  window.addEventListener('blur', function () { if (screen === 'playing') show('paused'); });
+
+  function loop(now) {
+    if (screen === 'playing') {
+      accumulator += now - lastTick;
+      // Cap catch-up so a stalled tab does not jump several cells at once.
+      if (accumulator > tickMs * 3) accumulator = tickMs;
+      while (accumulator >= tickMs && screen === 'playing') {
+        accumulator -= tickMs;
+        var result = game.step();
+        if (result === 'eat') { updateHud(); play('eat'); }
+        else if (game.over) endGame();
+      }
+    }
+    lastTick = now;
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---- drawing ----
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  var ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+
+  function dirBetween(from, to) {
+    if (to.x > from.x) return 'right';
+    if (to.x < from.x) return 'left';
+    if (to.y > from.y) return 'down';
+    return 'up';
+  }
+
+  function drawSprite(img, cell, angle) {
+    var cx = cell.x * CELL + CELL / 2;
+    var cy = cell.y * CELL + CELL / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.drawImage(img, -CELL / 2, -CELL / 2, CELL, CELL);
+    ctx.restore();
+  }
+
+  // The wall: one ring of cells around the playing field.
+  function drawWalls() {
+    var wall = assets.images.wall;
+    var w = COLS + 2 * FRAME;
+    var h = ROWS + 2 * FRAME;
+    if (!wall) {
+      ctx.fillStyle = cssVar('--wall');
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        if (x < FRAME || y < FRAME || x >= w - FRAME || y >= h - FRAME) {
+          ctx.drawImage(wall, x * CELL, y * CELL, CELL, CELL);
+        }
+      }
+    }
+  }
+
+  function drawBoard() {
+    var tile = assets.images.tile;
+    if (tile) {
+      for (var y = 0; y < ROWS; y++) {
+        for (var x = 0; x < COLS; x++) ctx.drawImage(tile, x * CELL, y * CELL, CELL, CELL);
+      }
+      return;
+    }
+    ctx.fillStyle = cssVar('--board');
+    ctx.fillRect(0, 0, COLS * CELL, ROWS * CELL);
+    ctx.strokeStyle = cssVar('--grid');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var i = 1; i < COLS; i++) {
+      ctx.moveTo(i * CELL + 0.5, 0); ctx.lineTo(i * CELL + 0.5, ROWS * CELL);
+    }
+    for (var j = 1; j < ROWS; j++) {
+      ctx.moveTo(0, j * CELL + 0.5); ctx.lineTo(COLS * CELL, j * CELL + 0.5);
+    }
+    ctx.stroke();
+  }
+
+  function drawFood() {
+    var f = game.food;
+    if (!f) return;
+    if (assets.images.food) { drawSprite(assets.images.food, f, 0); return; }
+    ctx.fillStyle = cssVar('--food');
+    ctx.beginPath();
+    ctx.arc(f.x * CELL + CELL / 2, f.y * CELL + CELL / 2, CELL * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawSnake() {
+    var s = game.snake;
+    var img = assets.images;
+    for (var i = s.length - 1; i >= 0; i--) {
+      var seg = s[i];
+      var isHead = i === 0;
+      // Only the head turns; body sprites keep their light from the top left.
+      var heading = isHead ? game.direction : dirBetween(seg, s[i - 1]);
+      var sprite = isHead ? img.head : (i % 2 && img.bodyAlt) || img.body;
+      if (sprite) { drawSprite(sprite, seg, isHead ? ANGLE[heading] : 0); continue; }
+      ctx.fillStyle = cssVar(isHead ? '--snake-head' : '--snake');
+      var pad = isHead ? 2 : 3;
+      ctx.fillRect(seg.x * CELL + pad, seg.y * CELL + pad, CELL - pad * 2, CELL - pad * 2);
+      if (isHead) drawEyes(seg, heading);
+    }
+  }
+
+  function drawEyes(seg, heading) {
+    var d = SnakeGame.DIRS[heading];
+    var cx = seg.x * CELL + CELL / 2 + d.x * 6;
+    var cy = seg.y * CELL + CELL / 2 + d.y * 6;
+    ctx.fillStyle = cssVar('--bg');
+    [-1, 1].forEach(function (side) {
+      ctx.beginPath();
+      ctx.arc(cx + d.y * 7 * side, cy + d.x * 7 * side, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function draw() {
+    ctx.imageSmoothingEnabled = false;
+    drawWalls();
+    ctx.save();
+    ctx.translate(FRAME * CELL, FRAME * CELL);
+    drawBoard();
+    drawFood();
+    drawSnake();
+    ctx.restore();
+  }
+
+  // Read-only view of the state for automated checks (qa, playtest scripts).
+  window.__snake = {
+    get screen() { return screen; },
+    get score() { return game.score; },
+    get snake() { return game.snake.map(function (c) { return { x: c.x, y: c.y }; }); },
+    get food() { return game.food && { x: game.food.x, y: game.food.y }; },
+    get direction() { return game.direction; },
+    get over() { return game.over; },
+    get cause() { return game.deathCause; },
+    cols: COLS,
+    rows: ROWS,
+    tickMs: tickMs,
+    ready: false
+  };
+
+  show('title');
+  updateHud();
+  SnakeAssets.loadAll().then(function (loaded) {
+    assets = loaded;
+    window.__snake.ready = true;
+  });
+  requestAnimationFrame(function (t) { lastTick = t; loop(t); });
+})();

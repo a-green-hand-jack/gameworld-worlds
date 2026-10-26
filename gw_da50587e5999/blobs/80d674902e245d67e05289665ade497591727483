@@ -1,0 +1,7 @@
+{
+  "commitment_schema": 1,
+  "delivers": [
+    {"what": "listening.md: independent QA listening record for the delivered sound/beep.wav", "standard": "Submit the actual WAV to audio-understanding, retain the request and unmodified answer, identify the tested artifact, and judge whether what was heard and when matches 0.3 s fading 660 Hz tone followed by 0.2 s silence at 44.1 kHz."},
+    {"what": "qa-report.md: reproducible checks of the Beep page and WAV", "standard": "Check the delivered build for one button, sound on clicks, accurate cumulative click count, and WAV timing/frequency/sample rate; preserve evidence and report reproducible defects to the build owner. Producer retains acceptance."}
+  ]
+}

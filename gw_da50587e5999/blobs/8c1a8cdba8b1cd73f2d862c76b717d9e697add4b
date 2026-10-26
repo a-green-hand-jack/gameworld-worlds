@@ -1,0 +1,10 @@
+# Playtest: Beep
+
+Build: delivery assembled at producer c971f0f (game-developer b13743f: `index.html` + `sound/beep.wav`), opened via file:// in Playwright Chromium (autoplay flag on), headless; I cannot hear audio in a browser, so sound was judged via listening.md.
+
+- Page loads with a "Beep" button and "Clicks: 0" (`shots/before.png`).
+- Three clicks -> "Clicks: 3" (`shots/after3.png`). No console or page errors. The audio element loaded without error (duration 0.5 s).
+- Not checked: real speaker output; mobile touch; rapid-click behaviour (the sound restarts on each click, by design of `currentTime=0`).
+- Minor: play() errors are swallowed silently, so if the browser blocks audio the player gets no feedback. Page is bare but fits the brief.
+- Finishable: yes, nothing to finish; it works.
+- Listening: file is spec-correct by my analysis, but the listening model misjudged pitch (see listening.md).

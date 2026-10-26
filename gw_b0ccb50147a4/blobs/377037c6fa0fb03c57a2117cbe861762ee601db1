@@ -1,0 +1,28 @@
+import asyncio, time
+from playwright.async_api import async_playwright
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        pg = await b.new_page(viewport={'width':900,'height':700})
+        errs=[]; pg.on('console', lambda m: errs.append(m.text) if m.type=='error' else None); pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.goto('file:///hutian/acc/b/index.html')
+        await pg.wait_for_timeout(500)
+        await pg.screenshot(path='producer-screenshot-start.png')
+        await pg.keyboard.press('Enter')
+        t0=time.time(); shot=False
+        dirs=['ArrowRight','ArrowDown','ArrowLeft','ArrowUp']; i=0
+        while time.time()-t0<33:
+            k=dirs[i%4]; i+=1
+            await pg.keyboard.down(k); await pg.wait_for_timeout(350); await pg.keyboard.up(k)
+            if not shot and time.time()-t0>12:
+                await pg.screenshot(path='producer-screenshot-playing.png'); shot=True
+            if i%6==0: print(round(time.time()-t0,1), await pg.inner_text('#score'), await pg.inner_text('#time'))
+        await pg.wait_for_timeout(500)
+        print('end', await pg.inner_text('#score'), await pg.inner_text('#time'), await pg.inner_text('#best'))
+        await pg.screenshot(path='producer-screenshot-gameover.png')
+        await pg.reload(); await pg.wait_for_timeout(500)
+        print('after reload best', await pg.inner_text('#best'))
+        await pg.screenshot(path='producer-screenshot-reload-best.png')
+        print('errors', errs)
+        await b.close()
+asyncio.run(main())

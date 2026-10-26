@@ -1,0 +1,2 @@
+PR game-developer#4 head 21210df: played in headless Chromium: 9 clicks->9, 10th->10 + 'You did it!' + play again; again resets to 0, replay works; single file, no assets/libs. Approved.
+Final PR game-developer#5 head 70ffff9: re-played, identical game; playtester reported v1 clean. Approved.

@@ -1,0 +1,17 @@
+PASS start idle match
+PASS R3/R5 idle player: match ends with computer winning at 5  [({'player': 0, 'computer': 5}, [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)])]
+PASS R2/R7 score increments one at a time (history)  [[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]]
+PASS R5 no play continues after match end (ball frozen, score fixed)
+PASS R8 play again becomes available
+PASS R8 Enter on win screen starts fresh match at 0-0
+PASS repeat match 2 ends  [[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]]
+PASS Space also plays again
+PASS click plays again (extra)
+PASS R1 no errors during idle matches
+PASS R3 bot-human match 0: ended; result player {'player': 5, 'computer': 0}  [[(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)]]
+PASS R5 match 0: winner field matches higher score & other < 5  [{'player': 5, 'computer': 0}]
+PASS R3 bot-human match 1: ended; result player {'player': 5, 'computer': 0}  [[(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)]]
+PASS R5 match 1: winner field matches higher score & other < 5  [{'player': 5, 'computer': 0}]
+PASS R3 bot-human match 2: ended; result player {'player': 5, 'computer': 0}  [[(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)]]
+PASS R5 match 2: winner field matches higher score & other < 5  [{'player': 5, 'computer': 0}]
+DONE matches fail= 0

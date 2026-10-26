@@ -1,0 +1,320 @@
+{
+  "sfx": {
+    "jump_small": {
+      "files": [
+        "audio/sfx/jump_small.ogg",
+        "audio/sfx/jump_small.wav"
+      ],
+      "duration": 0.320884
+    },
+    "jump_big": {
+      "files": [
+        "audio/sfx/jump_big.ogg",
+        "audio/sfx/jump_big.wav"
+      ],
+      "duration": 0.390113
+    },
+    "stomp": {
+      "files": [
+        "audio/sfx/stomp.ogg",
+        "audio/sfx/stomp.wav"
+      ],
+      "duration": 0.148027
+    },
+    "kick": {
+      "files": [
+        "audio/sfx/kick.ogg",
+        "audio/sfx/kick.wav"
+      ],
+      "duration": 0.059819
+    },
+    "coin": {
+      "files": [
+        "audio/sfx/coin.ogg",
+        "audio/sfx/coin.wav"
+      ],
+      "duration": 0.640181
+    },
+    "bump": {
+      "files": [
+        "audio/sfx/bump.ogg",
+        "audio/sfx/bump.wav"
+      ],
+      "duration": 0.16771
+    },
+    "brick_break": {
+      "files": [
+        "audio/sfx/brick_break.ogg",
+        "audio/sfx/brick_break.wav"
+      ],
+      "duration": 0.456757
+    },
+    "powerup_appear": {
+      "files": [
+        "audio/sfx/powerup_appear.ogg",
+        "audio/sfx/powerup_appear.wav"
+      ],
+      "duration": 0.619229
+    },
+    "powerup": {
+      "files": [
+        "audio/sfx/powerup.ogg",
+        "audio/sfx/powerup.wav"
+      ],
+      "duration": 1.027302
+    },
+    "powerdown": {
+      "files": [
+        "audio/sfx/powerdown.ogg",
+        "audio/sfx/powerdown.wav"
+      ],
+      "duration": 0.706463
+    },
+    "pipe": {
+      "files": [
+        "audio/sfx/pipe.ogg",
+        "audio/sfx/pipe.wav"
+      ],
+      "duration": 0.67415
+    },
+    "oneup": {
+      "files": [
+        "audio/sfx/oneup.ogg",
+        "audio/sfx/oneup.wav"
+      ],
+      "duration": 0.706939
+    },
+    "fireball": {
+      "files": [
+        "audio/sfx/fireball.ogg",
+        "audio/sfx/fireball.wav"
+      ],
+      "duration": 0.10127
+    },
+    "flagpole": {
+      "files": [
+        "audio/sfx/flagpole.ogg",
+        "audio/sfx/flagpole.wav"
+      ],
+      "duration": 1.20619
+    },
+    "firework": {
+      "files": [
+        "audio/sfx/firework.ogg",
+        "audio/sfx/firework.wav"
+      ],
+      "duration": 0.624875
+    },
+    "bowser_fall": {
+      "files": [
+        "audio/sfx/bowser_fall.ogg",
+        "audio/sfx/bowser_fall.wav"
+      ],
+      "duration": 1.922834
+    },
+    "bowser_fire": {
+      "files": [
+        "audio/sfx/bowser_fire.ogg",
+        "audio/sfx/bowser_fire.wav"
+      ],
+      "duration": 1.039002
+    },
+    "vine": {
+      "files": [
+        "audio/sfx/vine.ogg",
+        "audio/sfx/vine.wav"
+      ],
+      "duration": 1.003628
+    },
+    "pause": {
+      "files": [
+        "audio/sfx/pause.ogg",
+        "audio/sfx/pause.wav"
+      ],
+      "duration": 0.556848
+    },
+    "beep": {
+      "files": [
+        "audio/sfx/beep.ogg",
+        "audio/sfx/beep.wav"
+      ],
+      "duration": 0.079365
+    },
+    "swim": {
+      "files": [
+        "audio/sfx/swim.ogg",
+        "audio/sfx/swim.wav"
+      ],
+      "duration": 0.160317
+    },
+    "cannon": {
+      "files": [
+        "audio/sfx/cannon.ogg",
+        "audio/sfx/cannon.wav"
+      ],
+      "duration": 0.223061
+    }
+  },
+  "music": {
+    "overworld": {
+      "files": [
+        "audio/music/overworld.ogg",
+        "audio/music/overworld.mp3"
+      ],
+      "duration": 38.4,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 38.4
+    },
+    "overworld_hurry": {
+      "files": [
+        "audio/music/overworld_hurry.ogg",
+        "audio/music/overworld_hurry.mp3"
+      ],
+      "duration": 25.6,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 25.6
+    },
+    "underground": {
+      "files": [
+        "audio/music/underground.ogg",
+        "audio/music/underground.mp3"
+      ],
+      "duration": 16.0,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 16.0
+    },
+    "underground_hurry": {
+      "files": [
+        "audio/music/underground_hurry.ogg",
+        "audio/music/underground_hurry.mp3"
+      ],
+      "duration": 10.666667,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 10.666667
+    },
+    "underwater": {
+      "files": [
+        "audio/music/underwater.ogg",
+        "audio/music/underwater.mp3"
+      ],
+      "duration": 24.0,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 24.0
+    },
+    "underwater_hurry": {
+      "files": [
+        "audio/music/underwater_hurry.ogg",
+        "audio/music/underwater_hurry.mp3"
+      ],
+      "duration": 16.0,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 16.0
+    },
+    "castle": {
+      "files": [
+        "audio/music/castle.ogg",
+        "audio/music/castle.mp3"
+      ],
+      "duration": 12.0,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 12.0
+    },
+    "castle_hurry": {
+      "files": [
+        "audio/music/castle_hurry.ogg",
+        "audio/music/castle_hurry.mp3"
+      ],
+      "duration": 8.0,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 8.0
+    },
+    "star": {
+      "files": [
+        "audio/music/star.ogg",
+        "audio/music/star.mp3"
+      ],
+      "duration": 4.8,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 4.8
+    },
+    "ending": {
+      "files": [
+        "audio/music/ending.ogg",
+        "audio/music/ending.mp3"
+      ],
+      "duration": 20.0,
+      "loop": true,
+      "loopStart": 0.0,
+      "loopEnd": 20.0
+    },
+    "warning": {
+      "files": [
+        "audio/music/warning.ogg",
+        "audio/music/warning.mp3"
+      ],
+      "duration": 2.779932,
+      "loop": false,
+      "loopStart": 0.0,
+      "loopEnd": 2.779932
+    },
+    "stage_clear": {
+      "files": [
+        "audio/music/stage_clear.ogg",
+        "audio/music/stage_clear.mp3"
+      ],
+      "duration": 5.428707,
+      "loop": false,
+      "loopStart": 0.0,
+      "loopEnd": 5.428707
+    },
+    "castle_clear": {
+      "files": [
+        "audio/music/castle_clear.ogg",
+        "audio/music/castle_clear.mp3"
+      ],
+      "duration": 5.853197,
+      "loop": false,
+      "loopStart": 0.0,
+      "loopEnd": 5.853197
+    },
+    "death": {
+      "files": [
+        "audio/music/death.ogg",
+        "audio/music/death.mp3"
+      ],
+      "duration": 2.724649,
+      "loop": false,
+      "loopStart": 0.0,
+      "loopEnd": 2.724649
+    },
+    "gameover": {
+      "files": [
+        "audio/music/gameover.ogg",
+        "audio/music/gameover.mp3"
+      ],
+      "duration": 3.907664,
+      "loop": false,
+      "loopStart": 0.0,
+      "loopEnd": 3.907664
+    },
+    "pipe_intro": {
+      "files": [
+        "audio/music/pipe_intro.ogg",
+        "audio/music/pipe_intro.mp3"
+      ],
+      "duration": 2.51,
+      "loop": false,
+      "loopStart": 0.0,
+      "loopEnd": 2.51
+    }
+  }
+}

@@ -1,0 +1,138 @@
+"""HUD / title: 8x8 bold font, HUD coin, menu cursor, title logo board."""
+from lib import Sheet, parse
+
+G = """
+A ..WWW.. .WW.WW. WW...WW WW...WW WWWWWWW WW...WW WW...WW
+B WWWWWW. WW...WW WW...WW WWWWWW. WW...WW WW...WW WWWWWW.
+C ..WWWW. .WW..WW WW..... WW..... WW..... .WW..WW ..WWWW.
+D WWWWW.. WW..WW. WW...WW WW...WW WW...WW WW..WW. WWWWW..
+E WWWWWWW WW..... WW..... WWWWWW. WW..... WW..... WWWWWWW
+F WWWWWWW WW..... WW..... WWWWWW. WW..... WW..... WW.....
+G ..WWWWW .WW.... WW..... WW..WWW WW...WW .WW..WW ..WWWWW
+H WW...WW WW...WW WW...WW WWWWWWW WW...WW WW...WW WW...WW
+I .WWWWWW ...WW.. ...WW.. ...WW.. ...WW.. ...WW.. .WWWWWW
+J ....WWW .....WW .....WW .....WW WW...WW WW...WW .WWWWW.
+K WW...WW WW..WW. WW.WW.. WWWW... WWWWW.. WW..WW. WW...WW
+L .WW.... .WW.... .WW.... .WW.... .WW.... .WW.... .WWWWWW
+M WW...WW WWW.WWW WWWWWWW WWWWWWW WW.W.WW WW...WW WW...WW
+N WW...WW WWW..WW WWWW.WW WWWWWWW WW.WWWW WW..WWW WW...WW
+O .WWWWW. WW...WW WW...WW WW...WW WW...WW WW...WW .WWWWW.
+P WWWWWW. WW...WW WW...WW WW...WW WWWWWW. WW..... WW.....
+Q .WWWWW. WW...WW WW...WW WW...WW WW.WWWW WW..WW. .WWWW.W
+R WWWWWW. WW...WW WW...WW WW..WWW WWWWW.. WW.WWW. WW..WWW
+S .WWWW.. WW..WW. WW..... .WWWWW. .....WW WW...WW .WWWWW.
+T .WWWWWW ...WW.. ...WW.. ...WW.. ...WW.. ...WW.. ...WW..
+U WW...WW WW...WW WW...WW WW...WW WW...WW WW...WW .WWWWW.
+V WW...WW WW...WW WW...WW WWW.WWW .WWWWW. ..WWW.. ...W...
+W WW...WW WW...WW WW.W.WW WWWWWWW WWWWWWW WWW.WWW WW...WW
+X WW...WW WWW.WWW .WWWWW. ..WWW.. .WWWWW. WWW.WWW WW...WW
+Y .WW..WW .WW..WW .WW..WW ..WWWW. ...WW.. ...WW.. ...WW..
+Z WWWWWWW ....WWW ...WWW. ..WWW.. .WWW... WWW.... WWWWWWW
+0 .WWWWW. WW...WW WW..WWW WW.W.WW WWW..WW WW...WW .WWWWW.
+1 ...WW.. ..WWW.. ...WW.. ...WW.. ...WW.. ...WW.. .WWWWWW
+2 .WWWWW. WW...WW ....WWW ..WWWW. .WWWW.. WWW.... WWWWWWW
+3 .WWWWWW ....WW. ...WW.. ..WWWW. .....WW WW...WW .WWWWW.
+4 ...WWW. ..WWWW. .WW.WW. WW..WW. WWWWWWW ....WW. ....WW.
+5 WWWWWW. WW..... WWWWWW. .....WW .....WW WW...WW .WWWWW.
+6 ..WWWW. .WW.... WW..... WWWWWW. WW...WW WW...WW .WWWWW.
+7 WWWWWWW WW...WW ....WW. ...WW.. ..WW... ..WW... ..WW...
+8 .WWWW.. WW...W. WWW..W. .WWWW.. W..WWWW W....WW .WWWWW.
+9 .WWWWW. WW...WW WW...WW .WWWWWW .....WW ....WW. .WWWW..
+- ....... ....... ....... .WWWWW. ....... ....... .......
+x ....... WW...WW .WW.WW. ..WWW.. .WW.WW. WW...WW .......
+! ..WW... ..WW... ..WW... ..WW... ..WW... ....... ..WW...
+. ....... ....... ....... ....... ....... .WW.... .WW....
+, ....... ....... ....... ....... .WW.... .WW.... WW.....
+? .WWWWW. WW...WW ....WWW ...WW.. ...WW.. ....... ...WW..
+' ..WW... ..WW... .WW.... ....... ....... ....... .......
+: ....... .WW.... .WW.... ....... .WW.... .WW.... .......
+/ .....WW ....WW. ...WW.. ..WW... .WW.... WW..... .......
+"""
+
+SYMNAME = {"-": "dash", "x": "times", "!": "excl", ".": "dot", ",": "comma",
+           "?": "q", "'": "apos", ":": "colon", "/": "slash", "©": "copy"}
+
+COPY = """
+..WWWW..
+.W....W.
+W..WW..W
+W.W....W
+W.W....W
+W..WW..W
+.W....W.
+..WWWW..
+"""
+
+
+
+def glyphs():
+    out = {}
+    for line in G.strip("\n").split("\n"):
+        ch, *rows = line.split(" ")
+        out[ch] = [r + "." for r in rows] + ["." * 8]
+    out["©"] = parse(COPY)
+    return out
+
+
+def logo():
+    """Title board: 'SUPER' at 2x, 'MARIO BROS.' at 2x wide / 3x tall, on a bevelled board."""
+    gl = glyphs()
+    W, H = 192, 60
+    px = [["M"] * W for _ in range(H)]
+    for x in range(W):
+        for y in range(H):
+            if x in (0, W - 1) or y in (0, H - 1):
+                px[y][x] = "K"
+            elif x == 1 or y == 1:
+                px[y][x] = "L"
+            elif x == W - 2 or y == H - 2:
+                px[y][x] = "K"
+    # rivets
+    for (rx, ry) in [(4, 4), (W - 7, 4), (4, H - 7), (W - 7, H - 7)]:
+        for dx in range(3):
+            for dy in range(3):
+                px[ry + dy][rx + dx] = "L" if dx + dy < 2 else "K"
+
+    def text(s, x0, y0, sx, sy):
+        x = x0
+        for ch in s:
+            g = gl[ch]
+            for gy, row in enumerate(g):
+                for gx, c in enumerate(row):
+                    if c == "W":
+                        for a in range(sx):
+                            for b in range(sy):
+                                X, Y = x + gx * sx + a, y0 + gy * sy + b
+                                px[Y + 1][X + 1] = "K" if px[Y + 1][X + 1] != "L" else "L"
+                                px[Y][X] = "L"
+            x += 8 * sx
+    text("SUPER", 10, 6, 2, 2)
+    text("MARIO", 10, 26, 2, 3)
+    text("BROS.", 98, 26, 2, 3)
+    return ["".join(r) for r in px]
+
+
+FONT_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x!.,'?©:/"
+
+
+def sheets():
+    return []
+
+
+def extras(assets):
+    """Font grid (cell 8x8, 16 columns) and the title board, as the loader expects."""
+    import os
+    from lib import render
+    from palettes import PALETTES
+    gl = glyphs()
+    cols = 16
+    rows = (len(FONT_CHARS) + cols - 1) // cols
+    from PIL import Image
+    im = Image.new("RGBA", (cols * 8, rows * 8), (0, 0, 0, 0))
+    for i, ch in enumerate(FONT_CHARS):
+        im.alpha_composite(render(gl[ch], PALETTES["score"]), ((i % cols) * 8, (i // cols) * 8))
+    os.makedirs(os.path.join(assets, "ui"), exist_ok=True)
+    im.save(os.path.join(assets, "ui", "font.png"), optimize=True)
+    render(logo(), PALETTES["ground"]).save(os.path.join(assets, "ui", "title.png"), optimize=True)
+    return {"font": {"file": "ui/font.png", "cell": [8, 8], "columns": cols, "chars": FONT_CHARS},
+            "title": {"file": "ui/title.png"}}

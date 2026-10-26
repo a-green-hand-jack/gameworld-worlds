@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>吃星星 Star Catcher</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="800" height="600"></canvas>
+  <div id="hud">
+    <span>得分 <b id="score">0</b></span>
+    <span>时间 <b id="time">30</b></span>
+    <span>最高分 <b id="best">0</b></span>
+  </div>
+  <div id="overlay">
+    <h1 id="title">吃星星</h1>
+    <p id="msg">方向键移动小球，30 秒内吃掉尽可能多的星星</p>
+    <p class="hint">按 <kbd>空格</kbd> / <kbd>回车</kbd> 开始</p>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

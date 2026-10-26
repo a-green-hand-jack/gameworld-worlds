@@ -1,0 +1,49 @@
+# usage: python3 tests/check.py /path/to/index.html  (runs from file://, headless chromium)
+import sys, pathlib
+from playwright.sync_api import sync_playwright
+url = pathlib.Path(sys.argv[1]).resolve().as_uri()
+res = {}
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(viewport={'width':900,'height':500})
+    errs = []; pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: errs.append(m.text) if m.type=='error' else None)
+    reqs = []; pg.on('request', lambda r: reqs.append(r.url))
+    pg.goto(url); pg.wait_for_timeout(300)
+    S = lambda: pg.evaluate('window.__game.state')
+    res['initial_not_started'] = not S()['started']
+    pg.screenshot(path='/hutian/work/shot_title.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(100)
+    res['space_starts_and_jumps'] = S()['started'] and S()['player']['y'] < 260
+    pg.wait_for_timeout(120); pg.screenshot(path='/hutian/work/shot_play.png')
+    pg.wait_for_timeout(900)
+    res['lands'] = S()['player']['onGround']
+    # play until death without input
+    for _ in range(100):
+        if S()['over']: break
+        pg.wait_for_timeout(100)
+    st = S(); res['collision_ends_game'] = st['over']
+    pg.screenshot(path='/hutian/work/shot_over.png')
+    res['score_after_death'] = st['score']; res['best_after_death'] = st['best']
+    res['best_updated'] = st['best'] == st['score'] and st['best'] > 0
+    pg.wait_for_timeout(500); pg.keyboard.press('Space'); pg.wait_for_timeout(100)
+    st2 = S(); res['restart_works'] = (not st2['over']) and st2['score'] < 3
+    res['best_kept_after_restart'] = st2['best'] == st['best']
+    # fairness: auto-player that jumps when obstacle is near; simulate deterministic stepping
+    sim = pg.evaluate('''() => {
+      const g = window.__game; const K = () => window.dispatchEvent(new KeyboardEvent('keydown', {code:'Space', key:' '}));
+      // bot jumps when the obstacle is ~0.22s ahead; checks that a simple timing always clears everything
+      let steps = 0, t = 0;
+      K();
+      while (steps < 60*300) {
+        let s = g.state;
+        if (s.over) return {survived_s: t, died: true, score: s.score};
+        const p = s.player; const ob = s.obstacles.find(o => o.x + o.w > p.x);
+        if (ob && p.onGround && (ob.x - (p.x + p.w)) < s.speed * 0.2) K();
+        g.step(1/60); steps++; t += 1/60;
+      }
+      return {survived_s: t, died: false, score: g.state.score, speed: g.state.speed};
+    }''')
+    res['sim'] = sim
+    res['errors'] = errs
+    res['external_requests'] = [r for r in reqs if not r.startswith('file:')]
+    b.close()
+for k,v in res.items(): print(k, v)

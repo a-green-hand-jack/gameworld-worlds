@@ -1,0 +1,32 @@
+# Playtest report: Snake build-1
+
+**Build played:** producer release `build-1` (`snake-build-1.zip`): game-developer 7c1966c588b8fc955cb4ad523837f2818295b942, artist 67a4583812e38b740765f4920b0e1485b7903382, assignment at producer 4f258dc.
+**How:** unzipped and opened `index.html` straight from disk (`file://…/index.html?seed=7`, so no server) in headless Chromium 1.64 (Playwright), 1366×768. All steering was done with real keyboard presses (`play.py`: a bot reads the board from `window.__snake` and presses arrow keys; manual timed presses for reverse, double turn and self-collision). Audio could not be heard (headless): I only know the sound assets loaded (`__snake.ready` true, no console errors). Full log: `evidence/build-1/play-log.txt`; recording: `evidence/build-1/full-session.webm`.
+
+## Verdict: playable start to finish; I found no defect against R1–R9. Minor notes below.
+
+| Req | Observed | Evidence |
+|---|---|---|
+| R1 | Opens and plays from `index.html` over `file://`, no server, no console errors, no failed requests. | play-log.txt (`console issues []`) |
+| R2 | Visible 20×20 grid inside a wall ring; snake moves right on its own after start, ~5 cells in 0.5 s (120 ms step), steady. | 02-playing.png |
+| R3 | Pressing the reverse (Left while moving right) was ignored, no death. Up then Left pressed back to back: both applied in order, no self-reversal. 12 mashed arrows: no crash. Arrow keys never scrolled (page height == viewport). | play-log.txt |
+| R4 | Over two games the bot ate 3 then 10 food: length 3→6 and 3→13 (exactly +1 per food), HUD score 3 and 10, updated as it was eaten. New food appeared each time, never under the snake. | 04-after-eating.png, 06-long-snake.png |
+| R5 | Idle run into the wall: game over "You ran into the wall." Coiling a 13-long snake (Down/Left/Up) into itself: "You ran into yourself." Both ended the game at once. | 03-gameover-wall.png, 07-gameover-self.png |
+| R6 | Title on load: "SNAKE" logo, arrow-key and goal instructions, Start button, "or press Enter / Space". HUD hidden on title. | 01-title.png |
+| R7 | "Score N" (and "Best N") above the board throughout play. | 04, 06 |
+| R8 | Game-over shows cause, "Final score 10" (matched the score) and a "Play again" button (focused; Enter/Space also work). Played again three times without reload (Enter, button click, Space): each time score 0, length 3, head at (10,10) heading right, new food. | 07-gameover-self.png, play-log.txt |
+| R9 | Consistent dark palette, clear green snake (distinct head with eyes), red apple, blue wall ring, readable text. Board scales to fit: no scrolling at 1366×657, 1280×600, 1024×600. | viewport-*.png |
+
+Also worked: pause with P (head frozen, resumes), best score shown and "New best!" on game over.
+
+## Things that confused or could annoy (not failures of R1–R9)
+1. **Arrow key does not start the game** on the title screen (only Enter/Space/button). The title text says so, but the brief's example allows an arrow key too; a player's first instinct is often an arrow. Low severity.
+2. **Losing window focus pauses the game** (blur → Paused). Sensible, but the paused overlay is the only cue; fine.
+3. On the game-over and title screens the board behind the overlay is dimmed heavily, so the final snake position is hard to see ("how did I die?" is answered by the cause line instead). Cosmetic.
+4. Quick double turns feel responsive (queue of up to 3 turns), but a 4th rapid press within one step is dropped silently; I never hit it in play.
+5. Pace (120 ms) felt comfortable for the first games; there is no speed ramp (out of scope per brief).
+
+## Not covered
+- Sound quality/loudness (no audio output in this sandbox).
+- Browsers other than Chromium; touch input.
+- Winning (filling the 400-cell board): not attempted.

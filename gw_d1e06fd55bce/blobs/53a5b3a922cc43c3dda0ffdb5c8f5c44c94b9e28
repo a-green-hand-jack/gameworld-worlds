@@ -1,0 +1,112 @@
+// Loads the artist's assets (see docs/assets.md). Every asset is optional:
+// a missing one leaves a null entry and the game falls back to shapes/silence.
+(function () {
+  'use strict';
+
+  var ASSET_PATHS = {
+    images: {
+      logo: 'assets/img/logo.png',
+      paddle: 'assets/img/paddle.png',
+      ball: 'assets/img/ball.png',
+      centerline: 'assets/img/centerline.png'
+    },
+    sounds: {
+      paddle: 'assets/audio/paddle.wav',
+      wall: 'assets/audio/wall.wav',
+      score: 'assets/audio/score.wav',
+      win: 'assets/audio/win.wav',
+      lose: 'assets/audio/lose.wav'
+    }
+  };
+
+  var FALLBACK_PALETTE = {
+    bg: '#0b0f14', fg: '#e8f0e8', accent: '#7cff9a', dim: '#3a4a40', font: 'monospace'
+  };
+
+  var assets = {
+    images: {},
+    sounds: {},
+    palette: Object.assign({}, FALLBACK_PALETTE),
+    status: {}, // path -> 'loaded' | 'missing'
+    muted: false
+  };
+
+  function mark(path, ok) {
+    assets.status[path] = ok ? 'loaded' : 'missing';
+    if (!ok) console.warn('asset missing: ' + path);
+  }
+
+  function loadImage(name, path) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { assets.images[name] = img; mark(path, true); resolve(); };
+      img.onerror = function () { assets.images[name] = null; mark(path, false); resolve(); };
+      img.src = path;
+    });
+  }
+
+  function loadSound(name, path) {
+    return new Promise(function (resolve) {
+      var audio = new Audio();
+      var done = false;
+      function finish(ok) {
+        if (done) return;
+        done = true;
+        assets.sounds[name] = ok ? audio : null;
+        mark(path, ok);
+        resolve();
+      }
+      audio.preload = 'auto';
+      audio.addEventListener('canplaythrough', function () { finish(true); }, { once: true });
+      audio.addEventListener('error', function () { finish(false); }, { once: true });
+      // Some browsers never fire canplaythrough before a user gesture; don't block the game on it.
+      setTimeout(function () { finish(!audio.error); }, 3000);
+      audio.src = path;
+      audio.load();
+    });
+  }
+
+  function readPalette() {
+    var css = getComputedStyle(document.documentElement);
+    function v(name) { return css.getPropertyValue(name).trim(); }
+    var p = assets.palette;
+    var found = false;
+    [['bg', '--bg'], ['fg', '--fg'], ['accent', '--accent'], ['dim', '--dim'], ['font', '--font-family']]
+      .forEach(function (pair) {
+        var value = v(pair[1]);
+        if (value) { p[pair[0]] = value; found = true; }
+      });
+    mark('assets/palette.css', found);
+  }
+
+  function waitForFonts() {
+    if (!document.fonts || !document.fonts.ready) return Promise.resolve();
+    var family = assets.palette.font;
+    var timeout = new Promise(function (r) { setTimeout(r, 2000); });
+    var load = document.fonts.load('16px ' + family).catch(function () {});
+    return Promise.race([Promise.all([load, document.fonts.ready]), timeout]);
+  }
+
+  assets.play = function (name) {
+    var base = assets.sounds[name];
+    if (!base || assets.muted) return;
+    try {
+      var s = base.cloneNode();
+      s.volume = 0.7;
+      var p = s.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* audio is decoration; never break the game */ }
+  };
+
+  assets.load = function () {
+    readPalette();
+    var jobs = [];
+    Object.keys(ASSET_PATHS.images).forEach(function (k) { jobs.push(loadImage(k, ASSET_PATHS.images[k])); });
+    Object.keys(ASSET_PATHS.sounds).forEach(function (k) { jobs.push(loadSound(k, ASSET_PATHS.sounds[k])); });
+    jobs.push(waitForFonts());
+    return Promise.all(jobs).then(function () { return assets; });
+  };
+
+  assets.PATHS = ASSET_PATHS;
+  window.PongAssets = assets;
+})();

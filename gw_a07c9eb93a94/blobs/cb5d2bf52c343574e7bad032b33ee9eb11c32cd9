@@ -1,0 +1,11 @@
+# Check results (v1.1)
+`python3 checks/smoke.py <unzipped dir>` with headless Chromium 156 (playwright), opened via file://:
+- Space jumps (y rose to ~92 from ground 200); idle run collides and reaches game over; best score updated; Space restarts with score reset; no page errors.
+- localStorage access wrapped in try/catch (falls back to session-only best).
+- Spacing: min obstacle interval 0.8s (>= ~265px at 330px/s), airtime 0.67s, apex 133px vs max obstacle 65px, speed capped at 620px/s, so gaps are clearable.
+Not verified: human-feel playtest (playtester's job).
+
+# v1.2
+- Obstacle spawn is now distance-based: edge-to-edge gap = speed*(0.9..1.6 s), vs. 0.67 s airtime; speed capped at 560 px/s. localStorage guarded in try/catch (get and set).
+- `python3 checks/bot.py <dir> 45`: a timing bot (jump at 0.2 s time-to-contact) survived 45 s of real time, reaching score 450 at capped speed 560 (state still 'play').
+- smoke.py passes again (jump, game over, best, restart, no errors).

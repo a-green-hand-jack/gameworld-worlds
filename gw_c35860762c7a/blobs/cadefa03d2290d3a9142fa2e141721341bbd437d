@@ -1,0 +1,324 @@
+// Mario: NES movement physics, forms, and the frames he is drawn with.
+import { PHYS, RULES, TILE } from './consts.js';
+import { moveBody } from './world.js';
+
+export const SMALL = 0, BIG = 1, FIRE = 2;
+
+// Mario's movement is the original's integer arithmetic (the public SMB1
+// disassembly, see docs/rules.md): horizontal speed in 1/16 px per frame with
+// a sub-pixel byte that friction and movement share, vertical speed in whole
+// pixels per frame with a fractional force byte, and the gravity a jump
+// starts with chosen by the speed it was taken at.
+const GROUND = 0, JUMP = 1, FALL = 2;
+const J = PHYS.jump;
+
+export class Player {
+  constructor(x, y, form = SMALL) {
+    this.w = 12;
+    this.setForm(form);
+    this.x = x;
+    this.y = y - this.h;
+    this.sx = 0; // Player_X_Speed, 1/16 px per frame
+    this.xmf = 0; // Player_X_MoveForce
+    this.xabs = 0; // Player_XSpeedAbsolute
+    this.sy = 0; // Player_Y_Speed, px per frame
+    this.ymf = 0; // Player_Y_MoveForce
+    this.ydum = 0; // Player_YMF_Dummy
+    this.vForce = J.entranceFall;
+    this.vForceDown = J.entranceFall;
+    this.state = GROUND;
+    this.movingDir = 1;
+    this.runTimer = 0;
+    this.runningSpeed = 0;
+    this.jumpSwimTimer = 0;
+    this.jumpOriginY = this.y;
+    this.animTimerSet = 7;
+    this.facing = 1;
+    this.onGround = true;
+    this.crouch = false;
+    this.skid = false;
+    this.anim = 0;
+    this.animT = 0;
+    this.star = 0;
+    this.invuln = 0;
+    this.throwT = 0;
+    this.swimT = 0;
+    this.stompChain = 0;
+    this.mode = 'play'; // play | auto | pole | dead | hidden
+    this.clip = null; // [x, y, w, h] in level pixels while going through pipes
+    this.ride = null; // lift being stood on
+  }
+
+  // Velocities in px per frame, for the rest of the game.
+  get vx() { return this.sx / 16; }
+  set vx(v) { this.sx = Math.max(-128, Math.min(127, Math.round(v * 16))); this.xabs = Math.abs(this.sx); }
+  get vy() { return this.sy + this.ymf / 256; }
+  set vy(v) { this.sy = Math.floor(v); this.ymf = Math.floor((v - this.sy) * 256) & 0xff; }
+  get jumping() { return this.state === JUMP; }
+
+  setForm(form) {
+    const bottom = this.y !== undefined ? this.y + this.h : 0;
+    this.form = form;
+    this.crouch = false;
+    this.h = form === SMALL ? 16 : 32;
+    if (this.y !== undefined) this.y = bottom - this.h;
+  }
+
+  setCrouch(on, area) {
+    if (on === this.crouch) return;
+    if (!on && area) {
+      // cannot stand up under a block
+      const c0 = Math.floor((this.x + 1) / TILE), c1 = Math.floor((this.x + this.w - 1) / TILE);
+      const r = Math.floor((this.bottom - 17) / TILE);
+      for (let c = c0; c <= c1; c++) if (area.solid(c, r)) return;
+    }
+    const bottom = this.bottom;
+    this.crouch = on;
+    this.h = on ? 16 : this.form === SMALL ? 16 : 32;
+    this.y = bottom - this.h;
+  }
+
+  get big() { return this.form !== SMALL; }
+  get cx() { return this.x + this.w / 2; }
+  get bottom() { return this.y + this.h; }
+
+  // One frame of control (PlayerCtrlRoutine): buttons, jump, horizontal
+  // physics, the state's movement, then collision.
+  control(game, input) {
+    const area = game.area;
+    const water = area.underwater;
+    const st = input.state, pr = input.pressed || {};
+    // a d-pad cannot press left and right together
+    const rawDir = st.right && !st.left ? 1 : st.left && !st.right ? -1 : 0;
+    const rawAny = !!(rawDir || st.b || st.up || st.down);
+    let lr = rawDir, down = !!st.down;
+    // down with left or right on the ground: neither counts
+    if (down && lr && this.state === GROUND) { lr = 0; down = false; }
+    const a = !!st.a, aNew = a && !!pr.a, aHeld = a && !pr.a;
+    if (this.runTimer > 0) this.runTimer--;
+    if (this.jumpSwimTimer > 0) this.jumpSwimTimer--;
+
+    // crouch: big Mario on the ground holding down
+    if (!this.big) this.setCrouch(false);
+    else if (this.state === GROUND) this.setCrouch(down, area);
+
+    // jump or swim stroke on a new press of A
+    if (aNew && (this.state === GROUND || (water && (this.jumpSwimTimer > 0 || this.sy >= 0)))) this.jump(game, water);
+
+    // X_Physics: maximum speeds and friction for this frame
+    let tier, fr;
+    const fast = this.runningSpeed || this.xabs >= 0x21 ? 2 : 1;
+    if (this.state !== GROUND) {
+      if (this.xabs >= 0x19) { tier = 0; fr = 0; } else { tier = 1; fr = fast; }
+    } else if (water) { tier = 2; fr = fast; }
+    else if (lr && lr === this.movingDir && (st.b || this.runTimer > 0)) {
+      if (st.b) this.runTimer = 10;
+      tier = 0; fr = 0;
+    } else { tier = 1; fr = fast; }
+    const maxL = -PHYS.maxSpeed[tier];
+    const maxR = game.seq && game.seq.kind === 'introWalk' ? PHYS.maxEntry : PHYS.maxSpeed[tier];
+    let friction = PHYS.friction[fr];
+    if (this.facing !== this.movingDir) friction <<= 1;
+
+    // movement of the state this frame
+    let dx, dy = 0;
+    if (this.state === GROUND) {
+      this.animSpeed(rawDir, rawAny);
+      if (lr) this.facing = lr;
+      this.impose(lr, friction, maxL, maxR);
+      dx = this.moveX();
+    } else {
+      if (this.state === JUMP) {
+        // the jump's lighter gravity lasts while A stays held and Mario rises
+        if (this.sy >= 0 || !(aHeld || Math.floor(this.y) === Math.floor(this.jumpOriginY))) this.vForce = this.vForceDown;
+        if (water) {
+          this.animSpeed(rawDir, rawAny);
+          if (this.y < PHYS.swimTopY) this.vForce = J.surfaceForce;
+          if (lr) this.facing = lr;
+        }
+      } else this.vForce = this.vForceDown;
+      if (lr) this.impose(lr, friction, maxL, maxR);
+      dx = this.moveX();
+      dy = this.moveY();
+    }
+    this.movingDir = this.sx > 0 ? 1 : this.sx < 0 ? -1 : this.movingDir;
+    this.skid = this.state === GROUND && lr !== 0 && this.sx !== 0 && lr !== this.movingDir;
+
+    // fire
+    if (this.form === FIRE && pr.b && !this.crouch) {
+      if (game.fireballCount() < RULES.maxFireballs) {
+        game.throwFireball(this);
+        this.throwT = 8;
+      }
+    }
+    if (this.throwT > 0) this.throwT--;
+    if (this.swimT > 0) this.swimT--;
+
+    this.physics(game, dx, dy);
+    this.animate();
+  }
+
+  // ImposeFriction: accelerate towards the pressed direction, or slow down
+  // when nothing is pressed, by the friction adder; carry goes into speed.
+  impose(lr, friction, maxL, maxR) {
+    let dir = lr;
+    if (!dir) {
+      if (this.sx === 0) { this.xabs = 0; return; }
+      dir = this.sx > 0 ? -1 : 1;
+    }
+    const lo = friction & 0xff, hi = friction >> 8;
+    if (dir > 0) {
+      const m = this.xmf + lo;
+      this.xmf = m & 0xff;
+      this.sx += hi + (m >> 8);
+      if (this.sx >= maxR) this.sx = maxR;
+    } else {
+      const m = this.xmf - lo;
+      this.xmf = m & 0xff;
+      this.sx -= hi + (m < 0 ? 1 : 0);
+      if (this.sx < maxL) this.sx = maxL;
+    }
+    this.xabs = Math.abs(this.sx);
+  }
+
+  // GetPlayerAnimSpeed: walk animation rate, the running-speed flag, and the
+  // skid turnaround once a skid has slowed Mario below 11/16 px per frame.
+  animSpeed(rawDir, rawAny) {
+    if (this.xabs >= 0x1c) {
+      this.runningSpeed = this.xabs;
+      this.animTimerSet = 2;
+      return;
+    }
+    this.animTimerSet = this.xabs >= 0x0e ? 4 : 7;
+    if (!rawAny) return;
+    if (rawDir === this.movingDir) this.runningSpeed = 0;
+    else if (this.xabs < PHYS.skidTurn) {
+      this.movingDir = this.facing;
+      this.sx = 0;
+      this.xmf = 0;
+    }
+  }
+
+  // MovePlayerHorizontally: whole pixels moved this frame.
+  moveX() {
+    const m = this.xmf + ((this.sx << 4) & 0xff);
+    this.xmf = m & 0xff;
+    return (this.sx >> 4) + (m >> 8);
+  }
+
+  // MovePlayerVertically / ImposeGravity: move by the speed, then add the
+  // vertical force to it; at most 4 px per frame down.
+  moveY() {
+    const d = this.ydum + this.ymf;
+    this.ydum = d & 0xff;
+    const dy = this.sy + (d >> 8);
+    const f = this.ymf + this.vForce;
+    this.ymf = f & 0xff;
+    this.sy += f >> 8;
+    if (this.sy >= PHYS.maxFall && this.ymf >= 0x80) { this.sy = PHYS.maxFall; this.ymf = 0; }
+    return dy;
+  }
+
+  // ProcJumping: take-off speed and gravity by the horizontal speed (or a
+  // swim stroke under water).
+  jump(game, water) {
+    this.jumpSwimTimer = 0x20;
+    this.ydum = 0;
+    this.jumpOriginY = this.y;
+    this.state = JUMP;
+    const t = water ? (game.whirlpool ? 6 : 5) : J.tiers.filter((v) => this.xabs >= v).length;
+    this.vForce = J.force[t];
+    this.vForceDown = J.fallForce[t];
+    this.ymf = J.initForce[t];
+    this.sy = J.speed[t];
+    this.onGround = false;
+    this.ride = null;
+    if (water) {
+      this.swimT = 16;
+      if (this.y < PHYS.swimTopY) this.sy = 0;
+      game.sfx('swim');
+    } else game.sfx(this.big ? 'jump_big' : 'jump_small');
+  }
+
+  // Bounce off a stomped enemy: only the vertical speed changes.
+  bounce(input, speed = PHYS.stompBounce) {
+    this.sy = speed;
+    if (this.state === GROUND) this.state = FALL;
+    this.onGround = false;
+  }
+
+  // Moves Mario by this frame's displacement (velocity if not given) and
+  // resolves him against tiles, lifts and the screen's edges.
+  physics(game, dx = this.vx, dy = this.state === GROUND ? 0 : this.vy) {
+    moveBody(this, game.area, { head: true, hidden: true, dx, dy });
+    game.landOnLifts(this);
+    if (this.hitHead) {
+      this.sy = 1;
+      game.hitBlock(this.hitHead.c, this.hitHead.r, this);
+    }
+    if (this.onGround) {
+      this.state = GROUND;
+      this.sy = 0;
+      this.ymf = 0;
+      this.stompChain = 0;
+    } else if (this.state === GROUND) this.state = FALL;
+    // Mario cannot walk back off the left of the screen
+    const minX = game.camX;
+    if (this.x < minX) { this.x = minX; if (this.sx < 0) this.sx = 0; }
+    const maxX = game.area.width - this.w;
+    if (this.x > maxX) { this.x = maxX; if (this.sx > 0) this.sx = 0; }
+  }
+
+  animate() {
+    if (this.onGround && this.sx !== 0 && !this.skid) {
+      // the walk cycle advances when the animation timer set by the speed runs out
+      if (++this.animT > this.animTimerSet) { this.animT = 0; this.anim = (this.anim + 1) % 3; }
+    } else if (this.onGround) {
+      this.anim = 0;
+      this.animT = 0;
+    }
+  }
+
+  // Name of the frame to draw, without the star palette prefix.
+  pose(game) {
+    const f = this.form === SMALL ? 'small' : this.form === BIG ? 'big' : 'fire';
+    if (this.mode === 'dead') return 'small_die';
+    if (this.mode === 'pole') return `${f}_climb${this.poleFrame || 1}`;
+    if (this.mode === 'climb') return `${f}_climb${this.climbFrame || 1}`;
+    if (game.area.underwater && !this.onGround) {
+      const n = this.swimT > 0 ? 1 + Math.floor((16 - this.swimT) / 4) % 4 : 1 + Math.floor(game.frame / 8) % 2;
+      return `${f}_swim${n}`;
+    }
+    if (this.crouch && this.big) return `${f}_crouch`;
+    if (this.form === FIRE && this.throwT > 0) return 'fire_throw';
+    if (!this.onGround) return `${f}_jump`;
+    if (this.skid) return `${f}_skid`;
+    if (this.sx !== 0) return `${f}_walk${this.anim + 1}`;
+    return `${f}_idle`;
+  }
+
+  draw(ctx, game) {
+    if (this.mode === 'hidden') return;
+    if (this.invuln > 0 && !this.star && !game.seq && (game.frame & 2)) return;
+    let name = this.growFrame || this.pose(game);
+    if (this.star > 0) {
+      // star palettes: fire Mario flashes like Super Mario
+      const rate = this.star < RULES.starSlowFlash ? 8 : 2;
+      const n = 1 + (Math.floor(game.frame / rate) % 3);
+      const starName = `star${n}_${name === 'fire_throw' ? name : name.replace(/^fire_/, 'big_')}`;
+      if (game.assets.has('player', starName)) name = starName;
+    }
+    const cx = this.x + this.w / 2 - game.camX;
+    const bottom = this.y + this.h;
+    const clip = this.clip;
+    if (clip) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(clip[0] - game.camX, clip[1], clip[2], clip[3]);
+      ctx.clip();
+    }
+    game.assets.draw(ctx, 'player', name, Math.round(cx), Math.round(bottom), { flip: this.facing < 0 });
+    if (clip) ctx.restore();
+  }
+}
+

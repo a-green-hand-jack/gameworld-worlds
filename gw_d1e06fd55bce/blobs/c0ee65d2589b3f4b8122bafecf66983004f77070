@@ -1,0 +1,33 @@
+# Pong
+
+One player against the computer, in the browser. First to 5 points wins.
+
+## Start the game
+
+Either:
+
+- **Serve it** (recommended; needed for the web font): from this directory run
+  `python3 -m http.server 8000` and open <http://localhost:8000/>; or
+- **Open the file**: double-click `index.html` (works from `file://`, no install).
+
+No build step and no dependencies: plain HTML5 canvas + JavaScript.
+
+## Controls
+
+| Key | Action |
+|---|---|
+| Enter / Space (or click) | Start from the title screen; play again from the result screen |
+| W / S or ↑ / ↓ | Move your paddle (left) |
+| P or Esc | Pause / resume |
+| Esc on the result screen | Back to the title screen |
+| M | Mute / unmute |
+
+## Layout
+
+- `index.html` — page and canvas (800 x 500 logical px, scaled to the window)
+- `src/game.js` — rules: ball physics, computer opponent, scoring, first to 5
+- `src/main.js` — keyboard/mouse input, fixed-step loop, drawing, sound triggers
+- `src/assets.js` — loads the art and audio listed in `docs/assets.md` from `assets/` (supplied by the artist); missing assets fall back to drawn shapes / silence
+- `tests/play_match.py` — headless Chromium (Playwright) run that plays full matches through the keyboard and checks every requirement; screenshots go to `tests/out/`
+
+Run the check: `python3 tests/play_match.py --file` (needs `pip install playwright` and `playwright install chromium`).

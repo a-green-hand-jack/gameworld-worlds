@@ -1,0 +1,29 @@
+# Brief
+
+## Input (quoted)
+> 做一个单屏网页小游戏：方向键控制小球吃星星，30 秒倒计时，记录最高分，打开 index.html 就能玩。背景用一张位图 PNG。能玩的 build 打成 zip（解压后 index.html 在根目录）作为 release 文件发布；每个岗位把自己在浏览器里按键试玩时的截图也作为 release 文件发布。
+
+## What the game must be
+- Single-screen web game; open `index.html` directly (file://, no server, no network, no build step) and play.
+- Arrow keys move a ball; touching a star eats it (+score) and a new star appears.
+- 30 s countdown shown on screen; at 0 the round ends, final score shown, restart key available.
+- Best score persisted (localStorage, with in-memory fallback if unavailable) and shown on screen.
+- Background is one bitmap PNG, loaded by `index.html` from `assets/bg.png` (relative path, works from file://). Ball and stars may be drawn in canvas/CSS.
+
+## Split (see assignment.json)
+- game-developer: repo root = `index.html` + code, quality checks, the playable zip (index.html at zip root, includes assets/bg.png) published as a release file in its repo, plus its own browser key-press screenshot as a release file.
+- artist: `assets/bg.png` (real PNG bitmap, ~800x600 or 16:10-ish, dark/low-contrast so ball and stars stay readable, no text), its own in-browser screenshot release file.
+- playtester: plays the zip build in a browser with real key presses, reports, publishes screenshots as release files.
+- producer: brief, assignment, acceptance, own in-browser screenshot of the build as a release file.
+
+## Priorities
+1. Playable loop works end to end (move, eat, timer, game over, best score, restart).
+2. PNG background present and actually shown.
+3. Zip release is correct (index.html at root, works unzipped).
+4. Every position's screenshot published as a release file.
+
+## Acceptance standard
+I approve only when: zip downloaded and unzipped, index.html at root, opens and plays via arrow keys; timer counts 30 s; stars give score; best score persists across reload; background is a real PNG (file header checked) and visible; playtester has played that same zip build and reported; all four positions have a screenshot release file.
+
+## Not established
+- Exact viewport size and ball/star art style: left to game-developer/artist; the PNG size must match the canvas or be scaled by the code.

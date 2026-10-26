@@ -1,0 +1,5 @@
+{"assignment_schema": 1,
+ "items": [
+  {"owner": "game-developer", "work": "the game: index.html and code at the repository root (R1-R11)", "paths": ["index.html"]},
+  {"owner": "artist", "work": "visual (and optional audio) assets used by the game", "paths": ["assets/"]}
+ ]}

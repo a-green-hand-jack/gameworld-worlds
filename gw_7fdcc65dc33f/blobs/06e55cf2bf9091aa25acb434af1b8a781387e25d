@@ -1,0 +1,45 @@
+# Brief — Whack-a-Mole (round 1)
+
+## What the input asks (quoted from `producer`#1, the Game objective)
+
+> Make "Whack-a-Mole" as a small web game played in the browser: moles pop up in a 3x3 grid of holes for under a second each, clicking one before it hides scores a point and plays a short hit sound, and a round lasts 30 seconds. It has a title screen, the score and time left during play, and an end screen with the final score and a way to play again.
+>
+> The hit sound is `sound/hit.wav`, made with code or ffmpeg: a short percussive "bonk", 0.15 to 0.3 s, at 44.1 kHz.
+>
+> Before the game is accepted, the QA position hands `sound/hit.wav` to the world's `audio-understanding` resource and asks what is heard and how long it lasts, and keeps the request, the answer as it came and whether it matches the sound above in `listening.md` in its own repository.
+
+## Requirements, as the acceptance standard (each must hold in the delivered build)
+
+1. **R1 Browser game** — a small web game that opens and plays in a desktop browser (Chromium) from the delivery, with no build step or server-side code required beyond serving static files.
+2. **R2 Grid** — 3x3 grid of 9 holes, visible during play.
+3. **R3 Moles** — moles pop up in holes; each stays up **under 1 second** (strictly < 1000 ms) and then hides on its own.
+4. **R4 Hit** — clicking a mole while it is up scores exactly one point and plays the hit sound; clicking an empty hole or a mole after it hid scores nothing. A mole can be scored only once per appearance.
+5. **R5 Round** — a round lasts 30 seconds, then ends.
+6. **R6 Title screen** — shown before play, with a way to start.
+7. **R7 HUD** — score and time left shown and updating during play.
+8. **R8 End screen** — shows the final score and a way to play again; playing again starts a fresh 30 s round with the score at 0.
+9. **R9 Hit sound asset** — `sound/hit.wav` in the delivery: made with code or ffmpeg (the generator is kept), a short percussive "bonk", duration 0.15–0.3 s, sample rate 44.1 kHz, and it is the sound the game plays on a hit.
+10. **R10 Listening check** — before acceptance, QA sends `sound/hit.wav` to `audio-understanding`, asks what is heard and how long it lasts, and keeps in `listening.md` in the QA repository: the request, the answer verbatim, and whether it matches R9.
+
+## Focus and priorities for this round
+
+1. The core loop first (R2–R5, R4 with sound): a playable, correct round is what everything else is judged on.
+2. The three screens and HUD (R6–R8) — required, not polish.
+3. `sound/hit.wav` (R9) early, so the build loads the real file and QA can run R10 in parallel.
+4. Polish (look, feel, mole visuals) only after the above hold. Keep it small; no extra features are asked for.
+
+## How acceptance will be judged
+
+I (producer) open the assembled delivery (`ht-role delivery`) in Chromium, play at least one full round and a replay, and check R1–R9 directly (timings measured, not eyeballed, where possible). I approve only after: QA's systematic check of the build against R1–R10 with `listening.md` present and matching; and the playtester's report of playing the released build as a player. Open defects against a requirement block acceptance.
+
+## What I could not establish
+
+- Browser target and input beyond mouse clicks are not stated: the standard is desktop Chromium with mouse; touch is welcome but not required.
+- Whether moles may appear several at once, and how fast, is not stated: any rate is fine as long as each appearance is < 1 s and the round is playable.
+- Whether a missed click costs points is not stated: it must not *score*; penalties are not asked for and should not be added.
+- File layout beyond `sound/hit.wav` is not fixed by the input.
+
+## Handoffs
+
+- Builds to play: the playtester reads only the producer repository. When game-developer has a build ready to play (pushed to its `main`, or a release in its repository), I assemble the delivery and publish it as a release in `producer` (tag `play-<n>`, a zip of the assembled delivery) and open an issue in `playtester` pointing to it. Game-developer: say in a `producer` issue (or comment) when a build is ready to be played.
+- The hit sound: artist pushes `sound/hit.wav` (and its generator, kept in the artist repository) and tells game-developer it is there; game-developer plays exactly that file on a hit.

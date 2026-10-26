@@ -1,0 +1,162 @@
+# Asset contract: what the game loads from `assets/`
+
+Owner of `assets/`: `artist` (assignment.json in `world/producer`). Owner of this list and of the loader: `game-developer`.
+This answers `game-developer`#3. The game reads **only** `assets/manifest.json` and the files it names; every name below is a key the code looks up.
+
+## General rules
+
+- Logical screen 256×240, 16×16 tile grid. PNG, 1× native pixel size, transparent background (alpha 0), NES-like palette. The game draws with nearest-neighbour scaling.
+- **Facing:** Mario frames face **right**; enemy frames face **left** (their starting walk direction). The game mirrors horizontally as needed; Podoboo and dead enemies are flipped vertically by the game.
+- **Anchor:** the game places every character/item frame by its **bottom-centre**. A frame's rect is its full cell; draw the figure inside it, standing on the cell's bottom row unless noted.
+- Animation timing belongs to the game (it is gameplay: e.g. Mario's walk cycle speed follows his speed). `anims` in the manifest are allowed but ignored; supply the frames.
+- A frame name the game asks for that is missing is drawn as a magenta box and listed with `console.warn` + the `?debug=1` overlay, so gaps are visible to QA. Extra frames are ignored.
+
+## `assets/manifest.json` shape
+
+```json
+{
+  "manifest_schema": 1,
+  "sheets": {
+    "player":  { "file": "sprites/player.png",  "frames": { "small_idle": [0, 0, 16, 16] } },
+    "enemies": { "file": "sprites/enemies.png", "frames": { "goomba_walk1": [0, 0, 16, 16] },
+                 "variants": { "underground": "sprites/enemies_underground.png", "castle": "sprites/enemies_castle.png" } },
+    "items":   { "file": "sprites/items.png",   "frames": { } },
+    "tiles":   { "file": "tiles/overworld.png", "frames": { },
+                 "variants": { "underground": "tiles/underground.png", "underwater": "tiles/underwater.png",
+                               "castle": "tiles/castle.png", "snow": "tiles/snow.png" } },
+    "scenery": { "file": "tiles/scenery.png",   "frames": { },
+                 "variants": { "snow": "tiles/scenery_snow.png" } }
+  },
+  "font":  { "file": "ui/font.png", "cell": [8, 8], "columns": 16, "chars": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x!.,'?©" },
+  "title": { "file": "ui/title.png" },
+  "palette": { "sky_day": "#5c94fc", "sky_night": "#000000", "underground": "#000000", "castle": "#000000", "underwater": "#2038ec" },
+  "audio": {
+    "jump_small": { "file": "audio/sfx/jump_small.ogg" },
+    "overworld":  { "files": ["audio/music/overworld.ogg", "audio/music/overworld.mp3"], "loop": true, "loopStart": 0.0, "loopEnd": 0.0 }
+  }
+}
+```
+
+- `variants`: a theme key → another PNG with **identical frame names and rects**; the game swaps the image by theme. A theme without a variant uses the base file. Theme keys: `overworld` (base), `underground`, `underwater`, `castle`, `snow` (the pale "winter" palette of 5-1/5-2/7-1/3-1/3-2/6-3); night levels use the base tiles with the `sky_night` colour.
+- `font`: glyph `chars[i]` is at cell `(i % columns, floor(i / columns))`. `x` is the multiplication sign in `x 03`. `©` optional.
+- `palette`: background fill colours (sky). Optional; the values above are the defaults.
+- `audio`: `file` or `files` (first one the browser can play is used; one OGG is enough for Chrome/Firefox). `loop: true` for music; `loopStart`/`loopEnd` in seconds (omit or `loopEnd: 0` = loop whole file). Optional `volume` 0–1.
+
+## Frames
+
+Sizes are w×h in pixels. "P0" = needed for World 1-1 (first milestone); "P1" = World 1; "P2" = Worlds 2–8.
+
+### `player` — Mario (P0 unless noted)
+
+| frames | size | note |
+|---|---|---|
+| `small_idle`, `small_walk1`, `small_walk2`, `small_walk3`, `small_skid`, `small_jump`, `small_die` | 16×16 | `small_die` faces the viewer |
+| `small_climb1`, `small_climb2` | 16×16 | flagpole / vine, facing right, pole on his right |
+| `small_swim1` … `small_swim4` | 16×16 | P2 (underwater) |
+| `big_idle`, `big_walk1`, `big_walk2`, `big_walk3`, `big_skid`, `big_jump`, `big_crouch` | 16×32 | crouch drawn in the bottom of the cell |
+| `big_climb1`, `big_climb2` | 16×32 | |
+| `big_swim1` … `big_swim4` | 16×32 | P2 |
+| `big_grow` | 16×32 | the half-size frame shown in the grow/shrink flicker |
+| `fire_*` | 16×32 | same names as every `big_*` frame (fire palette), plus `fire_throw` |
+
+Star invincibility: optional `star1_*`, `star2_*`, `star3_*` copies of the `small_*`/`big_*` frames in the 3 flashing palettes. If absent the game tints the frames itself.
+
+### `enemies`
+
+| frames | size | prio |
+|---|---|---|
+| `goomba_walk1`, `goomba_walk2`, `goomba_flat` | 16×16 | P0 (`flat` drawn in bottom 8 rows) |
+| `koopa_green_walk1`, `koopa_green_walk2` | 16×24 | P0 |
+| `koopa_green_shell`, `koopa_green_shell_wake` | 16×16 | P0 (`wake` = shell with feet out, before it revives) |
+| `paratroopa_green_fly1`, `paratroopa_green_fly2` | 16×24 | P2 |
+| `koopa_red_walk1`, `koopa_red_walk2`, `paratroopa_red_fly1`, `paratroopa_red_fly2` | 16×24 | P1 |
+| `koopa_red_shell`, `koopa_red_shell_wake` | 16×16 | P1 |
+| `piranha1`, `piranha2` | 16×24 | P1 (mouth closed / open) |
+| `beetle_walk1`, `beetle_walk2`, `beetle_shell` | 16×16 | P2 |
+| `spiny_walk1`, `spiny_walk2`, `spiny_egg1`, `spiny_egg2` | 16×16 | P2 |
+| `lakitu`, `lakitu_duck` | 16×24 | P2 (`duck` = ducked into the cloud while throwing) |
+| `hammerbro_walk1`, `hammerbro_walk2`, `hammerbro_throw1`, `hammerbro_throw2` | 16×24 | P2 |
+| `hammer1` … `hammer4` | 16×16 | P2 (rotation steps of the thrown hammer) |
+| `bullet` | 16×16 | P2 (Bullet Bill) |
+| `cheep_red1`, `cheep_red2`, `cheep_gray1`, `cheep_gray2` | 16×16 | P2 |
+| `blooper1`, `blooper2` | 16×24 | P2 (1 = stretched, 2 = squeezed) |
+| `podoboo` | 16×16 | P2 (rising; game flips when falling) |
+| `bowser_walk1`, `bowser_walk2`, `bowser_breath1`, `bowser_breath2` | 32×32 | P1 (breath = mouth open) |
+| `bowser_flame1`, `bowser_flame2` | 24×8 | P1 |
+| `toad`, `princess` | 16×24 | P1 / P2 (face the viewer/left) |
+
+Variants: `underground` (e.g. blue Goomba / Buzzy / Koopa shells as in the original underground levels) and `castle` (grey), as you judge the original.
+
+### `items`
+
+| frames | size | prio |
+|---|---|---|
+| `mushroom`, `oneup` | 16×16 | P0 |
+| `flower1` … `flower4` | 16×16 | P0 (palette cycle) |
+| `star1` … `star4` | 16×16 | P0 (palette cycle) |
+| `coin1`, `coin2`, `coin3` | 16×16 | P0 (coin placed in the level; shimmer cycle) |
+| `coin_spin1` … `coin_spin4` | 16×16 | P0 (coin popping out of a block, spinning) |
+| `fireball1` … `fireball4` | 8×8 | P0 (Mario's fireball, rotation steps; also used for fire-bar links) |
+| `burst1`, `burst2`, `burst3` | 16×16 | P0 (fireball hitting a wall / enemy) |
+| `brick_debris` | 8×8 | P0 (theme variants via `items` variants if needed) |
+| `score_100`, `score_200`, `score_400`, `score_500`, `score_800`, `score_1000`, `score_2000`, `score_4000`, `score_5000`, `score_8000`, `score_1up` | as needed × 8 | P0 (floating score popups) |
+| `hud_coin1`, `hud_coin2`, `hud_coin3` | 8×8 | P0 (coin icon next to the coin count, flashing) |
+| `mushroom_cursor` | 8×8 | P0 (title menu selector) |
+| `flag` | 16×16 | P0 (goal flag, hanging left of the pole) |
+| `castle_flag` | 16×16 | P0 (flag that rises from the castle) |
+| `firework1`, `firework2`, `firework3` | 16×16 | P0 |
+| `vine_top`, `vine` | 16×16 | P1 |
+| `spring1`, `spring2`, `spring3` | 16×32 | P2 (extended / half / compressed; bottom-aligned) |
+| `lift` | 8×8 | P1 (one segment of a moving/falling lift; the game repeats it for the lift width) |
+| `lift_cloud` | 8×8 | P2 (sky-level cloud lift segment) |
+| `axe1`, `axe2`, `axe3` | 16×16 | P1 |
+| `bowser_bridge` | 16×16 | P1 (one bridge segment; the game also uses it in the collapse) |
+| `chain` | 16×16 | P1 (chain holding the bridge by the axe) |
+
+### `tiles` (16×16, theme variants)
+
+| frames | prio | note |
+|---|---|---|
+| `ground` | P0 | floor/terrain block of the theme |
+| `brick`, `block_q1`, `block_q2`, `block_q3`, `block_used`, `block_hard` | P0 | `block_q*` = ? block shimmer; `block_hard` = stair/stone block |
+| `pipe_top_l`, `pipe_top_r`, `pipe_l`, `pipe_r` | P0 | vertical pipe: rim left/right, shaft left/right |
+| `pipeh_mouth_t`, `pipeh_mouth_b`, `pipeh_t`, `pipeh_b`, `pipeh_join_t`, `pipeh_join_b` | P0 | sideways pipe (mouth opening left): mouth top/bottom, shaft top/bottom, junction with a vertical pipe top/bottom |
+| `flagpole_top`, `flagpole` | P0 | ball on top; pole segment (pole at horizontal centre) |
+| `cloud_block` | P1 | solid cloud block (coin heaven floor) |
+| `bridge_rail`, `bridge` | P1 | overworld bridge: rail drawn in the row above, plank row (solid) |
+| `tree_top_l`, `tree_top_m`, `tree_top_r`, `tree_trunk` | P1 | athletic treetop platforms and their trunk |
+| `shroom_top_l`, `shroom_top_m`, `shroom_top_r`, `shroom_stem_top`, `shroom_stem` | P2 | 4-3 mushroom platforms |
+| `cannon_top`, `cannon_neck`, `cannon_base` | P2 | Bill Blaster: barrel, neck, pedestal |
+| `coral` | P2 | underwater solid block |
+| `water_top`, `water`, `lava_top`, `lava` | P1/P2 | surface waves and fill |
+| `lift_rope` | P2 | vertical rope of balance lifts / pulley (rope at horizontal centre), and `lift_pulley_l`, `lift_pulley_m`, `lift_pulley_r` (pulley wheel bar) |
+
+### `scenery` (non-solid background pictures, drawn behind everything)
+
+| frame | size | prio |
+|---|---|---|
+| `hill_large` | 80×35 | P0 |
+| `hill_small` | 48×19 | P0 |
+| `bush1`, `bush2`, `bush3` | 32×16, 48×16, 64×16 | P0 |
+| `cloud1`, `cloud2`, `cloud3` | 32×24, 48×24, 64×24 | P0 |
+| `castle_small` | 80×80 | P0 — door: 16×32 opening, centred, bottom row; the game draws Mario "entering" by stopping him at the door |
+| `castle_large` | 144×176 | P2 — start of x-1 levels / end of 8-3 |
+| `fence` | 16×16 | P2 |
+| `tree_small`, `tree_large` | 16×32, 16×48 | P2 (background trees) |
+
+### UI
+
+- `ui/font.png`: 8×8 glyphs, white on transparent (the game draws HUD text white; the title uses the same font). P0.
+- `ui/title.png`: the title board ("SUPER MARIO BROS." sign), about 176×88. P0. Don't draw a Nintendo copyright line.
+
+## Audio ids
+
+Music (`loop: true`): `overworld`, `underground`, `underwater`, `castle`, `star` (P0: overworld, underground, star). Hurry-up versions `overworld_hurry`, `underground_hurry`, `underwater_hurry`, `castle_hurry` (faster); if a hurry version is absent the game plays the normal one.
+
+Jingles (play once): `warning` (hurry-up jingle at TIME 100), `stage_clear` (after the flagpole), `castle_clear` (after the axe), `death`, `gameover`, `ending` (princess), `pipe_intro` (P1, the short walk-into-pipe tune of x-2 openings, optional).
+
+Sound effects: `jump_small`, `jump_big`, `coin`, `stomp`, `kick`, `bump`, `brick_break`, `powerup_appear`, `powerup`, `powerdown` (damage and pipe travel), `oneup`, `fireball`, `flagpole`, `firework`, `beep` (time-bonus tally tick), `pause`, `vine` (P1), `bowser_fire` (P1), `bowser_fall` (P1), `cannon` (P2), `swim` (P2, falls back to `stomp`).
+
+## Where the game reads them
+
+`src/assets.js` loads the manifest, the PNGs and the audio; `src/` code refers only to the names above. Run `?debug=1` to see the missing-asset list on screen.

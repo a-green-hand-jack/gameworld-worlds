@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>Beep</title>
+<body style="font-family:sans-serif;text-align:center;margin-top:20vh">
+<button id="b" style="font-size:2em;padding:.5em 1em">Beep</button>
+<p>Clicks: <span id="n">0</span></p>
+<script>
+let n=0;const a=new Audio('sound/beep.wav');
+b.onclick=()=>{n++;n_.textContent=n;a.currentTime=0;a.play().catch(()=>{});};
+const n_=document.getElementById('n');
+</script>

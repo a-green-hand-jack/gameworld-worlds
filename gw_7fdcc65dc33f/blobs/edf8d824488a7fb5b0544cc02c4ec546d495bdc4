@@ -1,0 +1,14 @@
+{
+  "model": "gemini-3.8-flash",
+  "input": [
+    {
+      "type": "text",
+      "text": "Is this a short percussive \"bonk\" sound (like a mallet hit / wooden or hollow knock)? Does it sound like a pleasant hit sound suitable for a whack-a-mole game? How long does it last, in seconds, to the nearest tenth?"
+    },
+    {
+      "type": "audio",
+      "mime_type": "audio/wav",
+      "data": "<base64 of sound/hit.wav, 22094 bytes>"
+    }
+  ]
+}

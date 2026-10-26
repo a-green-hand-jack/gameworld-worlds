@@ -1,0 +1,31 @@
+# Playtest report — Star Catcher v1.0
+
+## Build played
+
+- Artifact: `star-catcher.zip` from producer release `producer-v1`
+- SHA-256: `c9f601da1abde1313e0e6cdf344f7215388e0cc8f3cf6f670e956daea7a887a1`
+- Source reported by producer: game-developer `4e82c7e` with artist revision `21cc5e2`
+- Unpacked files: `index.html` at the archive root, `game.js`, `style.css`, `assets/bg.png`
+- Method: Chromium 156 headless via Playwright, opening the unpacked `index.html` with `file://`, sending real keyboard events.
+
+## Observed playthrough
+
+1. Initial screen opened successfully. It showed score `0`, timer `30`, best `0`, and the start overlay.
+2. Pressing Enter started play. State changed to playing, three stars appeared, and the timer began counting down.
+3. Holding Right then Up moved the ball from `(400, 300)` to approximately `(505, 190)`. The timer continued to decrease.
+4. A second run navigated to a star and produced score `1`. The score remained visible during play.
+5. After waiting through the countdown, the game reached the game-over state with timer `0`, title `时间到！`, and a final score message.
+6. The scored run stored best score `1` in `localStorage` under `starCatcher.best`. Reloading returned to the ready screen with best score `1` visible.
+7. The canvas displayed the supplied PNG background during play. No browser console or page errors were observed.
+
+## Evidence files
+
+- `playtest-start.png`: initial ready state
+- `playtest-playing.png`: active game after keyboard movement
+- `playtest-scored.png`: active game after collecting a star
+- `playtest-gameover.png`: timer-expired game-over state
+- `playtest-reload-best.png`: ready state after reload with persisted best
+
+## Result
+
+The tested v1.0 artifact was playable from `index.html` and completed the requested start, movement, collection, countdown, game-over, restart-ready, and persisted-best-score flow. No defects were observed in this run.

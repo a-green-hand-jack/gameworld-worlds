@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whack-a-Mole</title>
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<main id="app">
+  <section id="title-screen" class="screen active">
+    <h1>Whack-a-Mole</h1>
+    <p>Moles pop out of the holes for less than a second.<br>Click one before it hides to score a point.<br>You have 30 seconds.</p>
+    <button id="start-btn" type="button">Start</button>
+  </section>
+
+  <section id="game-screen" class="screen">
+    <div id="hud">
+      <div>Score: <span id="score">0</span></div>
+      <div>Time: <span id="time">30</span>s</div>
+    </div>
+    <div id="grid"></div>
+  </section>
+
+  <section id="end-screen" class="screen">
+    <h1>Time's up!</h1>
+    <p>Final score: <span id="final-score">0</span></p>
+    <button id="again-btn" type="button">Play again</button>
+  </section>
+</main>
+<script src="src/game.js"></script>
+</body>
+</html>

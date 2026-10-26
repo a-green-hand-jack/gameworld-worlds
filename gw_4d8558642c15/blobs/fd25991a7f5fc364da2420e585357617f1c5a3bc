@@ -1,0 +1,12 @@
+from playwright.sync_api import sync_playwright
+from pathlib import Path
+with sync_playwright() as playwright:
+ browser=playwright.chromium.launch(args=['--no-sandbox']); page=browser.new_page()
+ def fresh():
+  page.goto(Path('/hutian/qa-build2/index.html').as_uri());page.wait_for_function('window.__game && window.__game.player')
+ def advance(count): page.evaluate('(count)=>{for(let index=0;index<count;index++)window.__game.step()}',count)
+ def state():return page.evaluate('''() => ({x:window.__game.player.x,y:window.__game.player.y,vy:window.__game.player.vy,onGround:window.__game.player.onGround,won:window.__game.won})''')
+ fresh();page.keyboard.down('ArrowRight');advance(78);page.keyboard.up('ArrowRight');print('gap1-off-edge',state());advance(42);print('gap1-after-fall',state())
+ fresh();page.keyboard.down('ArrowRight');advance(64);page.keyboard.down(' ');advance(1);page.keyboard.up(' ');advance(35);advance(70);page.keyboard.up('ArrowRight');print('gap2-off-edge',state());advance(42);print('gap2-after-fall',state())
+ fresh();page.keyboard.down('d');advance(10);page.keyboard.up('d');print('d-run',state());page.keyboard.down('a');advance(10);page.keyboard.up('a');print('a-run',state());page.keyboard.down('w');advance(3);page.keyboard.up('w');print('w-jump',state());first=state()['vy'];page.keyboard.down(' ');advance(1);page.keyboard.up(' ');print('midair-rejump',state(),'prior-vy',first)
+ browser.close()

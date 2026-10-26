@@ -1,0 +1,31 @@
+import wave, struct, math, json, os
+R=22050
+def tone(segs, vol=0.5):
+    out=[]
+    for f0,f1,d,shape in segs:
+        n=int(R*d); ph=0
+        for i in range(n):
+            t=i/n; f=f0+(f1-f0)*t; ph+=f/R
+            s=math.sin(2*math.pi*ph) if shape=='sine' else (1 if (ph%1)<0.5 else -1)
+            env=min(1,i/150)*min(1,(n-i)/(R*0.03))*(1-0.5*t)
+            out.append(s*env)
+    m=max(abs(x) for x in out); return [x/m*vol for x in out]
+def save(name,s):
+    with wave.open(f'assets/audio/{name}.wav','wb') as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(R)
+        w.writeframes(b''.join(struct.pack('<h',int(x*32767)) for x in s))
+N={'C5':523.25,'E5':659.25,'G5':783.99,'C6':1046.5,'A3':220,'E3':164.8,'C4':261.6}
+snd={
+ 'paddle_hit':[(440,440,0.07,'sq')],
+ 'wall_hit':[(220,220,0.06,'sq')],
+ 'score':[(N['C5'],N['C5'],0.08,'sq'),(N['G5'],N['G5'],0.14,'sq')],
+ 'concede':[(300,120,0.35,'sq')],
+ 'win':[(N['C5'],N['C5'],0.12,'sq'),(N['E5'],N['E5'],0.12,'sq'),(N['G5'],N['G5'],0.12,'sq'),(N['C6'],N['C6'],0.35,'sq')],
+ 'lose':[(N['C4'],N['C4'],0.2,'sq'),(N['E3'],N['E3'],0.2,'sq'),(N['A3'],110,0.5,'sq')],
+ 'start':[(600,900,0.12,'sine')],
+}
+for k,v in snd.items(): save(k,tone(v,0.45))
+use={'paddle_hit':'ball hits a paddle','wall_hit':'ball bounces off top/bottom wall','score':'player scores a point','concede':'computer scores a point','win':'player wins match','lose':'computer wins match','start':'menu start / play again'}
+files=[{'file':f'audio/{k}.wav','type':'audio/wav','use':u} for k,u in use.items()]
+files+= [{'file':'img/logo.svg','type':'image/svg+xml','use':'title screen logo'},{'file':'img/favicon.svg','type':'image/svg+xml','use':'favicon'}]
+json.dump({'palette':{'bg':'#0b0f1a','fg':'#e8f1ff','accent':'#00e5ff','accent2':'#ff2e88','dim':'#2a3350'},'font':'"Courier New", monospace (bold)','files':files},open('assets/manifest.json','w'),indent=1)

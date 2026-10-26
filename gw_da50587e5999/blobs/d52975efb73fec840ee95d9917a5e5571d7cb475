@@ -1,0 +1,99 @@
+{
+  "build": {
+    "game-developer": "b13743fd2bd8580add386db748c4bbba02f8d386",
+    "artist": "2c9f5839740bb87fb1c90ea754a223b4c912e609"
+  },
+  "wav": {
+    "sha256": "a2194bc28cfd4b2fb9fe2466c305429aae510eb24a5749075e2af71fc74f5326",
+    "sample_rate": 44100,
+    "frames": 22050,
+    "channels": 1,
+    "sample_width": 2,
+    "duration_seconds": 0.5,
+    "tone_fft_peak_hz": 660.0,
+    "last_nonzero_sample": 13227,
+    "silence_max_abs": 0,
+    "rms_per_50ms": [
+      17014.1026233535,
+      13929.996087043026,
+      10848.81482002034,
+      7774.118748549786,
+      4718.523379511137,
+      1783.2027609392362
+    ]
+  },
+  "browser": {
+    "version": "156.0.8078.4",
+    "button_count": 1,
+    "initial_count": 0,
+    "count_after_mouse_enter_space_and_10_clicks": 13,
+    "audio": {
+      "src": "http://127.0.0.1:45523/sound/beep.wav",
+      "duration": 0.5,
+      "events": [
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "ended",
+          "time": 0.5
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "ended",
+          "time": 0.5
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "playing",
+          "time": 0.003465
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "playing",
+          "time": 0
+        },
+        {
+          "type": "playing",
+          "time": 0.001592
+        },
+        {
+          "type": "playing",
+          "time": 0.005121
+        },
+        {
+          "type": "playing",
+          "time": 0.008664
+        },
+        {
+          "type": "playing",
+          "time": 0.011906
+        }
+      ]
+    },
+    "page_errors": [],
+    "mobile_no_horizontal_overflow": true
+  }
+}

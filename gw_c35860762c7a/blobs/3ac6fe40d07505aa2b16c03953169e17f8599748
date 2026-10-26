@@ -1,0 +1,117 @@
+"""Palette-indexed pixel-art pipeline.
+
+Every sprite/tile is an ASCII grid; each character maps to an NES palette
+index through a named palette.  '.' is transparent.  A sheet is rendered once
+per variant (theme), with identical frame rectangles in every variant, so the
+game switches themes by file only.
+"""
+from PIL import Image
+
+# NES 2C02 palette (FCEUX default values), index -> RGB hex
+NES = {
+    0x00: "7C7C7C", 0x01: "0000FC", 0x02: "0000BC", 0x03: "4428BC", 0x04: "940084",
+    0x05: "A80020", 0x06: "A81000", 0x07: "881400", 0x08: "503000", 0x09: "007800",
+    0x0A: "006800", 0x0B: "005800", 0x0C: "004058", 0x0F: "000000",
+    0x10: "BCBCBC", 0x11: "0078F8", 0x12: "0058F8", 0x13: "6844FC", 0x14: "D800CC",
+    0x15: "E40058", 0x16: "F83800", 0x17: "E45C10", 0x18: "AC7C00", 0x19: "00B800",
+    0x1A: "00A800", 0x1B: "00A844", 0x1C: "008888",
+    0x20: "F8F8F8", 0x21: "3CBCFC", 0x22: "6888FC", 0x23: "9878F8", 0x24: "F878F8",
+    0x25: "F85898", 0x26: "F87858", 0x27: "FCA044", 0x28: "F8B800", 0x29: "B8F818",
+    0x2A: "58D854", 0x2B: "58F898", 0x2C: "00E8D8", 0x2D: "787878",
+    0x30: "FCFCFC", 0x31: "A4E4FC", 0x32: "B8B8F8", 0x33: "D8B8F8", 0x34: "F8B8F8",
+    0x35: "F8A4C0", 0x36: "F0D0B0", 0x37: "FCE0A8", 0x38: "F8D878", 0x39: "D8F878",
+    0x3A: "B8F8B8", 0x3B: "B8F8D8", 0x3C: "00FCFC", 0x3D: "F8D8F8",
+}
+
+
+def rgb(idx):
+    h = NES[idx]
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
+
+
+def parse(grid):
+    """Grid text -> list of equal-length rows (blank lines/indent stripped)."""
+    rows = [r.strip() for r in grid.strip("\n").split("\n")]
+    rows = [r for r in rows if r]
+    w = len(rows[0])
+    for i, r in enumerate(rows):
+        if len(r) != w:
+            raise ValueError(f"row {i} has width {len(r)} != {w}: {r!r}")
+    return rows
+
+
+def render(rows, pal):
+    h, w = len(rows), len(rows[0])
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    px = im.load()
+    for y, r in enumerate(rows):
+        for x, c in enumerate(r):
+            if c == ".":
+                continue
+            if c not in pal:
+                raise KeyError(f"char {c!r} not in palette {sorted(pal)}")
+            px[x, y] = rgb(pal[c])
+    return im
+
+
+def hflip(rows):
+    return [r[::-1] for r in rows]
+
+
+def vflip(rows):
+    return list(reversed(rows))
+
+
+def overlay(base, top):
+    """Overlay grid `top` on `base` (same size), '.' in top keeps base."""
+    return ["".join(t if t != "." else b for b, t in zip(br, tr)) for br, tr in zip(base, top)]
+
+
+class Sheet:
+    """Frames are packed on shelves in insertion order, width-limited."""
+
+    def __init__(self, name, width=256):
+        self.name = name
+        self.width = width
+        self.frames = []  # (name, rows, palname)
+        self.anims = {}
+        self.meta = {}
+
+    def add(self, name, grid, pal):
+        rows = parse(grid) if isinstance(grid, str) else grid
+        if any(n == name for n, _, _ in self.frames):
+            raise ValueError("duplicate frame " + name)
+        self.frames.append((name, rows, pal))
+        return rows
+
+    def anim(self, name, frames, ms, loop=True):
+        self.anims[name] = {"frames": frames, "ms": ms, "loop": loop}
+
+    def layout(self):
+        rects, x, y, shelf = {}, 0, 0, 0
+        for name, rows, _ in self.frames:
+            w, h = len(rows[0]), len(rows)
+            if x + w > self.width:
+                x, y, shelf = 0, y + shelf, 0
+            rects[name] = [x, y, w, h]
+            x += w
+            shelf = max(shelf, h)
+        return rects, y + shelf
+
+    def render(self, palettes, theme_over=None):
+        rects, height = self.layout()
+        im = Image.new("RGBA", (self.width, height), (0, 0, 0, 0))
+        for name, rows, palname in self.frames:
+            pal = dict(palettes[palname])
+            if theme_over and palname in theme_over:
+                pal.update(theme_over[palname])
+            x, y, _, _ = rects[name]
+            im.alpha_composite(render(rows, pal), (x, y))
+        return im, rects
+
+
+def preview(im, path, scale=4, bg=(104, 136, 252, 255)):
+    big = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
+    out = Image.new("RGBA", big.size, bg)
+    out.alpha_composite(big)
+    out.convert("RGB").save(path)

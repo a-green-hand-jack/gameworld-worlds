@@ -1,0 +1,166 @@
+{
+  "passed": 32,
+  "total": 32,
+  "results": [
+    {
+      "check": "file:// start: game runs with no script errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "fits 1366x768, 1280x720 and 1440x900 without scrolling",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "title screen shown on load",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "snake does not move on the title screen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "Enter starts the game with score 0 and a 3-cell snake",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "snake moves one cell per tick on the grid (right by default)",
+      "pass": true,
+      "detail": "{'x': 10, 'y': 10} -> {'x': 13, 'y': 10}"
+    },
+    {
+      "check": "ArrowUp turns the snake up",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reverse key (Down while moving up) is ignored",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ArrowLeft turns the snake left",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ArrowDown turns the snake down",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ArrowRight turns the snake right",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "eating food #1: +1 point, +1 cell, score shown during play",
+      "pass": true,
+      "detail": "score 0->1, length 3->4, HUD 1"
+    },
+    {
+      "check": "new food #1 is not on the snake",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "eating food #2: +1 point, +1 cell, score shown during play",
+      "pass": true,
+      "detail": "score 1->2, length 4->5, HUD 2"
+    },
+    {
+      "check": "new food #2 is not on the snake",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "eating food #3: +1 point, +1 cell, score shown during play",
+      "pass": true,
+      "detail": "score 2->3, length 5->6, HUD 3"
+    },
+    {
+      "check": "new food #3 is not on the snake",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "running into itself ends the game",
+      "pass": true,
+      "detail": "cause=self"
+    },
+    {
+      "check": "game-over screen shows the final score",
+      "pass": true,
+      "detail": "final 3 vs 3"
+    },
+    {
+      "check": "play-again button is offered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "snake stays still on the game-over screen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "Play again (click) restarts: score 0, 3 cells, HUD reset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "running into a wall ends the game",
+      "pass": true,
+      "detail": "cause=wall head={'x': 10, 'y': 0}"
+    },
+    {
+      "check": "final score after wall death is 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "Play again with Enter works repeatedly",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "food never spawns on the snake (200 simulated games)",
+      "pass": true,
+      "detail": "0 bad spawns"
+    },
+    {
+      "check": "rule: eating adds exactly one cell and one point; moving keeps length",
+      "pass": true,
+      "detail": "{\"r\": \"eat\", \"grew\": 1, \"sc\": 1, \"moved\": 0}"
+    },
+    {
+      "check": "rule: moving into the cell the tail is leaving is not a collision",
+      "pass": true,
+      "detail": "{\"r\": \"move\", \"over\": false}"
+    },
+    {
+      "check": "two quick turns within one step are both kept (right, Up+Left -> left)",
+      "pass": true,
+      "detail": "{'x': 10, 'y': 10} -> {'x': 8, 'y': 9}, direction left, screen playing"
+    },
+    {
+      "check": "arrow keys do not scroll the page (default prevented)",
+      "pass": true,
+      "detail": "[True, True]"
+    },
+    {
+      "check": "no script errors during play",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "all assets load (no failed requests)",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

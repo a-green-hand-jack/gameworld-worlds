@@ -1,0 +1,83 @@
+import json, time
+from playwright.sync_api import sync_playwright
+OUT='/hutian/repo/playtest/shots/'
+log=[]
+def L(s): print(s); log.append(s)
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    ctx=b.new_context(viewport={'width':1280,'height':800}, record_video_dir='/hutian/work/vid', record_video_size={'width':1280,'height':800})
+    pg=ctx.new_page()
+    errs=[]
+    pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in('error','warning') else None)
+    pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
+    pg.goto('http://localhost:8765/index.html'); pg.wait_for_timeout(1500)
+    pg.screenshot(path=OUT+'01-title.png')
+    L('title state=%s scrollY=%s' % (pg.evaluate('__snake.state'), pg.evaluate('scrollY')))
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    L('after Enter state=%s snake=%s'%(pg.evaluate('__snake.state'), pg.evaluate('__snake.snake')))
+    pg.screenshot(path=OUT+'02-play-start.png')
+    # reverse key test: moving right, press Left
+    s0=pg.evaluate('__snake.snake')
+    pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(400)
+    L('after Left (reverse) state=%s head=%s'%(pg.evaluate('__snake.state'), pg.evaluate('__snake.snake')[0]))
+    # bot: steer toward food with real keys, avoiding walls/body
+    def bot(target_score, maxt=120):
+        t0=time.time()
+        while time.time()-t0<maxt:
+            st=pg.evaluate('({s:__snake.state,sc:__snake.score,sn:__snake.snake,f:__snake.food,d:__snake.game.dir,q:__snake.game.queue.length})')
+            if st['s']!='playing' or st['sc']>=target_score: return st
+            h=st['sn'][0]; f=st['f']; d=st['d']; body={(c['x'],c['y']) for c in st['sn'][:-1]}
+            V={'ArrowUp':(0,-1),'ArrowDown':(0,1),'ArrowLeft':(-1,0),'ArrowRight':(1,0)}
+            OPP={'ArrowUp':'down','ArrowDown':'up','ArrowLeft':'right','ArrowRight':'left'}
+            DN={'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right'}
+            def ok(k):
+                dx,dy=V[k];x,y=h['x']+dx,h['y']+dy
+                return DN[k]!=({'up':'down','down':'up','left':'right','right':'left'}[d]) and 0<=x<20 and 0<=y<20 and (x,y) not in body
+            cands=sorted(V,key=lambda k:abs(h['x']+V[k][0]-f['x'])+abs(h['y']+V[k][1]-f['y']))
+            for k in cands:
+                if ok(k):
+                    if DN[k]!=d: pg.keyboard.press(k)
+                    break
+            pg.wait_for_timeout(40)
+        return st
+    prev=0
+    for target in (1,2,3):
+        sn0=len(pg.evaluate('__snake.snake'))
+        st=bot(target)
+        L('score %d length %d state %s'%(st['sc'],len(st['sn']),st['s']))
+        if st['s']!='playing': break
+        if target==1: pg.screenshot(path=OUT+'03-ate-first.png')
+    bot(6)
+    pg.screenshot(path=OUT+'04-play-score.png')
+    L('hud score=%s len=%s'%(pg.evaluate('__snake.score'),len(pg.evaluate('__snake.snake'))))
+    # pause test
+    pg.keyboard.press('p'); pg.wait_for_timeout(200)
+    L('pause state=%s'%pg.evaluate('__snake.state')); pg.screenshot(path=OUT+'05-paused.png')
+    pg.keyboard.press('p'); pg.wait_for_timeout(100)
+    # die by wall: hold current direction
+    pg.wait_for_timeout(100)
+    t0=time.time()
+    while pg.evaluate('__snake.state')=='playing' and time.time()-t0<20: pg.wait_for_timeout(50)
+    L('died: cause=%s score=%s'%(pg.evaluate('__snake.game.cause'),pg.evaluate('__snake.score')))
+    pg.wait_for_timeout(900); pg.screenshot(path=OUT+'06-gameover-wall.png')
+    # early Enter spam within guard? test after replay
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    L('replay by Enter: state=%s score=%s len=%d'%(pg.evaluate('__snake.state'),pg.evaluate('__snake.score'),len(pg.evaluate('__snake.snake'))))
+    pg.screenshot(path=OUT+'07-replay.png')
+    # self death: 4-key spiral (len 3 can't self hit in a small turn; need length>=5) -> use bot to grow to 5 then loop
+    st=bot(5)
+    L('regrown score %d'%st['sc'])
+    for k in ['ArrowUp','ArrowLeft','ArrowDown']:
+        pg.keyboard.press(k); pg.wait_for_timeout(20)
+    t0=time.time()
+    while pg.evaluate('__snake.state')=='playing' and time.time()-t0<10: pg.wait_for_timeout(30)
+    L('self test: state=%s cause=%s'%(pg.evaluate('__snake.state'),pg.evaluate('__snake.game.cause')))
+    pg.wait_for_timeout(900); pg.screenshot(path=OUT+'08-gameover-self.png')
+    # click replay
+    pg.mouse.click(640,400); pg.wait_for_timeout(300)
+    L('replay by click: state=%s score=%s'%(pg.evaluate('__snake.state'),pg.evaluate('__snake.score')))
+    # early restart guard: die then press Enter immediately
+    L('interval at score0=%s'%pg.evaluate('__snake.interval'))
+    L('console: %s'%errs)
+    ctx.close(); b.close()
+open('/hutian/work/run1.log','w').write('\n'.join(log))

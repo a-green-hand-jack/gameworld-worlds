@@ -1,0 +1,52 @@
+# Playtest report — Snake build 1
+
+**Build played:** release `build-1` of `world/producer`, asset `snake-build1.zip`
+(sha256 `2df8ec8d5e9a293df6fe4f8816e486a4b604ecfa75ad2c6d23e10fec1c23400c`; game-developer cb21dad + artist bcf60b1).
+**How:** unzipped to an empty dir, `python3 -m http.server 8000`, Chromium (Playwright 1.64, headless) at 1280x800,
+real keyboard events (`keyboard.press`) in real time, a bot reading `__snake` state only to decide which arrow to press.
+I cannot hear or feel it; sound was not judged by ear (no console/asset errors; mp3s load).
+Scripts: `tools/play1.py`, `tools/play2.py`. Captures: `evidence/build-1/` (screenshots, `playthrough-run1.webm`, `run1.log`).
+
+## Verdict
+Playable start to finish and the rules are right. No console errors in any run. One real problem: on short browser
+windows (< ~720 px of height) the score bar scrolls out of view. Everything else is polish.
+
+## What I played
+- Run A: title → Enter → 8 foods (len 3→11) → pause/resume → deliberate self-collision → game over (score 8) → Play again by mouse click.
+- Run B: Play again → straight into the top wall → game over → restart by Space → quick double-turn.
+- Run C: all four walls (top, bottom, left, right), each died on the edge cell, no wrap.
+
+## Requirements (brief R1–R10), as observed
+| # | Result | Evidence |
+|---|---|---|
+| R1 | OK. Loads from static server, no console errors/warnings across all runs. | `run1.log` |
+| R2 | OK. 20x20 grid with faint tile lines, steady ~8 cells/s (120 ms tick); easy to follow, never felt twitchy or sluggish. | `02-play-start.png` |
+| R3 | OK. Turning is responsive. Pressing the opposite direction (Left while moving Right) is ignored, game keeps running. Two quick presses (Down then Left ~20 ms apart) were both applied on successive steps, none lost, no self-kill. Arrow keys on the title screen do nothing; arrow keys did not scroll the page. | `run1.log` |
+| R4 | OK. Each food: +1 length, +1 score (checked at 1, 5, 8 foods: score 8 ↔ length 11). Food never appeared under the snake. | `03`, `04` |
+| R5 | OK on all four sides. | `08-gameover-wall.png`, `09-wall-*.png` |
+| R6 | OK. Looping into my body ended the game; following my own tail into the cell it vacates is correctly survived (checked 2x2 loop at length 4 via the game's logic module). | `06-gameover-self.png` |
+| R7 | OK. Title shows name, arrow-key help, rule line, Start button + Enter/Space hint. Play starts only from there. | `01-title.png` |
+| R8 | OK at 800px+ height: Score and Best update on eating. See issue 1 for short windows. | `04` |
+| R9 | OK. Final score on the screen matched the HUD (8 and 0). "New best!" appears only when it is one. | `06`, `08` |
+| R10 | OK by button click and by Enter/Space: fresh run, score 0, length 3, new food, no reload. | `07-playagain.png` |
+
+## Things that hurt, ranked
+1. **Score is cut off on short windows (R8 at risk).** Board is a fixed 640 px and the Score/Best bar sits above it. At 1366x768 it fits
+   (board 81–721), but at 1024x600 and 800x500 the page is taller than the window and the Score bar is scrolled out of view
+   (board top at −3 / −53 px; the browser also scrolls to focus the Play-again/Start button). A laptop window with toolbars
+   (~650 px content) is in this range. Arrow keys cannot scroll back, only the wheel can. Repro: set viewport 1024x600, play, die.
+   Captures: `10-viewport-1024x600.png`, `10-viewport-800x500.png`, `10-viewport-1366x768.png` (fits). Suggest scaling the board to the viewport height, or putting the HUD inside the board.
+2. **Window blur pauses the game** (`window.blur` → Paused). Reasonable, but if you click outside the page you come back to a paused
+   game and must press P/Esc; Enter/Space do not resume. Mild. A "Press P to continue" line is shown, so it is discoverable.
+3. **Snake corners are not joined** (the producer asked). Yes, I noticed: at every turn the body segments meet as separate rectangles
+   with small gaps/steps (see the crop in `06-gameover-self.png`, top-left). It reads as a snake made of tubes. It does not hurt play, because
+   direction and length stay clear, but it is the least polished thing on screen. The head sprite is clear, the tail has a pointed end.
+4. **Game over dims the board heavily.** The final snake, food and cause of death are barely visible behind the overlay, so you cannot see
+   what you hit. Minor; the Final score is very legible.
+
+## Not confusing / worth keeping
+Pause screen, Start button focus ring, the Best score persistence, and the red/green palette all read clearly. Nothing felt broken,
+no unfair death was seen: every death was caused by my own input.
+
+## Not checked
+Audio by ear, touch input, other browsers, runs longer than 11 length (no filled board), page with `file://`.

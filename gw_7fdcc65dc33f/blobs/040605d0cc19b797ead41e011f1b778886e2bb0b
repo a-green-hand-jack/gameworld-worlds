@@ -1,0 +1,42 @@
+{
+  "id": "v1_ChdiY1RXYXBHQkFhS0N4TjhQeDRfamlBMBIXYmNUV2FwR0JBYUtDeE44UHg0X2ppQTA",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 488,
+    "total_input_tokens": 63,
+    "input_tokens_by_modality": [
+      {
+        "modality": "audio",
+        "tokens": 7
+      },
+      {
+        "modality": "text",
+        "tokens": 56
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 128,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 297
+  },
+  "created": "2026-10-20T01:31:29Z",
+  "updated": "2026-10-20T01:31:29Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "EoUJCoIJAWkUfRMw6VjX+DbpoeIaXfBy9DKPNqZtxkPJ6v/8V5NSrRh+sNZ/VoxcTrB8paJ6pEg3Izsok5cQVGmVelHY3ZakvwGzvhcxWkbMptqxLk/Oetn8ScAfvkyuYk/fZxpDydbIfQhGCVfY9f05zJoNtudIh0Du8R7zMON41a5SgdagelnDGj6AQTmqSgyZeOE8bGwEmuQNQOwhjlgmGwrJvxOBCmXP4U+iw+gMqtk7B74ln3/pH6r3q0Uw0wukY6aBPLgxeqJqmBOvpP6W9IhBQyc1fsU0wZcI8WgBGaBObi7Y9Zn8p2PTK8kZrPx2xthqUjYQSG43rf3OsEiS1PfAqlctFkmpDuugfoKl8aVTfV/fZvLszrk05Em15Tz49TVmEwjYXgO/ZXX4ux939gmwD0pV2viLG84gXYBQVfzxeytWO0qBo7IeFM7V0VGWI0TOHgo4Ma1YXcqZ43QYclUQhPxOueBj0pr8J3qwqOhHjWZEfKjzf0uZWYlH3DIXWZVlm7U0EHtjnQOoaP7tmw3iyjOMub8QliDEDPfWHvSDM3ZYMy6ARjul8Aua2TTbOq+3WMRl9/2jzKM6gl3t/P3teHDMSHjk+ZeShfcucEAwVip6ITh8oi4SbDtCRWZ2yTGA918T+xpAMRPbZn8i057q6yTxUAU+Yoqv0KENkEs+61wv7FlG2UeuJi/of8W4wiqoxRad+UVJFIV7mDnn+16M63PBgoo6hndvRngGJJnGKl/0U/Q7DaPQ4VRqbP1LM4Dqbvhn52aEd5LXtUIHLB+n3ae+Zaa4HyqwO4yrQSCjmAwt1KwXsQWwSJIq/vth/JyVDWY4SYYZvareJDb78ECI5P4Mx1UwyOMl0sExiCimITAyBm+UIbzPv3uTDsbHNiJxl6XZSceyePjhmrcDR+JE5mH9YJ3gewE0rgFK6eYp2kEZNpQMF2KQv32bSPyTJr68v6+ju9R4SMjui8X/JJFTrqQhSU+ge9QmYzio3RGDvcasQBwy/Sp8p0HL/yU/l7YpOfC7LcWGK/mPxArNRTKc+hrPNNLhotJYJ0So5mm1S9iyzVJgD//tJbcAxeIOXy0Zn0criXJXYp9qb7eJ2zmwphcl/UgS8rdUz3do1VXrfZiKdvVfU67pCkrWco+CUxlubN+H256kbalCZUK2jmr2X5Ct1rGLOcX4o7mZDzoenFiXAaq8tUMkHFruBS4U608E8wXN6VyikIhzYnu3sQaTe1T39K5T2CTKLGH/gw3aNBEZfC0pDC2qMp3AZA88fhUzTz4zn760LMYB/U6VB5I8CBjTgW999kV4B32cgqZJI+CrGFt0RoEpySlkpv9HyjwonyMOuX0vSoTpzamqW+TqkAAa8gcm4EDfJU2sgF+JB/+OHXNmpshEtbGuDN6EhwOuzLLgqCW6AVfAt0+W9MiFA01x/zpYdPt1Vx5AhQg4YYHnEUQ6wA8Efh9gRNA4BrrXWXfyoLwjaMy0sz2J/WZGo6kqu/3Wgrw7MJNYMY+LJKgMoJTGyfHS2wJuA3FN1T94Fo8=",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "* **Sound description:** **Yes**, this is a short, hollow, percussive \"bonk\" or \"clack\" sound, very similar to a wooden block strike or a toy mallet hit.\n* **Game suitability:** **Yes**, it is a clean, playful, and pleasant sound effect that would work very well as a hit confirmation in a whack-a-mole or similar arcade-style game.\n* **Duration:** The sound (including its short natural decay/tail) lasts approximately **0.9 seconds** (the main transient impact takes up the first ~0.1\u20130.2 seconds).",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.8-flash"
+}

@@ -1,0 +1,92 @@
+// Loads the artist's assets from assets/ (contract: docs/assets.md, file list: assets/manifest.json).
+// Every file is optional: a missing or failing file falls back to built-in drawing / silence
+// and is reported in the console.
+(function () {
+  "use strict";
+  const base = "assets/";
+  // Game event -> file under assets/ (names as delivered in the artist's assets/manifest.json).
+  const SOUNDS = {
+    paddleHit: "audio/paddle_hit.wav",
+    wallHit: "audio/wall_hit.wav",
+    scorePlayer: "audio/score.wav",
+    scoreCpu: "audio/concede.wav",
+    win: "audio/win.wav",
+    lose: "audio/lose.wav",
+    select: "audio/start.wav",
+  };
+  const IMAGES = { title: "img/logo.svg" };
+  // Palette from assets/README.md; overridden by assets/manifest.json "palette" when served over http(s).
+  const palette = { bg: "#0b0f1a", fg: "#e8f1ff", accent: "#00e5ff", accent2: "#ff2e88", dim: "#2a3350" };
+  const FONT = '"Courier New", Courier, monospace';
+  const VOLUME = 0.6;
+
+  const images = {};
+  const sounds = {};
+  const report = { loaded: [], missing: [] };
+  let muted = false;
+
+  function loadImage(key, file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { images[key] = img; report.loaded.push(file); resolve(); };
+      img.onerror = () => { report.missing.push(file); console.warn("[pong] image not loaded, using built-in drawing:", file); resolve(); };
+      img.src = base + file;
+    });
+  }
+
+  function loadSound(key, file) {
+    return new Promise((resolve) => {
+      const audio = new Audio();
+      let done = false;
+      const finish = (ok) => {
+        if (done) return; done = true;
+        if (ok) { sounds[key] = audio; report.loaded.push(file); }
+        else { report.missing.push(file); console.warn("[pong] sound not loaded, playing silently:", file); }
+        resolve();
+      };
+      audio.addEventListener("canplaythrough", () => finish(true), { once: true });
+      audio.addEventListener("error", () => finish(false), { once: true });
+      setTimeout(() => finish(audio.readyState >= 2), 3000);
+      audio.preload = "auto";
+      audio.src = base + file;
+      audio.load();
+    });
+  }
+
+  function loadPalette() {
+    // fetch() of file:// URLs is refused by browsers, so the manifest is only read over http(s).
+    if (!/^https?:$/.test(location.protocol)) return Promise.resolve();
+    return fetch(base + "manifest.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => { if (m && m.palette) Object.assign(palette, m.palette); })
+      .catch(() => {});
+  }
+
+  function load() {
+    const jobs = [loadPalette()];
+    for (const [k, f] of Object.entries(IMAGES)) jobs.push(loadImage(k, f));
+    for (const [k, f] of Object.entries(SOUNDS)) jobs.push(loadSound(k, f));
+    return Promise.all(jobs).then(() => {
+      console.info("[pong] assets loaded:", report.loaded.length, "missing:", report.missing.length);
+      return api;
+    });
+  }
+
+  function play(key) {
+    const s = sounds[key];
+    if (!s || muted) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = VOLUME;
+      const p = c.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* audio blocked or unsupported */ }
+  }
+
+  const api = { images, sounds, report, load, play, palette,
+    color: (k) => palette[k],
+    font: () => FONT,
+    toggleMute: () => (muted = !muted),
+    isMuted: () => muted };
+  window.PongAssets = api;
+})();

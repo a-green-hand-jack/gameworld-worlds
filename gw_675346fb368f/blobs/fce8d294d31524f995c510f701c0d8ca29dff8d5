@@ -1,0 +1,13 @@
+{
+ "console_errors": [],
+ "failed_requests": [],
+ "steps": [],
+ "pong_hook": "object",
+ "pong_keys": [
+  "getState",
+  "state",
+  "constants"
+ ],
+ "pong_state0": "{\"screen\":\"title\",\"paused\":false,\"score\":{\"player\":0,\"cpu\":0},\"winner\":null,\"ball\":{\"x\":392,\"y\":292,\"vx\":0,\"vy\":0},\"player\":{\"y\":252},\"cpu\":{\"y\":252},\"rallies\":0,\"winScore\":5,\"assets\":{\"loaded\":[\"img/logo.svg\",\"audio/paddle_hit.wav\",\"audio/score.wav\",\"audio/concede.wav\",\"audio/win.wav\",\"audio/wall_hit.wav\",\"audio/lose.wav\",\"audio/start.wav\"],\"missing\":[]},\"muted\":false,\"endLocked\":false}",
+ "pong_state1": "{\"screen\":\"play\",\"paused\":false,\"score\":{\"player\":0,\"cpu\":0},\"winner\":null,\"ball\":{\"x\":181.9648166676928,\"y\":524.6198902017194,\"vx\":486.7365142892328,\"vy\":-382.592254483187},\"player\":{\"y\":504},\"cpu\":{\"y\":161.33333333333366},\"rallies\":2,\"winScore\":5,\"assets\":{\"loaded\":[\"img/logo.svg\",\"audio/paddle_hit.wav\",\"audio/score.wav\",\"audio/concede.wav\",\"audio/win.wav\",\"audio/wall_hit.wav\",\"audio/lose.wav\",\"audio/start.wav\"],\"missing\":[]},\"muted\":false,\"endLocked\":false}"
+}

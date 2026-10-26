@@ -1,0 +1,60 @@
+# Acceptance record
+
+## build-1 — NOT APPROVED: revise sent to artist (grid visibility)
+
+Assembled delivery (`ht-role delivery`): game-developer `7c1966c588b8fc955cb4ad523837f2818295b942`, artist `67a4583812e38b740765f4920b0e1485b7903382`, assignment at producer `4f258dcd9f3c051aa50f83444c4934eddecf8ce1`. Published for play as producer release `build-1` (`snake-build-1.zip`).
+
+### What I played (headless Chromium via Playwright 1.64, file:// open, 1366x768)
+
+Scripts and captures are in `acceptance/build-1/` (`play.py`, `deaths.py`, `log.json`, `p*.png`).
+
+| Req | Observed | Verdict |
+|---|---|---|
+| R1 | Opens from `index.html` over file:// and loads its assets; no console or page errors | met |
+| R2 | 20x20 grid inside a wall ring; one cell per 120 ms tick; keeps moving without input (wall hit after about 1.2 s from the start) | met |
+| R3 | Arrows steer; a reverse press is ignored and play continues; 3 turns queued in one tick are all applied; `scrollY` stays 0 | met |
+| R4 | 6 foods in a row: each gave exactly +1 length and +1 score; the HUD matched the state at once; food is drawn from free cells only (code `spawnFood`) | met |
+| R5 | Wall: game over, "You ran into the wall." Self: game over, "You ran into yourself." (game 1, `p3`). The tail-cell rule is in the code (`bodyLen`) | met |
+| R6 | Title: SNAKE logo, arrow-key help, Start button, Enter/Space hint (`p1`) | met |
+| R7 | "Score N" above the board during play, plus Best (`p2`) | met |
+| R8 | Game over: cause, final score, Play again button and Enter/Space hint. Play again by click and by Enter gives score 0, length 3, playing | met |
+| R9 | Neon-on-dark is consistent and legible; the page is 768 px high in a 768 px viewport, so no scrolling | met |
+
+Minor, not blocking: dev material (`checks/`) ships inside the delivery; it does no harm to play.
+
+### Playtest (world/playtester#2, answered and closed)
+playtester played release build-1 (playtester `daa23709398b844c2f580793a12c434249e20bce`: `reports/build-1.md`, `evidence/build-1/` screenshots and `full-session.webm`). They found no defect against R1–R9. Each food gave +1 length and +1 point, both deaths showed a clear cause, and play again worked three times in a row (Enter, click, Space). The game fits 1366x657, 1280x600 and 1024x600. Their notes, which I do not count as failures:
+- An arrow key does not start the game from the title. Not required: R6 asks for the title to say how to start, and it does (Enter/Space/Start button).
+- The board is heavily dimmed behind the overlays. The overlay text stays legible, so R9 holds.
+- Audio quality was unheard (headless). Sound is optional per the brief, and the files load without errors.
+
+### QA (world/qa#3, answered and closed)
+qa at `fd83a060886f0b279a430fd743b9ae933dee28f1` ran 27 independent checks (`qa/check.py`, `qa/report-build-1.json`) and all 27 pass. Highlights: a 60-point bot game checked every frame (length 3+score, food never on the snake, HUD equal to the state); the tail-cell rule; play again three times; no scroll at six viewports.
+- Finding: the grid lines are nearly invisible (tile edges about 1.1:1 against the fill). My brief's R2 asks for a *visible* grid. I confirmed it in my own `p2-play.png`, where the cells are only just perceptible.
+- Not defects: Best updates only at game over (it is not a requirement); an arrow key does not start the game (Enter/Space/button is accepted).
+
+### Decision
+`revise` to artist in world/artist#5: raise the cell-edge contrast in `assets/img/tile.png` (same size and name). I told game-developer in world/game-developer#4 not to add a code overlay as well. Next: re-check the new assembly, publish build-2, have playtester re-play it, then approve.
+
+## build-2 / current delivery: ACCEPTED
+
+Assembled delivery: artist `a8aa59ba7cfe63056d7e1898edd287fe454743d2` and game code from game-developer `7c1966c588b8fc955cb4ad523837f2818295b942`. game-developer `b69e52783c00521ba5d602b2798c6646d4aa94c0` changes only `checks/out/*.png`; the game files are identical. Published as producer release `build-2`. Diff from build-1: `assets/img/tile.png` and `assets/README.md` only.
+
+My re-play (`acceptance/build-2/`, same scripts as build-1):
+- The grid is clearly visible: edge rgb(50,68,127) on fill rgb(13,20,40), about 1.8:1 (`p2-play.png`).
+- Snake, food and wall still stand out.
+- 6 foods each gave +1 length and +1 score; the wall death and the self death each show their cause and the final score; play again works by click and by Enter; no scroll; no errors.
+
+The artist answered the revise in world/artist#5 (closed).
+Playtest re-play (world/playtester#4, closed): playtester played build-2 at playtester `c4d84f8dcd1cba34345483a029f1078501e306d3` (`reports/build-2.md`, `evidence/build-2/`).
+- The grid is clearly visible and not distracting; snake, food and wall still stand out.
+- Three full games with no regression: +1 length and +1 point per food, wall and self deaths with the cause shown, play again three times (Enter, click, Space).
+- No console errors; fits 1366x657, 1280x600 and 1024x600.
+
+QA re-check (world/qa#4): qa at `426c97b2cd453db85e62205e9a4ea7ecf9a0d2b2` checked the assembled delivery at game-developer `b69e52783c00` and artist `a8aa59ba7cfe`. 27/27 pass, the grid defect is fixed (about 1.9:1), and no defects are open.
+
+### What is approved
+The assembled delivery at game-developer `b69e52783c00521ba5d602b2798c6646d4aa94c0` and artist `a8aa59ba7cfe63056d7e1898edd287fe454743d2`. Its game files (`index.html`, `css/`, `js/`, `assets/`) are byte-identical to build-2, which I and the playtester played; only game-developer's `checks/out/*.png` differ (`diff -rq`).
+
+Conclusion: this is the Snake the objective asks for, and it plays. The snake moves on a visible grid and is steered with the arrow keys. Each food adds one cell and one point. A wall or self collision ends the game. There is a title screen, a live score during play, and a game-over screen with the final score and play again. R1–R9 are met by my own play, by QA's 27 checks and by two playtests.
+Known limits, not blocking: audio was not heard by anyone (headless; sound is optional and loads without errors); only Chromium was tested; the Best value updates at game over; the dev `checks/` folder ships with the game.

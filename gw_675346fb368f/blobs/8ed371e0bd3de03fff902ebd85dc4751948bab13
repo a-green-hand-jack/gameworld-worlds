@@ -1,0 +1,19 @@
+import sys, time
+from playwright.sync_api import sync_playwright
+url=sys.argv[1]; out=sys.argv[2]
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1000,'height':700})
+    logs=[]; pg.on('console',lambda m:logs.append((m.type,m.text))); pg.on('pageerror',lambda e:logs.append(('pageerror',str(e))))
+    bad=[]; pg.on('response',lambda r: bad.append((r.status,r.url)) if r.status>=400 else None)
+    pg.goto(url); pg.wait_for_timeout(1500); pg.screenshot(path=f'{out}/title.png')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(2500)
+    pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(700); pg.keyboard.up('ArrowUp'); pg.wait_for_timeout(500)
+    pg.screenshot(path=f'{out}/play.png')
+    for _ in range(200):
+        if pg.evaluate('pong.getState().screen')!='playing' and pg.evaluate('pong.getState().winner'): break
+        pg.wait_for_timeout(1000)
+        if _==5: pg.screenshot(path=f'{out}/play2.png')
+    pg.wait_for_timeout(800); pg.screenshot(path=f'{out}/end.png')
+    st=pg.evaluate('pong.getState()'); print(st['screen'],st['score'],st['winner'],st['assets'])
+    print('http errors',bad); print('logs',logs)
+    b.close()

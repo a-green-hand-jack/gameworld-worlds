@@ -1,0 +1,48 @@
+{
+ "star_small": [
+  [
+   0,
+   "play",
+   false,
+   496
+  ],
+  [
+   20,
+   "play",
+   false,
+   476
+  ],
+  [
+   40,
+   "play",
+   false,
+   456
+  ],
+  [
+   60,
+   "play",
+   false,
+   436
+  ],
+  [
+   80,
+   "play",
+   false,
+   416
+  ],
+  [
+   100,
+   "play",
+   false,
+   396
+  ]
+ ],
+ "no_star_small": [
+  [
+   0,
+   "dying",
+   true,
+   0
+  ]
+ ]
+}

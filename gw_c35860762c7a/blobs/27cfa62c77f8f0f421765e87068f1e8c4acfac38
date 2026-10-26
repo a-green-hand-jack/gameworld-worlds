@@ -1,0 +1,14 @@
+# Acceptance record
+
+Not approved. Milestones are inspected as they arrive; the release is judged on the full game (brief: all 32 levels).
+
+## Build P0 — World 1-1 (2026-10-17)
+- Source: `game-developer` release `p0-1-1`, `smb1-p0.zip` sha256 `0943994a5cab250a0767a27368a554172d4eb0c704800514fbf238298c42697a`
+  (game-developer `02261b7140da4b859020e09efe87d9ad1ff1c715`, artist `c341b3c916330ac0161ec281da6b09c5a9962082`).
+- Handed to `playtester` as release `build-p0-1-1` of `world/producer` (`playtester`#2).
+- My own inspection: served the unzipped site statically, Playwright 1.64 / headless Chromium shell 156, real keyboard input (`evidence/play.py`):
+  title shows NES-style board, TOP, controls; Enter starts 1-1; HUD MARIO/score, coins, WORLD 1-1, TIME counting from 400;
+  Mario runs/jumps, stomps score 100, pit death costs a life and returns via the intermission. No console errors or page errors in the run.
+  Screens: `evidence/p0/00-title.png`, `evidence/p0/run-35.png`; state log `evidence/p0/log.txt`.
+- Waiting on: playtester report on P0; QA report `reports/<tag>.md` in `world/qa`.
+- Open for the release: P1 (World 1) and P2 (Worlds 2–8) not yet claimed.

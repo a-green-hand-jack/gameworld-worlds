@@ -1,0 +1,355 @@
+// Snake: screens, input, timing, rendering and sound around SnakeLogic.
+(function () {
+  'use strict';
+
+  var L = window.SnakeLogic;
+  var COLS = 20;
+  var ROWS = 20;
+  var CELL = 32;
+  var TICK_MS = 120;
+
+  var params = new URLSearchParams(location.search);
+  var seedParam = params.get('seed');
+  var manual = params.get('manual') === '1'; // tests advance ticks themselves
+
+  var theme = {
+    background: '#101820',
+    text: '#f0f0e0',
+    accent: '#7bd36b',
+    danger: '#e0533b',
+    font: '"Press Start 2P", monospace'
+  };
+
+  var el = {
+    game: document.getElementById('game'),
+    canvas: document.getElementById('board'),
+    score: document.getElementById('score'),
+    best: document.getElementById('best'),
+    finalScore: document.getElementById('final-score'),
+    gameoverTitle: document.getElementById('gameover-title'),
+    newBest: document.getElementById('new-best'),
+    start: document.getElementById('start-button'),
+    again: document.getElementById('play-again-button'),
+    logo: document.getElementById('title-logo')
+  };
+  var ctx = el.canvas.getContext('2d');
+  el.canvas.width = COLS * CELL;
+  el.canvas.height = ROWS * CELL;
+
+  // ---- assets (see docs/assets.md); each falls back when missing ----
+  var images = {};
+  ['snake_head', 'snake_body', 'snake_tail', 'food', 'tile'].forEach(function (name) {
+    var img = new Image();
+    img.onload = function () {
+      images[name] = img;
+      if (name === 'snake_body') measureBand(img);
+      draw();
+    };
+    img.onerror = function () { console.warn('asset missing: assets/images/' + name + '.png'); };
+    img.src = 'assets/images/' + name + '.png';
+  });
+  if (el.logo.complete && el.logo.naturalWidth === 0) el.logo.classList.add('missing');
+
+  var sounds = {};
+  ['eat', 'game_over', 'start'].forEach(function (name) {
+    var a = new Audio();
+    a.preload = 'auto';
+    a.addEventListener('canplaythrough', function () { sounds[name] = a; }, { once: true });
+    a.addEventListener('error', function () { console.warn('asset missing: assets/audio/' + name + '.mp3'); }, { once: true });
+    a.src = 'assets/audio/' + name + '.mp3';
+  });
+  function play(name) {
+    var a = sounds[name];
+    if (!a) return;
+    try {
+      a.currentTime = 0;
+      var p = a.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* sound is optional */ }
+  }
+
+  function applyTheme(t) {
+    Object.keys(theme).forEach(function (k) {
+      if (typeof t[k] === 'string' && t[k]) theme[k] = t[k];
+    });
+    var s = document.documentElement.style;
+    s.setProperty('--background', theme.background);
+    s.setProperty('--text', theme.text);
+    s.setProperty('--accent', theme.accent);
+    s.setProperty('--danger', theme.danger);
+    s.setProperty('--font', theme.font);
+    if (typeof t.fontFile === 'string' && t.fontFile && window.FontFace) {
+      var family = theme.font.split(',')[0].replace(/["']/g, '').trim();
+      new FontFace(family, 'url("' + t.fontFile + '")').load().then(function (f) {
+        document.fonts.add(f);
+      }).catch(function () { console.warn('font missing: ' + t.fontFile); });
+    }
+    draw();
+  }
+  if (location.protocol !== 'file:') {
+    fetch('assets/theme.json').then(function (r) {
+      return r.ok ? r.json() : {};
+    }).then(applyTheme).catch(function () {});
+  }
+
+  // ---- state machine: title -> playing <-> paused -> gameover -> playing ----
+  var state = 'title';
+  var game = null;
+  var best = 0;
+  try { best = parseInt(localStorage.getItem('snake.best'), 10) || 0; } catch (e) {}
+  el.best.textContent = best;
+  var seedCounter = seedParam !== null ? parseInt(seedParam, 10) || 0 : null;
+
+  function setState(s) {
+    state = s;
+    el.game.className = 'state-' + s;
+    if (s === 'title') el.start.focus();
+    if (s === 'gameover') el.again.focus();
+    if (s === 'playing' && document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  function startGame() {
+    var rng = seedCounter !== null ? L.makeRng(seedCounter++) : Math.random;
+    game = L.createGame({ cols: COLS, rows: ROWS, rng: rng });
+    el.score.textContent = '0';
+    acc = 0;
+    last = performance.now();
+    setState('playing');
+    play('start');
+    draw();
+  }
+
+  function endGame() {
+    var isBest = game.score > best;
+    if (isBest) {
+      best = game.score;
+      try { localStorage.setItem('snake.best', String(best)); } catch (e) {}
+    }
+    el.best.textContent = best;
+    el.finalScore.textContent = game.score;
+    el.gameoverTitle.textContent = game.won ? 'You Win!' : 'Game Over';
+    el.gameoverTitle.classList.toggle('won', game.won);
+    el.newBest.classList.toggle('show', isBest);
+    setState('gameover');
+    play('game_over');
+  }
+
+  function tick() {
+    if (state !== 'playing') return;
+    var r = L.step(game);
+    if (r.ate) {
+      el.score.textContent = game.score;
+      play('eat');
+    }
+    if (game.over) endGame();
+    draw();
+  }
+
+  // ---- input ----
+  var KEY_DIRS = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'
+  };
+  document.addEventListener('keydown', function (e) {
+    var dir = KEY_DIRS[e.key];
+    if (dir) {
+      e.preventDefault(); // keep the page from scrolling
+      if (state === 'playing') L.turn(game, dir);
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); // also stops a focused button firing a second time
+      if (e.repeat) return;
+      if (state === 'title' || state === 'gameover') startGame();
+      else if (state === 'paused') resume();
+      return;
+    }
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+      if (state === 'playing') setState('paused');
+      else if (state === 'paused') resume();
+    }
+  });
+  function resume() {
+    last = performance.now();
+    acc = 0;
+    setState('playing');
+  }
+  document.getElementById('pause-screen').addEventListener('click', resume);
+  el.start.addEventListener('click', startGame);
+  el.again.addEventListener('click', startGame);
+  window.addEventListener('blur', function () {
+    if (state === 'playing' && !manual) setState('paused');
+  });
+
+  // ---- fixed-step loop ----
+  var acc = 0;
+  var last = performance.now();
+  function frame(now) {
+    if (state === 'playing' && !manual) {
+      acc += Math.min(now - last, 250);
+      while (acc >= TICK_MS && state === 'playing') {
+        acc -= TICK_MS;
+        tick();
+      }
+    }
+    last = now;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---- rendering ----
+  var ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+
+  function dirBetween(from, to) {
+    if (to.x > from.x) return 'right';
+    if (to.x < from.x) return 'left';
+    if (to.y > from.y) return 'down';
+    return 'up';
+  }
+
+  function sprite(img, cx, cy, angle) {
+    ctx.save();
+    ctx.translate(cx * CELL + CELL / 2, cy * CELL + CELL / 2);
+    ctx.rotate(angle);
+    ctx.drawImage(img, -CELL / 2, -CELL / 2, CELL, CELL);
+    ctx.restore();
+  }
+
+  // Half-width of the body sprite's opaque band (in cell px), used to join
+  // two arms into a square elbow at corners. Measured from the sprite's middle
+  // column when the browser allows reading pixels (not on file://).
+  var bandHalf = CELL * 0.3;
+  function measureBand(img) {
+    try {
+      var c = document.createElement('canvas');
+      c.width = CELL;
+      c.height = CELL;
+      var cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0, CELL, CELL);
+      var col = cx.getImageData(CELL / 2, 0, 1, CELL).data;
+      var top = -1;
+      var bottom = -1;
+      for (var y = 0; y < CELL; y++) {
+        if (col[y * 4 + 3] > 16) {
+          if (top < 0) top = y;
+          bottom = y;
+        }
+      }
+      if (top >= 0) bandHalf = Math.max(CELL / 2 - top, bottom + 1 - CELL / 2);
+    } catch (e) { /* keep the default */ }
+  }
+
+  // A corner segment: the body sprite drawn twice, each copy clipped to the
+  // arm pointing at one neighbour, so the two arms meet in a square elbow.
+  function elbow(img, cx, cy, dirA, dirB) {
+    [dirA, dirB].forEach(function (d) {
+      ctx.save();
+      ctx.translate(cx * CELL + CELL / 2, cy * CELL + CELL / 2);
+      ctx.rotate(ANGLE[d]);
+      ctx.beginPath();
+      ctx.rect(-bandHalf, -CELL / 2, CELL / 2 + bandHalf, CELL);
+      ctx.clip();
+      ctx.drawImage(img, -CELL / 2, -CELL / 2, CELL, CELL);
+      ctx.restore();
+    });
+  }
+
+  function drawBoard() {
+    for (var y = 0; y < ROWS; y++) {
+      for (var x = 0; x < COLS; x++) {
+        if (images.tile) {
+          ctx.drawImage(images.tile, x * CELL, y * CELL, CELL, CELL);
+        } else {
+          ctx.fillStyle = (x + y) % 2 ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.07)';
+          ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+        }
+      }
+    }
+  }
+
+  function drawFood(f) {
+    if (!f) return;
+    if (images.food) {
+      ctx.drawImage(images.food, f.x * CELL, f.y * CELL, CELL, CELL);
+      return;
+    }
+    ctx.fillStyle = theme.danger;
+    ctx.beginPath();
+    ctx.arc(f.x * CELL + CELL / 2, f.y * CELL + CELL / 2, CELL * 0.36, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawSnake(snake, dir) {
+    for (var i = snake.length - 1; i >= 0; i--) {
+      var s = snake[i];
+      var angle;
+      var img;
+      if (i === 0) {
+        img = images.snake_head;
+        angle = ANGLE[dir];
+      } else if (i === snake.length - 1) {
+        img = images.snake_tail;
+        angle = ANGLE[dirBetween(s, snake[i - 1])];
+      } else {
+        img = images.snake_body;
+        var toHead = dirBetween(s, snake[i - 1]);
+        var toTail = dirBetween(s, snake[i + 1]);
+        angle = ANGLE[toHead];
+        if (img && toTail !== L.OPPOSITE[toHead]) {
+          elbow(img, s.x, s.y, toHead, toTail);
+          continue;
+        }
+      }
+      if (img) {
+        sprite(img, s.x, s.y, angle);
+      } else {
+        ctx.fillStyle = theme.accent;
+        ctx.globalAlpha = i === 0 ? 1 : 0.85;
+        ctx.fillRect(s.x * CELL + 2, s.y * CELL + 2, CELL - 4, CELL - 4);
+        ctx.globalAlpha = 1;
+        if (i === 0) drawEyes(s, dir);
+      }
+    }
+  }
+
+  function drawEyes(h, dir) {
+    var d = L.DIRS[dir];
+    var cx = h.x * CELL + CELL / 2 + d.x * 6;
+    var cy = h.y * CELL + CELL / 2 + d.y * 6;
+    ctx.fillStyle = theme.background;
+    [-1, 1].forEach(function (side) {
+      ctx.beginPath();
+      ctx.arc(cx + d.y * 7 * side, cy + d.x * 7 * side, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function draw() {
+    ctx.fillStyle = theme.background;
+    ctx.fillRect(0, 0, el.canvas.width, el.canvas.height);
+    drawBoard();
+    if (game) {
+      drawFood(game.food);
+      drawSnake(game.snake, game.dir);
+    }
+  }
+
+  setState('title');
+  draw();
+
+  // Hook for automated checks (tests/): read state, drive ticks with ?manual=1.
+  window.__snake = {
+    get state() { return state; },
+    get game() { return game; },
+    get best() { return best; },
+    tick: tick,
+    draw: draw,
+    assets: function () {
+      return {
+        images: Object.keys(images),
+        sounds: Object.keys(sounds),
+        logo: el.logo.naturalWidth > 0,
+        font: document.fonts.check('16px ' + theme.font.split(',')[0])
+      };
+    }
+  };
+})();

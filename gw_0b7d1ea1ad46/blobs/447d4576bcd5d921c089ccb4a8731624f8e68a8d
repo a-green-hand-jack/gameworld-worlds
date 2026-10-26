@@ -1,0 +1,11 @@
+# Acceptance record
+
+Delivery accepted: game-developer b0d8f801917e (release v0.3, `meteor-dodge-v0.3.zip`) + artist 98c75df1704f (`assets/`), assignment c2693e4.
+
+Inspected/played by producer: assembled delivery via `ht-role delivery`, opened via file:// in headless Chromium (Playwright). Observed: title screen; Space starts; Left/Right/Up/Down each move the ship ~80px per 250 ms; idle ship died to meteors (score 79, "New best!"); high score persisted across reload; Enter restarts; no console/page errors; cyan ship, amber meteors and starfield consistent and loaded from assets/. Also ran `tests/smoke.py`: OK. Release zip contents match the delivery.
+
+Playtester (d2d02f7, PLAYTEST_REPORT.md): played the same build from file://, controls, pause, collision, game over, restart, high-score persistence all observed; no defects found.
+
+Checks by game-developer: smoke test OK (README); UI font fallback fix for CJK-less systems verified.
+
+Conclusion: meets every requirement of the objective (single screen, arrow-key ship dodging meteors, high score recorded, playable by opening index.html). Approved. Not verified: real (non-headless) browsers, difficulty late-game balance beyond ~15 s of play.

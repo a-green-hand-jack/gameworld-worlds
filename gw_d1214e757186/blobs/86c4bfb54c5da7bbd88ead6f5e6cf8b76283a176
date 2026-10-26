@@ -1,0 +1,8 @@
+{"assignment_schema": 1,
+ "items": [
+  {"owner": "game-developer", "work": "game code, level data, build: index.html and everything not under assets/", "paths": ["index.html", "src/"]},
+  {"owner": "artist", "work": "sprites, tiles, fonts, music and sound effects the game loads", "paths": ["assets/"]},
+  {"owner": "qa", "work": "systematic checks of each build against the brief; defect reports", "paths": []},
+  {"owner": "playtester", "work": "playing each build as a player; experience reports with evidence", "paths": []},
+  {"owner": "producer", "work": "brief, assignment, acceptance", "paths": []}
+ ]}

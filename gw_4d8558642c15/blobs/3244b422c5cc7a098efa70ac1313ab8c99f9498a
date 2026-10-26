@@ -1,0 +1,21 @@
+import sys, pathlib
+from playwright.sync_api import sync_playwright
+url = pathlib.Path('index.html').resolve().as_uri()
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page()
+    pg.on('console', lambda m: print('console:', m.text))
+    pg.goto(url); pg.wait_for_function("window.__game && window.__game.level", timeout=5000)
+    r = pg.evaluate("""() => {
+      const g=window.__game, T=32; let maxY=0;
+      g.keys.ArrowRight=true;
+      const L=g.level;
+      const solid=(x)=>{const c=Math.floor(x/T); return c>=0&&c<L.cols&&L.grid[10][c]==='#'};
+      for(let i=0;i<3000&&g.state==='playing';i++){
+        const p=g.player, ahead=p.x+28+12;
+        g.keys[' ']= p.onGround && (!solid(ahead) || p.x>g.flag.x-70);
+        g.step(); maxY=Math.max(maxY,(10*T-(p.y+28)));
+      }
+      return {state:g.state,won:g.won,ticks:g.ticks,source:g.levelSource,x:g.player.x};
+    }""")
+    print(r); b.close()
+    sys.exit(0 if r['won'] else 1)

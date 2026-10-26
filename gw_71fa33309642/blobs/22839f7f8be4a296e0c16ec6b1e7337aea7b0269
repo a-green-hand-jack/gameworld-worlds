@@ -1,0 +1,35 @@
+audio_check.json                                             IDENTICAL (565 leaves)
+enemies/probes_enemies.json                                  IDENTICAL (197 leaves)
+enemies2/probe_wallpit.json                                  IDENTICAL (187 leaves)
+extra/probes_extra.json                                      IDENTICAL (126 leaves)
+feel/feel.json                                               IDENTICAL (95 leaves)
+items/probes_items.json                                      IDENTICAL (77 leaves)
+level_hash.json                                              3 of 17 leaves differ
+     /#level=9-9/page_errors[0] | Cannot read properties of undefined (reading 'startArea') -> <absent>
+     /#level=9-9/smb/level | 9-9 -> 1-1
+     /#level=9-9/smb/loaded | False -> True
+misc/probes_misc.json                                        IDENTICAL (141 leaves)
+mute/mute_music.json                                         6 of 77 leaves differ
+     /A_control_mute_unmute/muted/t | 1.77 -> 1.79
+     /A_control_mute_unmute/unmuted/t | 2.83 -> 2.85
+     /B_hurry_while_muted/muted_after_hurry_tick/t | 2.67 -> 2.66
+     /B_hurry_while_muted/unmuted_3.5s_later/t | 3.36 -> 3.37
+     /C2_pipe_not_muted/in_coinroom/t | 1.39 -> 1.4
+     /C_pipe_while_muted/before/t | 1.1 -> 1.12
+mute/mute_music2.json                                        7 of 117 leaves differ
+     /D_die_while_muted/after_respawn_muted/t | 1.46 -> 1.45
+     /D_die_while_muted/unmuted_1.2s/t | 2.72 -> 2.71
+     /E_pause_while_muted/paused_muted/t | 1.28 -> 1.27
+     /E_pause_while_muted/resumed_muted/t | 1.99 -> 1.96
+     /E_pause_while_muted/unmuted/t | 2.85 -> 2.83
+     /F_muted_across_level_change/in_1-2_muted/t | 1.46 -> 1.44
+pipe/probe_pipe.json                                         IDENTICAL (28 leaves)
+pipe4/probe_pipe4.json                                       IDENTICAL (56 leaves)
+realtime/realtime_check.json                                 5 of 34 leaves differ
+     /after_run/frame | 603 -> 604
+     /hurry_music_sequence[1][0] | 0.8 -> 0.9
+     /music/t | 0.244245 -> 0.239009
+     /music_after_1.5s/t | 1.749019 -> 1.747615
+     /title_logic_hz | 59.89 -> 59.57
+subframe.json                                                IDENTICAL (5 leaves)
+viewport/viewport_check.json                                 IDENTICAL (275 leaves)

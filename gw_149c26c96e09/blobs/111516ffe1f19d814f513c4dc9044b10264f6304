@@ -1,0 +1,11 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page()
+    pg.add_init_script("window.__plays=[];const _p=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.__plays.push(this.src.split('/').pop());return _p.apply(this,arguments)}")
+    pg.goto('http://localhost:8003/'); pg.wait_for_timeout(500)
+    pg.keyboard.press('m'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    pg.evaluate("SnakeGame.setFood(8,10)"); pg.wait_for_timeout(400)
+    print('muted: score',pg.evaluate('SnakeGame.game.score'),'plays',pg.evaluate('window.__plays'),'music paused',pg.evaluate('SnakeAssets.sounds.music.paused'))
+    pg.keyboard.press('m'); pg.wait_for_timeout(100); print('unmuted music paused',pg.evaluate('SnakeAssets.sounds.music.paused'))
+    pg.wait_for_timeout(3000); print('after death state',pg.evaluate('SnakeGame.game.state'),'music paused',pg.evaluate('SnakeAssets.sounds.music.paused'))
+    b.close()

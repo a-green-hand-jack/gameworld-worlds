@@ -1,0 +1,279 @@
+"""Original sound effects, designed as per-frame register tables for the
+2A03-style synth (nes_synth.py).  Each function returns a list of Events
+(sample positions relative to the start of the effect).
+
+The designs follow the *roles* of classic platformer sounds (rising jump
+sweep, two-note coin, stomp squelch, ...); all parameters are our own.
+"""
+from __future__ import annotations
+
+import numpy as np
+
+from nes_synth import SR, Event, midi_to_hz, noise_rate, note_to_midi
+
+F = 60.0  # default frame rate
+
+
+def at(sec):
+    return int(round(sec * SR))
+
+
+def pulse(ch, start_s, midi, vol, duty=0.5, rate=F):
+    midi = np.asarray(midi, dtype=float)
+    vol = np.clip(np.floor(np.asarray(vol, dtype=float)), 0, 15)
+    return Event(ch, at(start_s), midi_to_hz(midi), vol, duty, rate=rate)
+
+
+def tri(start_s, hz, on_frames, rate=F):
+    hz = np.asarray(hz, dtype=float)
+    vol = np.zeros(len(hz))
+    vol[:on_frames] = 1
+    return Event("tri", at(start_s), hz, vol, rate=rate)
+
+
+def noise(start_s, idx, vol, short=0, rate=F, seed=1):
+    idx = np.asarray(idx)
+    vol = np.clip(np.floor(np.asarray(vol, dtype=float)), 0, 15)
+    mode = np.full(len(vol), float(short)) if np.ndim(short) == 0 else np.asarray(short, float)
+    return Event("noise", at(start_s), noise_rate(idx), vol, mode, rate=rate, phase0=float(seed * 977 % 32749))
+
+
+def notes_seq(ch, start_s, names, frames, vols, duty=0.5, rate=F):
+    """Concatenate fixed-pitch notes; vols[i] is a per-note volume envelope."""
+    m, v = [], []
+    for name, nf, env in zip(names, frames, vols):
+        mm = note_to_midi(name) if isinstance(name, str) else name
+        m += [mm] * nf
+        v += list(env(np.arange(nf), nf))
+    return pulse(ch, start_s, m, v, duty, rate)
+
+
+def lin(a, b):
+    return lambda i, n: a + (b - a) * i / max(1, n - 1)
+
+
+# ----------------------------------------------------------------------------
+
+def jump_small():
+    n = 20
+    i = np.arange(n)
+    m = 63 + 17 * (1 - np.exp(-i / 6.5))
+    v = np.maximum(0, 12 - 0.62 * i)
+    return [pulse("p1", 0, m, v, 0.25)]
+
+
+def jump_big():
+    n = 24
+    i = np.arange(n)
+    m = 58 + 15 * (1 - np.exp(-i / 8.0))
+    v = np.maximum(0, 13 - 0.55 * i)
+    return [pulse("p1", 0, m, v, 0.5),
+            pulse("p2", 0, m - 12, np.maximum(0, 7 - 0.3 * i), 0.25)]
+
+
+def stomp():
+    n = 16
+    i = np.arange(n)
+    m = 81 - 2.4 * i
+    v = np.maximum(0, 14 - 0.9 * i)
+    return [pulse("p1", 0, m, v, 0.5, rate=120),
+            noise(0, [6, 7, 8, 9, 10], [10, 7, 5, 3, 1], rate=120)]
+
+
+def kick():
+    return [pulse("p1", 0, [93, 88, 84, 81], [13, 10, 6, 3], 0.25, rate=120),
+            noise(0, [1, 2, 3], [12, 6, 2], rate=120)]
+
+
+def coin():
+    n2 = 36
+    i = np.arange(n2)
+    return [notes_seq("p1", 0, ["C6", "F6"], [4, n2],
+                      [lambda i, n: np.full(n, 12.0), lambda i, n: np.maximum(0, 12 - 0.34 * i)],
+                      duty=0.5)]
+
+
+def bump():
+    i = np.arange(9)
+    hz = 150 * 0.86 ** i
+    m = 69 + 12 * np.log2(hz / 440)
+    return [pulse("p1", 0, m, np.maximum(0, 14 - 1.6 * i), 0.5),
+            tri(0, 110 * 0.85 ** np.arange(7), 6),
+            noise(0, [12, 13, 14], [8, 4, 2])]
+
+
+def brick_break():
+    rng = np.random.default_rng(7)
+    n = 26
+    idx = np.clip(10 + rng.integers(0, 5, n) + (np.arange(n) > 12), 0, 15)
+    v = np.maximum(0, 15 - 0.55 * np.arange(n)) * np.where(np.arange(n) % 4 == 3, 0.55, 1.0)
+    return [noise(0, idx, v),
+            tri(0, 120 * 0.8 ** np.arange(6), 5),
+            pulse("p1", 0, [52, 48, 45], [9, 6, 3], 0.125)]
+
+
+def powerup_appear():
+    evs = []
+    m, v = [], []
+    for k, base in enumerate([55, 59, 62, 67, 71]):
+        for j in range(7):
+            m.append(base + j * 1.4)
+            v.append(10 - k * 0.6 - j * 0.3)
+    evs.append(pulse("p1", 0, m, v, 0.5))
+    evs.append(pulse("p2", 2 / F, np.array(m) + 0.15, np.maximum(0, np.array(v) - 5), 0.125))
+    return evs
+
+
+def powerup():
+    m, v = [], []
+    roots = [60, 62, 64, 66, 68]
+    for k, r in enumerate(roots):
+        for iv in [0, 4, 7, 12, 16, 19]:
+            m += [r + iv] * 2
+            v += [11, 10]
+    n = len(m)
+    v = np.array(v, float)
+    v[-8:] = np.linspace(9, 2, 8)
+    p1 = pulse("p1", 0, m, v, 0.5)
+    p2 = pulse("p2", 3 / F, np.array(m) - 12, np.maximum(0, v - 4), 0.25)
+    return [p1, p2]
+
+
+def _warble_down(n, start, drop, warble=2.0, period=2):
+    i = np.arange(n)
+    m = start - drop * i / (n - 1)
+    m = m + warble * np.where((i // period) % 2 == 0, 1.0, -1.0)
+    return m
+
+
+def powerdown():
+    n = 42
+    m = _warble_down(n, 79, 24, 1.6, 2)
+    v = np.minimum(12, np.maximum(0, (n - np.arange(n)) * 0.6))
+    return [pulse("p1", 0, m, v, 0.5)]
+
+
+def pipe():
+    m, v = [], []
+    for k in range(3):
+        n = 13
+        seg = _warble_down(n, 74 - 3 * k, 11, 1.2, 1)
+        m += list(seg)
+        v += list(np.linspace(12 - k, 5 - k, n))
+    return [pulse("p1", 0, m, v, 0.25)]
+
+
+def oneup():
+    names = ["D6", "E6", "A6", "F#6", "B6", "D7"]
+    frames = [5, 5, 5, 5, 5, 16]
+    env = [lambda i, n: np.full(n, 11.0) - i * 0.4] * 5 + [lambda i, n: np.maximum(0, 11 - 0.6 * i)]
+    return [notes_seq("p1", 0, names, frames, env, duty=0.25),
+            notes_seq("p2", 0, names, frames,
+                      [lambda i, n: np.maximum(0, 5 - 0.3 * i)] * 6, duty=0.125)]
+
+
+def fireball():
+    i = np.arange(10)
+    m = 86 - 2.6 * i
+    return [pulse("p1", 0, m, np.maximum(0, 10 - 1.0 * i), 0.125, rate=120),
+            noise(0, [3, 4, 5, 6, 7, 8], [9, 7, 5, 3, 2, 1], short=1, rate=120)]
+
+
+def flagpole():
+    n = 72
+    i = np.arange(n)
+    m = 88 - 0.46 * i + 0.5 * np.where(i % 2 == 0, 1, -1)
+    v = np.where(i < n - 14, 11, 11 * (n - i) / 14)
+    return [pulse("p1", 0, m, v, 0.5)]
+
+
+def firework():
+    n = 46
+    i = np.arange(n)
+    idx = np.where(i < 2, 4, np.where(i < 10, 12, np.where(i < 25, 13, 14)))
+    v = np.where(i < 1, 15, 15 * np.exp(-i / 13.0))
+    return [noise(0, idx, v, seed=3), tri(0, 90 * 0.82 ** np.arange(8), 7)]
+
+
+def bowser_fall():
+    n = 100
+    i = np.arange(n)
+    hz = 880 * (70 / 880) ** (i / (n - 1))
+    m = 69 + 12 * np.log2(hz / 440) + 0.6 * np.sin(i * 0.9)
+    v = np.where(i < n - 20, 11, 11 * (n - i) / 20)
+    sp = n / F - 0.1
+    k = np.arange(26)
+    return [pulse("p1", 0, m, v, 0.5),
+            pulse("p2", 0, m + 0.25, v * 0.5, 0.125),
+            noise(sp, np.full(26, 11), 12 * np.exp(-k / 8.0), seed=5)]
+
+
+def bowser_fire():
+    n = 62
+    i = np.arange(n)
+    idx = np.clip(np.round(8 + 4 * i / n + np.where((i // 2) % 2 == 0, 0, 1)), 0, 15).astype(int)
+    v = np.minimum(np.minimum(6 + i * 1.2, 14), np.maximum(0, (n - i) * 0.5))
+    rng = np.random.default_rng(11)
+    gm = 33 + rng.uniform(-0.8, 0.8, n) - 3 * i / n
+    gv = np.minimum(np.minimum(2 + i * 0.6, 6), np.maximum(0, (n - i) * 0.25))
+    return [noise(0, idx, v, seed=9), pulse("p1", 0, gm, gv, 0.125)]
+
+
+def vine():
+    n = 60
+    i = np.arange(n)
+    m = 55 + 0.5 * i + 0.7 * np.where((i // 2) % 2 == 0, 1, -1)
+    v = np.where(i < n - 10, 9, 9 * (n - i) / 10)
+    return [pulse("p1", 0, m, v, 0.25),
+            pulse("p2", 3 / F, m + 7, np.maximum(0, v - 5), 0.125)]
+
+
+def pause():
+    names = ["D6", "A6", "F#6", "D7"]
+    frames = [5, 5, 5, 18]
+    env = [lambda i, n: 11 - 1.2 * i] * 3 + [lambda i, n: np.maximum(0, 11 - 0.62 * i)]
+    return [notes_seq("p1", 0, names, frames, env, duty=0.5)]
+
+
+def beep():
+    return [pulse("p1", 0, [93, 93, 93], [11, 9, 4], 0.5)]
+
+
+def swim():
+    i = np.arange(9)
+    m = 57 + 12 * (1 - np.exp(-i / 3.0))
+    return [pulse("p1", 0, m, np.maximum(0, 12 - 1.4 * i), 0.5)]
+
+
+def cannon():
+    n = 14
+    i = np.arange(n)
+    idx = np.where(i < 1, 5, np.where(i < 5, 13, 14))
+    v = np.where(i < 1, 15, 14 * np.exp(-i / 4.5))
+    return [noise(0, idx, v, seed=13), tri(0, 95 * 0.8 ** np.arange(7), 6)]
+
+
+SFX = {
+    "jump_small": jump_small,
+    "jump_big": jump_big,
+    "stomp": stomp,
+    "kick": kick,
+    "coin": coin,
+    "bump": bump,
+    "brick_break": brick_break,
+    "powerup_appear": powerup_appear,
+    "powerup": powerup,
+    "powerdown": powerdown,
+    "pipe": pipe,
+    "oneup": oneup,
+    "fireball": fireball,
+    "flagpole": flagpole,
+    "firework": firework,
+    "bowser_fall": bowser_fall,
+    "bowser_fire": bowser_fire,
+    "vine": vine,
+    "pause": pause,
+    "beep": beep,
+    "swim": swim,
+    "cannon": cannon,
+}

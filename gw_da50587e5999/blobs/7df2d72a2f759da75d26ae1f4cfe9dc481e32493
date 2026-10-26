@@ -1,0 +1,12 @@
+import base64,json,os,subprocess,urllib.request,pathlib,hashlib
+p=pathlib.Path('/hutian/qa-build/sound/beep.wav')
+body={'model':'gemini-3.8-flash','input':[{'type':'text','text':'Describe what is heard in this audio and when, including the onset, any change in loudness, and any silence. Give timestamps or durations as precisely as the audio allows.'},{'type':'audio','mime_type':'audio/wav','data':base64.b64encode(p.read_bytes()).decode()}]}
+out=pathlib.Path('/hutian/repo/qa-evidence')
+(out/'listening-request.json').write_text(json.dumps(body,indent=2)+'\n')
+url=subprocess.check_output(['ht-resource','url','audio-understanding'],text=True).strip()
+req=urllib.request.Request(url+'/v1beta/interactions',json.dumps(body).encode(),{'Content-Type':'application/json','x-goog-api-key':os.environ['HT_RESOURCE_TOKEN']})
+with urllib.request.urlopen(req,timeout=120) as r: raw=r.read()
+(out/'listening-response.json').write_bytes(raw)
+answer=json.loads(raw)
+print(json.dumps(answer,indent=2))
+print('WAV SHA256',hashlib.sha256(p.read_bytes()).hexdigest())

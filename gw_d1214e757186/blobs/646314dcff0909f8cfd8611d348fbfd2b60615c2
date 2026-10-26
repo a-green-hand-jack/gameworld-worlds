@@ -1,0 +1,50 @@
+"""Lift riding trials at many phases (playtester N4 / game-developer#12). BUILD_DIR=... python3 qa/lift_trials.py
+For each lift: land Mario from above at many points of the lift's cycle and check he keeps riding for 45 frames
+(trials end when the lift reaches the screen's top/bottom edge or wraps; fails if released for 3+ frames in a row or the feet sink more than 4 px below the lift top; single-frame flickers are counted; a lift wrapping around, i.e. jumping > 40 px in one frame, ends a trial)."""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+d = os.environ['BUILD_DIR']
+fails_total = 0
+for lvl, settle in (('1-2', 400), ('1-3', 160), ('1-4', 160)):
+  g0 = Game(d, '#level=' + lvl); g0.press('start'); g0.step(settle)
+  lifts = g0.js("SMB.game.platforms.map((l,i)=>({i,kind:l.kind}))"); g0.close()
+  for L in lifts:
+    g = Game(d, '#level=' + lvl); g.press('start'); g.step(settle)
+    g.js("SMB.game.enemies=[];SMB.game.area.spawned.fill(true);SMB.game.player.invuln=999999")
+    if True:
+        i = L['i']; res = {'n': 0, 'landed': 0, 'kept': 0, 'bad': []}
+        for k in range(30):
+            g.js(f"(()=>{{const G=SMB.game,l=G.platforms[{i}];G.camX=Math.max(0,l.x-100);G.enemies=[];}})()")
+            g.step(7 + (k * 5) % 23)
+            for _ in range(400):
+                if 50 < g.js(f"SMB.game.platforms[{i}].y") < 170: break
+                g.step(1)
+            g.js(f"(()=>{{const G=SMB.game,l=G.platforms[{i}],p=G.player;G.camX=Math.max(0,l.x-100);p.x=l.x+l.w/2-6+({k%5}-2)*3;p.y=l.y-p.h-8;p.vx=0;p.vy=0;p.onGround=false;p.riding=null;G.state='play';}})()")
+            landed = False; ok = True; ly0 = None; rec = []; lost = 0; flick = 0
+            for f in range(70):
+                g.js(f"(()=>{{const G=SMB.game,l=G.platforms[{i}];G.camX=Math.max(0,l.x-100);}})()")
+                g.step(1)
+                r = g.js(f"(()=>{{const G=SMB.game,l=G.platforms[{i}],p=G.player;return [p.riding===l,l.y,l.dy||0,p.y+p.h,G.state]}})()")
+                if r[4] != 'play': break
+                if not landed and r[0]: landed = True; f0 = f
+                if landed:
+                    if ly0 is not None and abs(r[1] - ly0) > 40: break
+                    if r[1] < 20 or r[1] > 220: break
+                    ly0 = r[1]
+                    lost = 0 if r[0] else lost + 1
+                    flick += (not r[0])
+                    if lost >= 3 or r[3] > r[1] + 4: ok = False; rec = (f, r); break
+                    if f - f0 >= 45: break
+                else:
+                    ly0 = None
+            res['n'] += 1; res['flicker_frames'] = res.get('flicker_frames', 0) + flick
+            if landed:
+                res['landed'] += 1
+                if ok: res['kept'] += 1
+                else: res['bad'].append(rec)
+        good = res['landed'] >= 15 and res['kept'] == res['landed']
+        fails_total += (not good)
+        print('PASS' if good else 'FAIL', f"LIFTTRIAL.{lvl}#{i}-{L['kind']}", {k: v for k, v in res.items() if k != 'bad'}, res['bad'][:2])
+    g.close()
+print('lift trials failed:', fails_total)

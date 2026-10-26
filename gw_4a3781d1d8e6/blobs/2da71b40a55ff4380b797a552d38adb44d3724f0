@@ -1,0 +1,195 @@
+{
+  "root": "/tmp/d4",
+  "passed": 34,
+  "failed": 0,
+  "results": [
+    {
+      "check": "title screen shown on load",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "title screen names the controls",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "Enter starts a game",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "new game: length 3, score 0",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "score HUD visible during play",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "snake moves one cell per tick",
+      "ok": true,
+      "detail": "{'x': 10, 'y': 10} -> {'x': 11, 'y': 10}"
+    },
+    {
+      "check": "reversing into itself is ignored",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "arrow key turns the snake",
+      "ok": true,
+      "detail": "{'x': 12, 'y': 11}"
+    },
+    {
+      "check": "eating food grows the snake by one cell",
+      "ok": true,
+      "detail": "3 -> 4"
+    },
+    {
+      "check": "eating food adds one point",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "new food is not on the snake",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "second food: length 5, score 2",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "P pauses (no movement while paused)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "P resumes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "Enter resumes from pause",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "click resumes from pause",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "pause and resume do not move the snake",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "hitting a wall ends the game",
+      "ok": true,
+      "detail": "wall"
+    },
+    {
+      "check": "game-over screen shows final score",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "game-over screen offers play again",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "Play again (click) restarts with score 0, length 3",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "running into itself ends the game",
+      "ok": true,
+      "detail": "gameover self"
+    },
+    {
+      "check": "Enter on game-over plays again",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "real time: snake advances on its own (~8 cells/s)",
+      "ok": true,
+      "detail": "moved 5 cells in 0.61 s"
+    },
+    {
+      "check": "real time: arrow key turns",
+      "ok": true,
+      "detail": "{'x': 15, 'y': 10} -> {'x': 15, 'y': 7}"
+    },
+    {
+      "check": "real time: wall ends game on its own",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "layout 800x500: board, score, screens and buttons fully visible, no scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "layout 1024x600: board, score, screens and buttons fully visible, no scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "layout 1280x720: board, score, screens and buttons fully visible, no scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "layout 1366x768: board, score, screens and buttons fully visible, no scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "layout 1920x1080: board, score, screens and buttons fully visible, no scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "layout 500x800: board, score, screens and buttons fully visible, no scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "no console errors (R1)",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "check": "all images and sounds in docs/assets.md loaded",
+      "ok": true,
+      "detail": "{\"images\": [\"tile\", \"snake_body\", \"snake_head\", \"snake_tail\", \"food\"], \"sounds\": [\"eat\", \"start\", \"game_over\"], \"logo\": true, \"font\": true}"
+    }
+  ],
+  "assets_loaded": {
+    "images": [
+      "tile",
+      "snake_body",
+      "snake_head",
+      "snake_tail",
+      "food"
+    ],
+    "sounds": [
+      "eat",
+      "start",
+      "game_over"
+    ],
+    "logo": true,
+    "font": true
+  },
+  "failed_requests": [],
+  "console_errors": []
+}

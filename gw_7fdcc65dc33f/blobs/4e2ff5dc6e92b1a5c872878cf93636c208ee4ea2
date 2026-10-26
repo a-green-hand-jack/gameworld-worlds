@@ -1,0 +1,52 @@
+import json,time
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    # file:// 
+    pg=b.new_page(); errs=[]; pg.on('console',lambda m: errs.append(m.text) if m.type in('error','warning') else None); pg.on('pageerror',lambda e:errs.append(str(e)))
+    pg.goto('file:///tmp/d1/index.html'); pg.click('#start-btn'); time.sleep(2.5)
+    print('file:// phase',pg.evaluate('__whack.phase'),'ups seen',pg.evaluate('document.querySelectorAll(".hole").length'),'errs',errs[:3])
+    # try a hit on file://
+    for _ in range(60):
+        u=pg.evaluate('__whack.upHole')
+        if u>=0:
+            bb=pg.locator('.hole').nth(u).bounding_box(); pg.mouse.click(bb['x']+bb['width']/2,bb['y']+bb['height']/2); break
+        time.sleep(0.05)
+    print('file:// score after hit',pg.evaluate('__whack.score'),'sounds',pg.evaluate('__whack.soundsPlayed'))
+    # mobile viewport + touch
+    ctx=b.new_context(viewport={'width':375,'height':667},has_touch=True,is_mobile=True); m=ctx.new_page()
+    import http.server,socketserver,threading,functools
+    class Hd(http.server.SimpleHTTPRequestHandler):
+        def __init__(s,*a,**k): super().__init__(*a,directory='/tmp/d1',**k)
+        def log_message(s,*a): pass
+    srv=socketserver.ThreadingTCPServer(('127.0.0.1',0),Hd); port=srv.server_address[1]; threading.Thread(target=srv.serve_forever,daemon=True).start()
+    m.goto(f'http://127.0.0.1:{port}/'); m.screenshot(path='shot_title_mobile.png'); m.tap('#start-btn')
+    time.sleep(1.5)
+    bbs=[m.locator('.hole').nth(i).bounding_box() for i in range(9)]
+    print('mobile fits',all(b_['x']>=0 and b_['x']+b_['width']<=375 and b_['y']+b_['height']<=667 for b_ in bbs))
+    got=0
+    for _ in range(300):
+        u=m.evaluate('__whack.upHole')
+        if u>=0:
+            bb=m.locator('.hole').nth(u).bounding_box(); m.touchscreen.tap(bb['x']+bb['width']/2,bb['y']+bb['height']/2); got=m.evaluate('__whack.score')
+            if got>=1: break
+        time.sleep(0.03)
+    print('touch score',got); m.screenshot(path='shot_play_mobile.png')
+    # desktop screenshots, keyboard start
+    d=b.new_page(viewport={'width':1280,'height':800}); d.goto(f'http://127.0.0.1:{port}/'); d.screenshot(path='shot_title.png'); d.focus('#start-btn'); d.keyboard.press('Enter'); print('kbd start',d.evaluate('__whack.phase'))
+    while d.evaluate('__whack.upHole')<0: time.sleep(0.02)
+    d.screenshot(path='shot_play.png')
+    # hit right at the end boundary: wait until timeLeft ==1 then spam holes
+    t=time.time()
+    while d.evaluate('__whack.timeLeft')>1: time.sleep(0.05)
+    sc0=d.evaluate('__whack.score')
+    while d.evaluate('__whack.phase')=='playing':
+        u=d.evaluate('__whack.upHole')
+        if u>=0:
+            bb=d.locator('.hole').nth(u).bounding_box(); d.mouse.click(bb['x']+bb['width']/2,bb['y']+bb['height']/2)
+    d.screenshot(path='shot_end.png')
+    s1=d.evaluate('__whack.score'); bb=d.locator('.hole').nth(4).bounding_box()
+    print('score at end',s1,'shown',d.inner_text('#final-score'))
+    # clicking holes on end screen (hidden) can't change score
+    time.sleep(1); print('score after',d.evaluate('__whack.score'))
+    b.close()

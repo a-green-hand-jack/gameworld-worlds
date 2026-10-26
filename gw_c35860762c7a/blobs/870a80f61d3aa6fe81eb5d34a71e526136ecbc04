@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""Programmatic checks of the built audio (run automatically by build_audio.py).
+
+Checks every file listed in assets/audio/audio.json:
+  * decodes with ffmpeg, decoded length matches the manifest duration
+  * no clipping, no DC offset, SFX peak ~ -3 dBFS, music peak <= -6 dBFS
+  * music loudness (BS.1770-style LUFS) within 2 dB across tracks
+  * loop seams: the jump from the last to the first sample is no larger than
+    ordinary sample-to-sample motion inside the track
+  * mp3: measures the start offset / extra length relative to the ogg
+Optionally writes spectrogram PNGs.
+"""
+from __future__ import annotations
+
+import json
+import math
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from nes_synth import SR, read_wav  # noqa: E402
+
+
+def decode_exact(ffmpeg, path):
+    """Decode an ogg with libvorbis (soundfile) when available: it honours the
+    final granule position exactly.  ffmpeg's native Vorbis decoder can be off
+    by up to a block on the *end* of very short files."""
+    try:
+        import soundfile
+        x, sr = soundfile.read(str(path), dtype="float64")
+        assert sr == SR
+        return x if x.ndim == 1 else x[:, 0]
+    except ImportError:
+        return decode(ffmpeg, path)
+
+
+def decode(ffmpeg, path, raw=False):
+    pre = ["-flags2", "+skip_manual"] if raw else []
+    p = subprocess.run([ffmpeg, "-v", "error", *pre, "-i", str(path), "-f", "f32le",
+                        "-ac", "1", "-ar", str(SR), "-"], check=True, capture_output=True)
+    return np.frombuffer(p.stdout, dtype="<f4").astype(np.float64)
+
+
+def find_offset(ref, x, maxlag=4000, n=SR * 2):
+    """Lag (in samples) at which x best matches ref (x[k+lag] ~ ref[k])."""
+    a = ref[:n]
+    best, lag = -1e9, 0
+    m = min(len(x), n + maxlag)
+    b = x[:m]
+    sz = 1 << int(math.ceil(math.log2(len(a) + len(b))))
+    c = np.fft.irfft(np.fft.rfft(b, sz) * np.conj(np.fft.rfft(a, sz)), sz)
+    lags = np.arange(0, maxlag)
+    k = lags[np.argmax(c[lags])]
+    return int(k)
+
+
+def seam_ratio(x):
+    """|second difference| across the loop seam relative to the 99.9th
+    percentile of second differences inside the track (<= ~1 means the seam
+    is no rougher than the music itself)."""
+    d2 = np.abs(np.diff(x, 2))
+    ref = np.percentile(d2, 99.9)
+    ext = np.concatenate([x[-3:], x[:3]])
+    seam = np.max(np.abs(np.diff(ext, 2)))
+    return seam / max(ref, 1e-9), seam
+
+
+def verify(out_dir: Path, plots=None, ffmpeg="ffmpeg"):
+    import build_audio  # for the loudness meter
+    out_dir = Path(out_dir)
+    man = json.loads((out_dir / "audio.json").read_text())
+    assets = out_dir.parent
+    ok = True
+    problems = []
+
+    print("\n== SFX ==")
+    for sid, e in man["sfx"].items():
+        wav = read_wav(assets / e["files"][1])
+        ogg = decode_exact(ffmpeg, assets / e["files"][0])
+        ogg_ff = decode(ffmpeg, assets / e["files"][0])
+        peak = 20 * math.log10(np.max(np.abs(wav)))
+        clip = int(np.sum(np.abs(wav) >= 0.9999))
+        dc = float(np.mean(wav))
+        dlen = len(ogg) - len(wav)
+        edge = max(abs(wav[0]), abs(wav[-1]))
+        print(f"  {sid:15s} {e['duration']:6.3f}s peak {peak:5.1f} dBFS  dc {dc:+.4f}  "
+              f"ogg len diff {dlen:+d} (ffmpeg {len(ogg_ff)-len(wav):+d})  ogg peak {20*math.log10(np.max(np.abs(ogg))):5.1f}  edge {edge:.4f}")
+        if abs(len(wav) / SR - e["duration"]) > 1e-3 or clip or abs(dc) > 0.01 or \
+                abs(peak + 3) > 0.3 or edge > 0.01 or abs(dlen) > 0 or np.max(np.abs(ogg)) >= 1.0:
+            problems.append(f"sfx {sid}")
+
+    print("\n== MUSIC ==")
+    lufs = {}
+    mp3_info = {}
+    for mid, e in man["music"].items():
+        ogg = decode_exact(ffmpeg, assets / e["files"][0])
+        ogg_ff = decode(ffmpeg, assets / e["files"][0])
+        mp3 = decode(ffmpeg, assets / e["files"][1])
+        mp3raw = decode(ffmpeg, assets / e["files"][1], raw=True)
+        n = int(round(e["duration"] * SR))
+        peak = 20 * math.log10(np.max(np.abs(ogg)))
+        dc = float(np.mean(ogg))
+        L = build_audio.loudness(ogg, e["loop"])
+        lufs[mid] = L
+        off = find_offset(ogg, mp3)
+        off_raw = find_offset(ogg, mp3raw)
+        mp3_info[mid] = (off, len(mp3) - n, off_raw, len(mp3raw) - n)
+        line = (f"  {mid:18s} {e['duration']:9.5f}s ogg len {len(ogg)-n:+d} (ffmpeg {len(ogg_ff)-n:+d})"
+                f" peak {peak:5.1f} dBFS {L:6.1f} LUFS dc {dc:+.5f}"
+                f" mp3 off/len {off}/{len(mp3)-n:+d} (raw {off_raw}/{len(mp3raw)-n:+d})")
+        bad = abs(len(ogg) - n) > 0 or peak > -5.5 or abs(dc) > 0.005 or np.max(np.abs(mp3)) >= 1.0
+        if e["loop"]:
+            r, s = seam_ratio(ogg)
+            line += f" seam {r:.2f}"
+            if s > np.max(np.abs(np.diff(ogg, 2))) + 1e-9:
+                bad = True
+        else:
+            edge = abs(ogg[-1])
+            if edge > 0.005:
+                bad = True
+        print(line)
+        if bad:
+            problems.append(f"music {mid}")
+    spread = max(lufs.values()) - min(lufs.values())
+    print(f"\n  loudness spread {spread:.2f} dB (min {min(lufs.values()):.1f}, max {max(lufs.values()):.1f})")
+    if spread > 2.0:
+        problems.append("loudness spread")
+    offs = {v[0] for v in mp3_info.values()}
+    raws = {v[2] for v in mp3_info.values()}
+    print(f"  mp3 start offset with gapless (LAME tag) decoding: {sorted(offs)} samples; "
+          f"raw decoder (tag ignored): {sorted(raws)} samples")
+
+    total = sum(f.stat().st_size for f in out_dir.rglob("*") if f.is_file())
+    print(f"\n  total size of assets/audio: {total/1e6:.2f} MB")
+    if total > 8e6:
+        problems.append("size")
+
+    if plots:
+        make_plots(Path(plots), assets, man, ffmpeg)
+
+    if problems:
+        print("\nPROBLEMS:", ", ".join(problems))
+        ok = False
+    else:
+        print("\nall checks passed")
+    return ok
+
+
+def make_plots(pdir, assets, man, ffmpeg):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    pdir.mkdir(parents=True, exist_ok=True)
+    groups = {
+        "music_spectrograms.png": [k for k in man["music"]],
+        "sfx_spectrograms.png": [k for k in man["sfx"]],
+    }
+    for fname, ids in groups.items():
+        kind = "music" if fname.startswith("music") else "sfx"
+        cols = 4
+        rows = math.ceil(len(ids) / cols)
+        fig, axes = plt.subplots(rows, cols, figsize=(cols * 4.2, rows * 2.4))
+        for ax, k in zip(axes.flat, ids):
+            x = decode(ffmpeg, assets / man[kind][k]["files"][0])
+            if kind == "music":
+                x = x[: SR * 8]
+            x = x + 1e-7 * np.sin(np.arange(len(x)))
+            ax.specgram(x, NFFT=1024, Fs=SR, noverlap=768, cmap="magma", vmin=-120)
+            ax.set_ylim(0, 8000)
+            ax.set_title(k, fontsize=9)
+            ax.tick_params(labelsize=7)
+        for ax in list(axes.flat)[len(ids):]:
+            ax.axis("off")
+        fig.tight_layout()
+        fig.savefig(pdir / fname, dpi=80)
+        plt.close(fig)
+    # loop seam close-ups
+    loops = [k for k, e in man["music"].items() if e["loop"]]
+    fig, axes = plt.subplots(len(loops), 1, figsize=(10, 1.4 * len(loops)))
+    for ax, k in zip(axes, loops):
+        x = decode(ffmpeg, assets / man["music"][k]["files"][0])
+        w = 400
+        seg = np.concatenate([x[-w:], x[:w]])
+        ax.plot(np.arange(-w, w), seg, lw=0.6)
+        ax.axvline(0, color="r", lw=0.5)
+        ax.set_title(f"{k}: end -> start seam", fontsize=8)
+        ax.tick_params(labelsize=6)
+    fig.tight_layout()
+    fig.savefig(pdir / "loop_seams.png", dpi=80)
+    plt.close(fig)
+    print(f"  plots written to {pdir}")
+
+
+if __name__ == "__main__":
+    import build_audio
+    root = Path(__file__).resolve().parents[2] / "assets" / "audio"
+    plots = sys.argv[1] if len(sys.argv) > 1 else None
+    sys.exit(0 if verify(root, plots=plots, ffmpeg=build_audio.FFMPEG) else 1)

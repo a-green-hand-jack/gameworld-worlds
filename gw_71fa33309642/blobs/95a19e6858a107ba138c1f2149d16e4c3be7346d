@@ -1,0 +1,23 @@
+"""Rider on a wrapping 1-2 lift: ride through the wrap and report what happens. BUILD_DIR=... python3 qa/lift_wrap.py"""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+d = os.environ['BUILD_DIR']
+for i, kind in ((0, 'down'), (2, 'up')):
+    g = Game(d, '#level=1-2'); g.press('start'); g.step(400)
+    g.js("SMB.game.enemies=[];SMB.game.area.spawned.fill(true);SMB.game.player.invuln=999999")
+    for _ in range(400):
+        g.js(f"SMB.game.camX=Math.max(0,SMB.game.platforms[{i}].x-100)")
+        if 100 < g.js(f"SMB.game.platforms[{i}].y") < 130: break
+        g.step(1)
+    g.js(f"(()=>{{const G=SMB.game,l=G.platforms[{i}],p=G.player;p.x=l.x+l.w/2-6;p.y=l.y-p.h-4;p.vx=0;p.vy=0;p.riding=null;G.state='play';}})()")
+    ev = []; prev = None; dead = False
+    for f in range(500):
+        g.js(f"SMB.game.camX=Math.max(0,SMB.game.platforms[{i}].x-100)"); g.step(1)
+        r = g.js(f"(()=>{{const G=SMB.game,l=G.platforms[{i}],p=G.player;return [p.riding===l,l.y,p.y+p.h,G.state]}})()")
+        if prev and abs(r[1] - prev[1]) > 40: ev.append(('wrap', f, prev[1], r[1], 'riding_after=%s' % r[0]))
+        if prev and prev[0] and not r[0]: ev.append(('released', f, r))
+        if r[3] != 'play': ev.append(('state', f, r[3])); break
+        prev = r
+    print(('PASS' if not any(e[0] == 'state' for e in ev) else 'INFO'), 'LIFTWRAP.1-2#%d-%s' % (i, kind), ev[:6])
+    g.close()

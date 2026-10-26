@@ -1,0 +1,54 @@
+{
+ "title_state": "title",
+ "title_logic_hz": 59.89,
+ "after_enter_state": "intro",
+ "intro_to_play_wall_s": null,
+ "music": {
+  "name": "overworld",
+  "paused": false,
+  "t": 0.244245,
+  "dur": 28.802902,
+  "loop": true,
+  "vol": 0.6,
+  "err": null
+ },
+ "music_after_1.5s": {
+  "paused": false,
+  "t": 1.749019
+ },
+ "running_vx_after_1.2s": 2.5625,
+ "after_run": {
+  "state": "play",
+  "x": 253.240234375,
+  "vx": 0.96484375,
+  "score": 0,
+  "frame": 603,
+  "enemies": 1
+ },
+ "jump_sound_pool": 30,
+ "sounds_missing": [],
+ "hurry_music_sequence": [
+  [
+   0.0,
+   "overworld",
+   "play"
+  ],
+  [
+   0.8,
+   "hurry",
+   "play"
+  ],
+  [
+   3.7,
+   "overworld_fast",
+   "play"
+  ],
+  [
+   6.1,
+   "death",
+   "dying"
+  ]
+ ],
+ "page_errors": [],
+ "failed_requests": 0
+}

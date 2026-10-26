@@ -1,0 +1,93 @@
+// Draws an area's background, scenery and tiles.
+import { TILE, ROWS, SCREEN_W } from './consts.js';
+
+// "?" blocks and coins shimmer: long rest on the first shade, then two more.
+export function shimmer(frame) {
+  const t = frame % 48;
+  return t < 24 ? 1 : t < 32 ? 2 : t < 40 ? 3 : 2;
+}
+
+export function skyColor(assets, area) {
+  switch (area.sky) {
+    case 'night': return assets.palette('sky_night', '#000000');
+    case 'black': return assets.palette(area.theme === 'castle' ? 'castle' : 'underground', '#000000');
+    case 'water': return assets.palette('underwater', '#2038ec');
+    default: return assets.palette('sky_day', '#5c94fc');
+  }
+}
+
+function tileFrame(area, c, r, ch, frame) {
+  const g = (dc, dr) => area.get(c + dc, r + dr);
+  switch (ch) {
+    case 'G': return 'ground';
+    case 'S': return 'block_hard';
+    case 'B': return 'brick';
+    case '?': return 'block_q' + shimmer(frame);
+    case 'U': return 'block_used';
+    case '[': return 'pipe_top_l';
+    case ']': return 'pipe_top_r';
+    case '{': return 'pipe_l';
+    case '}': return 'pipe_r';
+    case 'm': return 'pipeh_mouth_t';
+    case 'n': return 'pipeh_mouth_b';
+    case 'q': return g(1, 0) === '{' ? 'pipeh_join_t' : 'pipeh_t';
+    case 'r': return g(1, 0) === '{' ? 'pipeh_join_b' : 'pipeh_b';
+    case 'T': return g(-1, 0) !== 'T' ? 'tree_top_l' : g(1, 0) !== 'T' ? 'tree_top_r' : 'tree_top_m';
+    case 't': case 'Z': return 'tree_trunk';
+    case 'M': return g(-1, 0) !== 'M' ? 'shroom_top_l' : g(1, 0) !== 'M' ? 'shroom_top_r' : 'shroom_top_m';
+    case 'i': case 'Y': return g(0, -1) === 'M' ? 'shroom_stem_top' : 'shroom_stem';
+    case 'C': return 'cannon_top';
+    case 'c': return g(0, -1) === 'C' ? 'cannon_neck' : 'cannon_base';
+    case 'K': return 'coral';
+    case 'w': return 'water_top';
+    case 'W': return 'water';
+    case 'l': return 'lava_top';
+    case 'L': return 'lava';
+    case '=': return 'bridge';
+    case 'D': return 'cloud_block';
+    default: return null;
+  }
+}
+
+export function drawArea(ctx, assets, area, camX, frame) {
+  ctx.fillStyle = skyColor(assets, area);
+  ctx.fillRect(0, 0, SCREEN_W, 240);
+  // scenery (behind tiles)
+  const sv = area.tileVariant === 'snow' ? 'snow' : null;
+  for (const s of area.scenery) {
+    const [name, x, bottom, o] = s;
+    if (x > camX + SCREEN_W || x < camX - 160) continue;
+    if (name === 'castle_wall') {
+      // extra wall columns of a large castle: the left wall column of castle_large
+      const f = assets.frame('scenery', 'castle_large', sv);
+      const n = o?.cols || 1;
+      for (let i = 0; i < n; i++) {
+        if (f) ctx.drawImage(f.img, f.rect[0], f.rect[1] + 80, 16, 96, Math.round(x + i * 16 - camX), bottom - 96, 16, 96);
+        else assets.drawTL(ctx, 'scenery', 'castle_large', x + i * 16 - camX, bottom - 96, { size: [16, 96] });
+      }
+      continue;
+    }
+    const [, h] = assets.size('scenery', name);
+    assets.drawTL(ctx, 'scenery', name, x - camX, bottom - h, { variant: sv });
+  }
+  const c0 = Math.max(0, Math.floor(camX / TILE)), c1 = Math.min(area.cols - 1, Math.floor((camX + SCREEN_W) / TILE));
+  const v = area.tileVariant;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = c0; c <= c1; c++) {
+      const ch = area.grid[r][c];
+      if (ch === ' ' || ch === 'h') continue;
+      const x = c * TILE - camX, y = r * TILE + area.bumpOffset(c, r);
+      if (ch === 'o') {
+        assets.drawTL(ctx, 'items', 'coin' + shimmer(frame), x, y, { variant: area.spriteVariant });
+        continue;
+      }
+      if (ch === 'X') {
+        assets.drawTL(ctx, 'items', 'bowser_bridge', x, y, { variant: area.spriteVariant });
+        continue;
+      }
+      if (ch === '=' && area.get(c, r - 1) === ' ') assets.drawTL(ctx, 'tiles', 'bridge_rail', x, y - TILE, { variant: v });
+      const name = tileFrame(area, c, r, ch, frame);
+      if (name) assets.drawTL(ctx, 'tiles', name, x, y, { variant: v });
+    }
+  }
+}

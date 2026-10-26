@@ -1,0 +1,55 @@
+import sys, time, json
+from playwright.sync_api import sync_playwright
+URL = sys.argv[1]; OUT='/hutian/repo/evidence/'
+log=[]
+def L(*a):
+    s=' '.join(map(str,a)); print(s); log.append(s)
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    ctx=b.new_context(viewport={'width':1000,'height':640}, record_video_dir=OUT+'video', record_video_size={'width':1000,'height':640})
+    pg=ctx.new_page()
+    errs=[]
+    pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in('error','warning') else None)
+    pg.on('pageerror', lambda e: errs.append('pageerror '+str(e)))
+    pg.on('requestfailed', lambda r: errs.append('reqfail '+r.url))
+    pg.goto(URL); pg.wait_for_function('window.pong && window.pong.ready', timeout=10000)
+    pg.wait_for_timeout(500)
+    pg.screenshot(path=OUT+'01_title.png')
+    st=lambda: pg.evaluate('({s:pong.game.state,sc:pong.game.score,w:pong.game.winner,b:pong.game.ball,py:pong.game.player.y,cy:pong.game.computer.y,hits:pong.game.rallyHits})')
+    L('state at load', st()['s'])
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    L('after Enter', st()['s']); pg.screenshot(path=OUT+'02_serve.png')
+    def play(mode, shot):
+        held=None; t0=time.time(); shot_taken=False; shot2=False
+        while time.time()-t0<240:
+            s=st()
+            if s['s']=='gameover': break
+            if mode=='win' and s['s']=='play':
+                tgt=s['b']['y']+6-40
+                # predict only when ball moving left else center
+                if s['b']['vx']>0: tgt=210
+                d=tgt-s['py']
+                want='ArrowDown' if d>12 else 'ArrowUp' if d<-12 else None
+            else: want=None
+            if want!=held:
+                if held: pg.keyboard.up(held)
+                if want: pg.keyboard.down(want)
+                held=want
+            if not shot_taken and s['s']=='play' and s['b']['vx']!=0 and s['sc']['player']+s['sc']['computer']>=1:
+                pg.screenshot(path=OUT+shot+'_midplay.png'); shot_taken=True; L(mode,'mid score',s['sc'])
+            pg.wait_for_timeout(15)
+        if held: pg.keyboard.up(held)
+        s=st(); L(mode,'ended',s['s'],s['sc'],'winner',s['w'],'secs',round(time.time()-t0))
+        return s
+    play('win','03win')
+    pg.wait_for_timeout(300); L('immediately (0.3s) pressing Enter on gameover'); pg.keyboard.press('Enter'); pg.wait_for_timeout(100); L(' state', st()['s'])
+    pg.wait_for_timeout(900); pg.screenshot(path=OUT+'04_winscreen.png')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    s=st(); L('play again ->',s['s'],s['sc'])
+    play('lose','05lose')
+    pg.wait_for_timeout(1000); pg.screenshot(path=OUT+'06_losescreen.png')
+    pg.mouse.click(500,320); pg.wait_for_timeout(300); s=st(); L('click play again ->',s['s'],s['sc'])
+    pg.screenshot(path=OUT+'07_replay.png')
+    L('console problems:',errs)
+    ctx.close(); b.close()
+open(OUT+sys.argv[2],'w').write('\n'.join(log))

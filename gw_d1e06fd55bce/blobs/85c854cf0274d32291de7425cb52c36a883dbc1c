@@ -1,0 +1,32 @@
+# Playtest report — release `playtest-1` (world/producer; game-developer@17c81784, artist@b2daa703)
+
+Played `pong/index.html` from `pong-delivery-1.zip` in Playwright Chromium 1.64 (headless), over `file://` and over `python3 -m http.server`, using real key presses (Enter/Space, Up/Down, W/S, P, Esc) and a mouse click. Played by a script that reads the game state to steer the paddle, so "feel" notes come from measured numbers, not a human hand; audio was not audible (headless) — only checked that no errors occurred.
+Evidence: `evidence/` (screenshots 01–10, `playthrough_file_url.webm` of the two full matches, logs, scripts in `evidence/scripts/`).
+
+## Verdict
+Playable and finishable start to finish; no defects found against R1–R8. Opinion items below are non-blocking.
+
+## R1–R8
+| Req | Result | How seen |
+|---|---|---|
+| R1 browser, no build/network | PASS | Opened by `file://` and static server: no console errors, no failed or 4xx requests (`edge_checks.txt`); all paths relative. |
+| R2 Pong | PASS | Ball bounces off walls and both paddles, point on a miss, 0.9 s "GET READY" then new serve toward the side that lost the point. |
+| R3 vs computer | PASS | Idle player loses 30/30 (computer wins, avg 17 s). A perfect-tracking player wins ~100% (avg 5.0–0.2); simulated human-ish players (0.15 s reaction, ±25 px aim error) won 9/40, slower ones 0/40 (`ai_sim.txt`). So it is beatable and can win; skilled-but-imperfect play is hard. |
+| R4 keyboard | PASS | Up/Down and W/S both move the paddle (210 px in 0.5 s ≈ 430 px/s); controls on title screen. |
+| R5 first to 5 | PASS | Match ended exactly at 5–0 (won) and 0–5 (lost); ball stops, state goes to game over. |
+| R6 title | PASS | Shown on load; logo "PONG", premise, controls (W/S or ↑/↓, P, M), "PRESS ENTER OR SPACE TO START"; Enter and Space both start (`01_title.png`). |
+| R7 score | PASS | "YOU n / CPU n" top centre throughout play, updates on each point (`03win_midplay.png`, `05lose_midplay.png`). |
+| R8 win screen / replay | PASS | "YOU WIN!" (gold) / "COMPUTER WINS", final score, "PRESS ENTER OR SPACE TO PLAY AGAIN"; Enter and mouse click both start a fresh 0–0 match; Esc goes to title (`04`, `06`, `07`). |
+
+Matches played: won 5–0 (77 s), then play again → lost 0–5 (19 s), then click play again → 0–0 match started.
+
+## Other things checked
+- P/Esc pauses and resumes (P, Esc or Enter); losing window focus auto-pauses. Responsive scaling works at 1366x768 and 640x400 (`10_small_640x400.png`).
+
+## How it feels / observations (non-blocking)
+1. Paddle response is immediate and fast (430 px/s on a 500 px field); no lag seen.
+2. Ball starts at 340 px/s (~2.4 s per crossing), +6% per paddle hit, capped at 820; rallies of 12–21 hits were reached, so the speed-up is gentle and visible. Serves are slow-ish and random in angle (±30°), start from centre toward the loser; fair.
+3. Computer: tracks and predicts the ball but is slower (300 px/s) and aims with a growing error as the rally lengthens. For a casual human this will probably be the harder side (the average bot lost every match); a real human should judge whether it is fun. If acceptance wants an easier opponent, slow `AI_SPEED` or the error growth in `src/game.js`.
+4. The play-again prompt appears only 0.6 s after the match ends and Enter pressed before that is ignored (by design, avoids accidental skips); a player mashing keys at the end sees no response for a moment.
+5. The score digits on the win screen are dimmed under the overlay but the final score is repeated in text, so nothing is lost.
+6. Audio: not heard. Sound hooks fire without errors; the artist's WAVs are short square beeps per MANIFEST. Needs a human ear if audio matters.

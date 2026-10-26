@@ -1,0 +1,22 @@
+# Acceptance record — Snake
+
+**Conclusion: accepted.** The assembled delivery is the Snake game the objective (`producer`#1) asks for and meets every requirement R1-R10 of `brief.md`.
+
+## What was accepted
+Assembled delivery (`ht-role delivery`): game-developer `dcc9ebb6d219d8ec76f7a3cc4a4988cb182621b1` (root: `index.html`, `src/`, `docs/`, `tests/`, `README.md`) + artist `bcf60b1e443a15d5ee974c0063b9fe5b50216096` (`assets/`: images, audio, theme, font). 43 files, no assembly errors. Same content as game-developer release v0.3.0 and producer release `build-3` (zip sha256 6fa590d0a46c98370d86e82fe25d7b7ccbb82dc1ca460176797142e50c527db9).
+
+## What I inspected and played
+- Headless Chromium (Playwright 1.64), served by `python3 -m http.server`, real-time arrow-key play (script in my working dir, results in `acceptance/notes.md`, captures in `acceptance/build3/`), repeated on the final assembly: title on load (arrows do not start, Enter does); 5 foods each +1 length / +1 score with live HUD; quick double turn applied, reversal ignored; wall death with final score matching; Play again resets to score 0 / length 3 without reload; page never scrolls; zero console messages, all assets loaded.
+- Viewports 800x500, 1024x600, 1366x650, 1280x720, 1920x1080: HUD and full board inside the window, no scroll.
+- Read `src/logic.js`: grid rules, food on free cells only, wall and self collision (tail cell vacated when not eating), 180° reversal guard, 2-turn buffer.
+
+## Checks and playtests weighed
+- qa build 2 (`reports/build-1.md`, qa 19a85e2): 72/75, R2-R10 pass; one defect D1 (viewport cropping, game-developer#6).
+- playtester build 1 (`reports/build-1.md`, playtester 80161ea): R1-R10 behave; findings: HUD off-screen on short windows, corners not joined, game-over overlay too dark, resume only by P/Esc.
+- Producer revise game-developer#5 (HUD/board off-screen under ~720 px, reproduced on build 2) → fixed in dcc9ebb (v0.3.0).
+- qa build 3 (`reports/build-3.md`, qa b4257d1): 101/101, R1-R10 pass, D1 fixed at 8 viewports, no open QA defects, no artist defects.
+- playtester build 3 (`reports/build-3.md`, playtester 1620858): all earlier findings fixed, rules unchanged, no console errors; "I'd accept it".
+
+## Remaining, non-blocking
+- On a self-collision the centred game-over card can cover the head/hit segment (playtester build 3, minor).
+- Not judged by anyone: sound by ear (sound is optional per the brief; all three sounds load without error), touch, browsers other than Chromium.

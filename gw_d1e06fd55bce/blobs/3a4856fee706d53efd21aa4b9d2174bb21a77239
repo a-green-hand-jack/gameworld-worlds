@@ -1,0 +1,44 @@
+import wave, struct, math, random
+from PIL import Image, ImageDraw
+SR=22050
+def tone(segs, vol=0.5):
+    out=[]
+    for f,d,shape in segs:
+        n=int(SR*d)
+        for i in range(n):
+            t=i/SR; env=min(1,i/(SR*0.005))*(1-i/n)
+            if f==0: v=0
+            elif shape=='sq': v=1 if math.sin(2*math.pi*f*t)>=0 else -1
+            else: v=math.sin(2*math.pi*f*t)
+            out.append(v*env*vol)
+    return out
+def save(name,s):
+    with wave.open(f'assets/audio/{name}.wav','wb') as w:
+        w.setnchannels(1);w.setsampwidth(2);w.setframerate(SR)
+        w.writeframes(b''.join(struct.pack('<h',int(max(-1,min(1,x))*32000)) for x in s))
+save('paddle',tone([(480,0.07,'sq')]))
+save('wall',tone([(240,0.06,'sq')]))
+save('score',tone([(660,0.1,'sq'),(440,0.1,'sq'),(300,0.18,'sq')]))
+save('win',tone([(523,0.12,'sq'),(659,0.12,'sq'),(784,0.12,'sq'),(1047,0.4,'sq')]))
+save('lose',tone([(392,0.18,'sq'),(330,0.18,'sq'),(262,0.18,'sq'),(196,0.5,'sq')]))
+FG=(240,240,240,255)
+Image.new('RGBA',(12,80),FG).save('assets/img/paddle.png')
+Image.new('RGBA',(12,12),FG).save('assets/img/ball.png')
+im=Image.new('RGBA',(4,24),(0,0,0,0)); ImageDraw.Draw(im).rectangle([0,0,3,11],fill=(240,240,240,160)); im.save('assets/img/centerline.png')
+# logo: 5x7 pixel font "PONG"
+G={'P':["1111","1001","1001","1111","1000","1000","1000"],'O':["1111","1001","1001","1001","1001","1001","1111"],
+'N':["1001","1101","1101","1011","1011","1001","1001"],'G':["1111","1000","1000","1011","1001","1001","1111"]}
+s=24;W=(4*4+3)*s;im=Image.new('RGBA',(W,7*s),(0,0,0,0));d=ImageDraw.Draw(im)
+for k,c in enumerate("PONG"):
+    for y,row in enumerate(G[c]):
+        for x,b in enumerate(row):
+            if b=='1': d.rectangle([(k*5+x)*s,y*s,(k*5+x+1)*s-1,(y+1)*s-1],fill=FG)
+im.save('assets/img/logo.png')
+open('assets/palette.css','w').write(""":root {
+  --bg: #101010;
+  --fg: #f0f0f0;
+  --accent: #ffd23f;
+  --dim: #8a8a8a;
+  --font-family: "Courier New", Courier, monospace;
+}
+""")

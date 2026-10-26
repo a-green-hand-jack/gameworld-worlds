@@ -1,0 +1,11 @@
+# Beep QA report
+
+Tested assembled delivery on 2026-10-20: game-developer b13743fd2bd8580add386db748c4bbba02f8d386 and artist 2c9f5839740bb87fb1c90ea754a223b4c912e609. Objective and published brief were reread before testing. QA's assigned paths match its commitment.
+
+Browser checks passed in Playwright Chromium 156.0.8078.4 served over local HTTP: exactly one Beep button; initial count 0; mouse, Enter, and Space activations incremented to 3; ten further clicks incremented to 13. The actual HTMLAudioElement fetched sound/beep.wav successfully and emitted playing and ended events; decoded duration was 0.5 seconds. No page errors or audio error events occurred. Rapid clicks restarted the same audio element. This is playback-event evidence, not a recording of browser speaker output. Desktop and 375×667 viewport captures are in qa-evidence/; no horizontal overflow was detected.
+
+WAV checks passed: mono 16-bit PCM, 44.1 kHz, 22,050 frames (0.5 s), 660 Hz FFT peak over the first 0.3 s, declining RMS in each of six 50 ms windows, and exactly zero samples throughout the final 0.2 s. SHA-256: a2194bc28cfd4b2fb9fe2466c305429aae510eb24a5749075e2af71fc74f5326.
+
+Required independent listening submission completed. The service's answer **does not match** the specified sound: it describes a mechanical click/snap and times through 0.94 s. See listening.md for the full request, unchanged response, and assessment. Measurements contradict that timing. This is a listening-result discrepancy, not a reproduced code or WAV defect. Producer must judge acceptance with this evidence and the separate playtester record.
+
+No reproducible implementation defect found in this scope. Evidence: qa-evidence/checks.json, desktop.png, mobile.png. Reproduction script: qa-evidence/check.py (expects assembled delivery at /hutian/qa-build). Listening request script: qa-evidence/listen.py. No Safari/Firefox or physical audio-output test was performed.

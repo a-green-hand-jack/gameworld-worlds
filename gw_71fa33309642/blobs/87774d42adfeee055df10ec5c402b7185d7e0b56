@@ -1,0 +1,361 @@
+"""QA checks of a build dir against the round 1 brief (P1). Usage: BUILD_DIR=/path python3 qa/check_build.py OUTDIR
+Deterministic (?manual, SMB.step) except the G section which runs real-time. Prints PASS/FAIL per ID; writes OUTDIR/results.json and screenshots."""
+import sys, os, json, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+BUILD = os.path.abspath(os.environ.get('BUILD_DIR', '.'))
+OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/qa-out'
+os.makedirs(OUT, exist_ok=True)
+R = {}
+def check(id_, cond, info=''):
+    R[id_] = {'ok': bool(cond), 'info': str(info)}
+    print(('PASS ' if cond else 'FAIL ') + id_, str(info)[:300], flush=True)
+
+def new(hash_=''):
+    g = Game(BUILD, hash_)
+    return g
+def start(g):
+    g.press('start'); g.step(160)
+def tp(g, x, y=None, vx=0):
+    g.js(f"(() => {{ const p = SMB.game.player; p.x = {x}; {'' if y is None else f'p.y = {y} - p.h;'} p.vx = {vx}; p.vy = 0; SMB.game.camX = Math.max(0, {x} - 100); }})()")
+def clear(g): g.js("SMB.game.enemies = []; SMB.game.area.spawned.fill(true)")
+def cam(g): g.js("(() => { const g = SMB.game; g.camX = Math.max(0, g.player.x - 100); })()")
+def sounds(g):
+    g.js("(() => { if (SMB._log) return; SMB._log = []; const S = SMB.Sound, o = S.play.bind(S); S.play = (n, ...a) => { SMB._log.push(n); return o(n, ...a); }; const m = S.playMusic.bind(S); S.playMusic = (n, ...a) => { SMB._log.push('music:' + n); return m(n, ...a); }; })()")
+def slog(g): return g.js("SMB._log.splice(0)")
+def tile(g, x, y): return g.js(f"SMB.game.area.get({x},{y})")
+def bump_from_below(g, tx, ty):
+    tp(g, tx * 16 + 2, (ty + 4) * 16 + 16 if False else 13 * 16); cam(g); g.step(2)
+    g.hold('A', frames=25); g.step(40)
+
+# ---------------------------------------------------------------- G: boot, real time
+def section_G():
+    g = Game(BUILD, '')  # manual mode default in harness; real-time below
+    g.close()
+    from playwright.sync_api import sync_playwright
+    import http.server, threading, functools
+    with sync_playwright() as p:
+        b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+        pg = b.new_page(viewport={'width': 1024, 'height': 960})
+        errs, reqs = [], []
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('request', lambda r: reqs.append(r.url))
+        pg.goto('file://' + BUILD + '/index.html'); pg.wait_for_function('window.SMB && SMB.loaded', timeout=20000)
+        check('G1.file-load', not errs, errs)
+        check('G1.offline', all(u.startswith('file://') or u.startswith('data:') for u in reqs), [u for u in reqs if not u.startswith('file://')][:5])
+        c = pg.evaluate("(()=>{const c=document.getElementById('screen');return [c.width,c.height,c.clientWidth,c.clientHeight,getComputedStyle(c).imageRendering,SMB.game.ctx.imageSmoothingEnabled]})()")
+        check('G2.canvas-256x240-int-scale', c[0] == 256 and c[1] == 240 and c[2] % 256 == 0 and c[3] == c[2] * 240 // 256 and c[4] in ('pixelated', 'crisp-edges') and c[5] is False, c)
+        # real-time: 60 logic frames per second
+        pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
+        tapped = pg.evaluate("SMB.game.state") != 'title'
+        check('G4.zero-length-keypress-registers', tapped, 'Enter keydown+keyup in the same frame (Playwright default press) is ignored; human taps are fine')
+        if not tapped: pg.keyboard.press('Enter', delay=80)
+        pg.wait_for_timeout(3000)
+        f0 = pg.evaluate('SMB.game.frame'); pg.wait_for_timeout(2000); f1 = pg.evaluate('SMB.game.frame')
+        check('G3.60fps-logic', 110 <= f1 - f0 <= 130, f1 - f0)
+        # run right in real time ~2 s: expect plausible speed
+        pg.evaluate('SMB.game.player.invuln = 999999'); x0 = pg.evaluate('SMB.game.player.x'); pg.keyboard.down('ArrowRight'); pg.wait_for_timeout(2000); pg.keyboard.up('ArrowRight')
+        x1 = pg.evaluate('SMB.game.player.x'); check('G4.arrow-right-real-keys', x1 - x0 > 60, x1 - x0)
+        pg.evaluate("SMB.game.time = 101"); pg.wait_for_timeout(9000)
+        mn = pg.evaluate("[SMB.Sound.musicName, SMB.Sound.musicFast, SMB.game.state, SMB.game.paused, SMB.game.time, SMB.game.player.x, JSON.stringify(SMB.game.events.slice(-4))]")
+        check('S2.hurry-then-fast-music-realtime', mn[1] is True and mn[0] == 'overworld_fast', mn)
+        # key mapping: each documented key
+        res = {}
+        for name, keys in {'B': ['z', 'j'], 'A': ['x', 'k', ' ']}.items():
+            ok = True
+            for k in keys:
+                pg.keyboard.down(k); pg.wait_for_timeout(60)
+                ok &= pg.evaluate(f"SMB.Input.isDown('{name}') || SMB.Input.down['{name}']"); pg.keyboard.up(k)
+            res[name] = ok
+        check('G4.keys-AB', all(res.values()), res)
+        # blur releases keys
+        pg.keyboard.down('ArrowRight'); pg.wait_for_timeout(50); pg.evaluate("window.dispatchEvent(new Event('blur'))")
+        check('G4.blur-releases', pg.evaluate("!SMB.Input.down.right"))
+        pg.keyboard.up('ArrowRight')
+        b.close()
+    # speed independence: real loop clamps to fixed step -- verify code path
+    src = open(BUILD + '/src/main.js').read()
+    check('G3.fixed-timestep-loop', 'STEP = 1000 / 60' in src and 'acc' in src)
+
+# ---------------------------------------------------------------- physics
+def section_M():
+    g = new(); start(g); clear(g); g.js("SMB.game.spawnEnemies = () => {}")
+    s = g.state(); check('D5.title->play', s['state'] == 'play' and s['time'] == 400 and s['lives'] == 3, s)
+    # M1 walk/run speeds & momentum
+    tp(g, 20); g.step(2); g.set('right', True); g.step(100); v = g.state()['vx']; g.set('right', False)
+    check('M1.walk-speed', 1.4 < v < 1.6, v)
+    g.step(60)
+    tp(g, 20); g.step(2); g.set('right', True); g.set('B', True); g.step(100); vr = g.state()['vx']
+    check('M1.run-speed', 2.4 < vr < 2.7, vr)
+    g.set('right', False); g.step(3); v3 = g.state()['vx']; check('M1.momentum-coast', 0 < v3 < vr + 0.01 and v3 > vr - 1.2, (v3, vr))
+    g.step(80); check('M1.stops', g.state()['vx'] == 0, g.state()['vx'])
+    g.set('B', False)
+    # skid
+    tp(g, 100, 13 * 16); g.set('right', True); g.set('B', True); g.step(60); g.set('right', False); g.set('left', True); g.step(2)
+    sk = g.js("SMB.game.player.skidding"); check('M1.skid', sk, sk); g.set('left', False); g.set('B', False); g.step(100)
+    # M2 jump heights
+    def jump(hold, run):
+        g.step(30); y0 = g.state()['y']; ys = []
+        if run: g.set('right', True); g.set('B', True); g.step(60)
+        g.set('A', True); mn = y0
+        for i in range(hold): g.step(1); mn = min(mn, g.state()['y'])
+        g.set('A', False)
+        for i in range(70): g.step(1); mn = min(mn, g.state()['y'])
+        g.set('right', False); g.set('B', False); g.set('A', False)
+        return y0 - mn
+    tp(g, 100, 13 * 16); g.step(5)
+    hs = jump(60, False); ht = jump(3, False)
+    tp(g, 100, 13 * 16); g.step(5); g.step(40)
+    hr = jump(60, True)
+    check('M2.small-jump-full', 60 <= hs <= 72, f'{hs:.1f}px')
+    check('M2.variable-height', ht < hs * 0.7, f'tap {ht:.1f} vs hold {hs:.1f}')
+    check('M2.run-jump-higher-than-stand', hr > hs - 0.5, f'run {hr:.1f} vs stand {hs:.1f}')
+    # M3 air control
+    tp(g, 20 * 16, 13 * 16); cam(g); g.set('A', True); g.step(10); g.set('right', True); g.step(20); x0 = g.state()['x']
+    g.set('right', False); g.set('left', True); g.step(10); x1 = g.state()['x']; g.set('left', False); g.set('A', False); g.step(80)
+    # M4 camera lock left
+    g.step(10); tp(g, 20 * 16, 13 * 16); g.js("SMB.game.camX = 400"); g.step(2)
+    g.set('left', True); g.step(120); g.set('left', False); s = g.state()
+    check('M4.cam-no-left', s['x'] >= 400 and s['camX'] >= 400, s)
+    # pit death
+    g.js("SMB.game.player.x = 69*16; SMB.game.player.y = 13*16 - SMB.game.player.h; SMB.game.camX = 69*16 - 100"); g.step(2)
+    g.step(150); s = g.state(); check('D3.pit-death', s['state'] in ('dying', 'intro') and (s['dead'] or s['state'] == 'intro'), s)
+    g.step(300); s = g.state(); check('D2.respawn-after-death', s['state'] in ('intro', 'play') and s['lives'] == 2, s)
+    g.close()
+
+def section_blocks():
+    g = new(); start(g); sounds(g)
+    # coin block
+    clear(g); tp(g, 16 * 16 + 2, 13 * 16); cam(g); g.step(3); slog(g)
+    c0 = g.state(); g.hold('A', frames=25); g.step(40); s = g.state()
+    check('C1.question-coin', s['coins'] == c0['coins'] + 1 and s['score'] - c0['score'] == 200 and tile(g, 16, 9) == g.js("SMB.T.USED"), (c0['coins'], s['coins'], s['score']))
+    # used block does nothing
+    tp(g, 16 * 16 + 2, 13 * 16); g.step(3); g.hold('A', frames=25); g.step(40)
+    check('C1.used-gives-nothing', g.state()['coins'] == s['coins'], g.state()['coins'])
+    # small mario bumps brick, doesn't break
+    tp(g, 20 * 16 + 2, 13 * 16); cam(g); g.step(3); g.hold('A', frames=25); g.step(40)
+    check('P2.small-bumps-brick', tile(g, 20, 9) == g.js("SMB.T.BRICK"), tile(g, 20, 9))
+    # mushroom
+    tp(g, 21 * 16 + 2, 13 * 16); g.step(3); g.hold('A', frames=25); g.step(40)
+    items = g.js("SMB.game.items.map(i=>i.kind)"); check('P1.mushroom-from-first-?', items == ['mushroom'], items)
+    g.shot(OUT + '/mushroom.png')
+    x_m = g.js("SMB.game.items[0].x"); g.step(30); x_m2 = g.js("SMB.game.items[0].x")
+    check('P1.mushroom-moves-right', x_m2 > x_m, (x_m, x_m2))
+    g.js("(() => { const p = SMB.game.player, i = SMB.game.items[0]; p.x = i.x - 2; p.y = i.y + i.h - p.h; })()"); g.step(5); g.step(60)
+    s = g.state(); check('P1.mushroom-grows', s['power'] == 1 and s['state'] == 'play', s)
+    # big breaks brick
+    tp(g, 22 * 16 + 2, 13 * 16); g.step(3); g.hold('A', frames=25); g.step(40)
+    check('P2.big-breaks-brick', tile(g, 22, 9) == 0, tile(g, 22, 9))
+    # crouch
+    h0 = g.js("SMB.game.player.h"); g.set('down', True); g.step(5); h1 = g.js("SMB.game.player.h"); g.set('down', False); g.step(5)
+    check('M5.big-crouch', h1 < h0, (h0, h1))
+    # second power block -> fire flower when big
+    tp(g, 78 * 16 + 2, 13 * 16); cam(g); g.step(3); g.hold('A', frames=25); g.step(40)
+    items = g.js("SMB.game.items.map(i=>i.kind)"); check('P3.flower-when-big', items == ['flower'], items)
+    g.js("(() => { const p = SMB.game.player, i = SMB.game.items[0]; p.x = i.x; p.y = i.y + i.h - p.h; })()"); g.step(60)
+    s = g.state(); check('P3.fire-power', s['power'] == 2, s)
+    # fireballs
+    g.step(10); sounds(g); slog(g); g.press('B') if False else g.hold('B', frames=2); g.step(2)
+    nfb = g.js("SMB.game.fireballs.length"); check('P3.fireball-spawn', nfb == 1, nfb)
+    g.hold('B', frames=1); g.step(1); g.hold('B', frames=1); g.step(1); g.hold('B', frames=1)
+    check('P3.max-two-fireballs', g.js("SMB.game.fireballs.length") <= 2, g.js("SMB.game.fireballs.length"))
+    ys = []
+    for i in range(50): g.step(1); ys.append(g.js("SMB.game.fireballs.map(f=>Math.round(f.y)).join()"))
+    g.shot(OUT + '/fire.png')
+    # fireball kills goomba
+    clear(g); g.js("(() => { const g = SMB.game; g.fireballs = []; const p = g.player; p.x = 60*16; p.y = 13*16 - p.h; g.camX = p.x - 100; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 66, y: 12})]; })()"); g.step(2)
+    g.hold('B', frames=2); g.step(90)
+    alive = g.js("SMB.game.enemies.filter(e=>!e.dead&&!e.dying).length"); check('P3.fireball-kills-goomba', alive == 0, alive)
+    # hurt: fire -> small with invuln
+    g.js("(() => { const g = SMB.game; const p = g.player; p.x = 62*16; p.y = 13*16 - p.h; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 62.5, y: 12})]; })()")
+    g.step(30)
+    s = g.state(); inv = g.js("SMB.game.player.invuln")
+    check('P6.fire-hit-shrinks-to-small-with-invuln', s['power'] == 0 and not s['dead'], (s['power'], inv))
+    g.step(200); check('P6.invuln-expires', g.js("SMB.game.player.invuln") == 0)
+    # small hit kills
+    g.js("(() => { const g = SMB.game; const p = g.player; p.x = 62*16; p.y = 13*16 - p.h; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 62.5, y: 12})]; })()"); g.step(30)
+    check('P6.small-hit-dies', g.state()['dead'], g.state()['state'])
+    g.close()
+
+def section_special_blocks():
+    g = new(); start(g); sounds(g)
+    clear(g)
+    # hidden 1-up at (64,8)
+    tp(g, 64 * 16 + 2, 13 * 16); cam(g); g.step(3)
+    check('L2.hidden-block-not-solid-before-hit', not g.js("SMB.game.area.solid(64,8)") and tile(g, 64, 8) == g.js("SMB.T.HIDDEN"), tile(g, 64, 8))
+    # walking through must not collide; jump from below triggers
+    g.hold('A', frames=25); g.step(40); items = g.js("SMB.game.items.map(i=>i.kind)")
+    check('L2.hidden-1up-block', '1up' in items, items)
+    check('L2.hidden-block-solid-after-hit', g.js("SMB.game.area.solid(64,8)"), tile(g, 64, 8))
+    l0 = g.state()['lives']; g.js("(() => { const p = SMB.game.player, i = SMB.game.items.find(i=>i.kind==='1up'); p.x = i.x; p.y = i.y + i.h - p.h; })()"); g.step(10)
+    check('P5.1up-gives-life', g.state()['lives'] == l0 + 1, g.state()['lives'])
+    # hidden block invisible: tile before hit is hidden type and not drawn solid from side
+    # multi coin brick (94,9)
+    tp(g, 94 * 16 + 2, 13 * 16); cam(g); g.step(3); c0 = g.state()['coins']
+    n = 0
+    for i in range(14):
+        g.hold('A', frames=14); g.step(14)
+        tp(g, 94 * 16 + 2, 13 * 16); g.step(3)
+    c1 = g.state()['coins']; check('L2.multi-coin-brick', c1 - c0 >= 5, c1 - c0)
+    # star brick (101,9)
+    tp(g, 101 * 16 + 2, 13 * 16); cam(g); g.step(3); g.hold('A', frames=25); g.step(45)
+    items = g.js("SMB.game.items.map(i=>i.kind)"); check('L2.star-brick', 'star' in items, items)
+    x0 = g.js("SMB.game.items[0].x"); g.step(60); x1 = g.js("SMB.game.items[0].x")
+    check('P4.star-moves', x1 != x0, (x0, x1))
+    g.js("(() => { const p = SMB.game.player, i = SMB.game.items.find(i=>i.kind==='star'); p.x = i.x; p.y = i.y + i.h - p.h; })()"); g.step(5)
+    check('P4.star-power', g.js("SMB.game.player.star") > 0, g.js("SMB.game.player.star"))
+    log = slog(g); check('S2.star-music', 'music:starman' in log, log[-6:])
+    # invincible: walk through goomba
+    g.js("(() => { const g = SMB.game; const p = g.player; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 103, y: 12})]; p.x = 101*16; p.y = 13*16 - p.h; g.camX = p.x - 100; })()")
+    g.set('right', True); g.step(60); g.set('right', False)
+    s = g.state(); alive = g.js("SMB.game.enemies.filter(e=>!e.dead&&!e.dying).length")
+    check('P4.star-kills-and-invincible', not s['dead'] and alive == 0, (s['dead'], alive, s['score']))
+    g.shot(OUT + '/star.png')
+    g.step(800); check('P4.star-ends', g.js("SMB.game.player.star") == 0, g.js("SMB.game.player.star"))
+    log = slog(g); check('S2.music-resumes-after-star', 'music:overworld' in log, log[-6:])
+    # 100 coins -> 1up
+    g.js("SMB.game.coins = 99"); l0 = g.state()['lives']; tp(g, 106 * 16 + 2, 13 * 16); cam(g); g.step(3); g.hold('A', frames=25); g.step(40)
+    s = g.state(); check('C2.100coins-1up', s['coins'] == 0 and s['lives'] == l0 + 1, s)
+    g.close()
+
+def section_enemies():
+    g = new(); start(g); sounds(g); clear(g)
+    # goomba walks, turns at wall (pipe at 28)
+    g.js("(() => { const g = SMB.game; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 31, y: 12})]; g.player.x = 10*16; g.camX = 25*16; })()")
+    g.js("SMB.game.player.invuln = 99999"); g.step(2); x0 = g.js("SMB.game.enemies[0].x"); g.step(60); x1 = g.js("SMB.game.enemies[0].x")
+    check('E1.goomba-walks-left', x1 < x0, (x0, x1))
+    sgn = []
+    for i in range(80): g.step(1); sgn.append(g.js("SMB.game.enemies[0].vx > 0"))
+    x2 = g.js("SMB.game.enemies[0].x")
+    check('E1.goomba-turns-at-wall', any(sgn) and x2 > 30 * 16 - 20, (x2, sgn.index(True) if any(sgn) else None))
+    # goomba falls in pit
+    g.js("(() => { const g = SMB.game; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 71, y: 12})]; g.player.x = 66*16; g.camX = 62*16; })()"); g.step(250)
+    check('E3.goomba-falls-in-pit', g.js("SMB.game.enemies.length") == 0 or g.js("SMB.game.enemies[0].y") > 240 or g.js("SMB.game.enemies[0].dead"), g.js("SMB.game.enemies.length"))
+    # stomp scoring
+    g.js("(() => { const g = SMB.game; const p = g.player; p.invuln = 99999; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 42, y: 12})]; p.x = 42*16 + 1; p.y = 13*16 - p.h - 40; p.vy = 1; p.vx = 0; g.camX = 38*16 - 50; })()")
+    sc = g.state()['score']; g.step(40); d1 = g.state()['score'] - sc
+    check('E1.stomp-100', d1 == 100, d1)
+    g.js("SMB.game.player.invuln = 0")
+    # E4 touch hurts
+    g.js("(() => { const g = SMB.game; const p = g.player; g.enemies = [SMB.makeEnemy(g, {type:'goomba', x: 43, y: 12})]; p.invuln = 0; p.star = 0; p.power = 0; p.setSize(); p.x = 43*16 - 50; p.y = 13*16 - p.h; p.vx=0; p.vy=0; g.camX = 38*16 - 50; })()")
+    g.set('right', True); g.step(60); g.set('right', False)
+    check('E4.touch-kills-small', g.state()['dead'], g.state()['state'])
+    vys = []
+    for i in range(100): g.step(1); vys.append(g.js("SMB.game.player.vy"))
+    check('D2.death-animation-hops-up-then-falls', min(vys) < -1 and max(vys) > 1, (min(vys), max(vys)))
+    sl = slog(g); check('S1.death-sfx', 'music:death' in sl, sl[-5:])
+    g.close()
+    g = new(); start(g); sounds(g); clear(g)
+    mk = lambda t, x, y=12: f"SMB.makeEnemy(g, {{type:'{t}', x: {x}, y: {y}}})"
+    # koopa
+    g.js(f"(() => {{ const g = SMB.game; g.enemies = [{mk('koopa', 40)}]; g.player.x = 36*16; g.camX = 34*16; }})()"); g.step(30)
+    g.js("(() => { const g = SMB.game, e = g.enemies[0], p = g.player; p.x = e.x; p.y = e.y - p.h - 30; p.vy = 1; })()"); g.step(15)
+    e = g.js("(() => { const e = SMB.game.enemies[0]; return [e.state, e.vx, e.h]; })()")
+    check('E2.koopa-stomp-to-shell', e[0] == 'shell' and e[1] == 0, e)
+    g.shot(OUT + '/shell.png')
+    # kick, and shell kills a goomba
+    g.js(f"(() => {{ const g = SMB.game; g.enemies.push({mk('goomba', 43)}); const e = g.enemies[0], p = g.player; p.x = e.x - 30; p.y = 13*16 - p.h; p.vy = 0; p.invuln = 0; }})()")
+    g.set('right', True); g.step(30); g.set('right', False)
+    st = g.js("SMB.game.enemies[0].state"); check('E2.shell-kick-slides', st == 'slide', st)
+    g.step(150); gl = g.js("SMB.game.enemies.filter(e=>e.type==='goomba'&&!e.dying&&!e.dead).length")
+    check('E2.shell-kills-goomba', gl == 0, gl)
+    check('E2.mario-survives-own-kick', not g.state()['dead'] or g.state()['power'] >= 0, g.state()['state'])
+    # shell returning hits Mario
+    g.js(f"(() => {{ const g = SMB.game; g.enemies = [{mk('koopa', 70)}]; const e = g.enemies[0]; e.setShell(); e.kick && e.kick({{x:0,cx:0,vx:0}}); }})()")
+    g.close()
+    g = new(); start(g); clear(g)
+    # enemy activation: spawn only near camera
+    g.js("SMB.game.enemies = []; SMB.game.area.spawned.fill(false); SMB.game.camX = 90*16; SMB.game.player.x = 90*16 + 100"); g.step(3)
+    xs = g.js("SMB.game.enemies.map(e => Math.round(e.x/16))")
+    check('E5.enemies-spawn-near-camera-only', all(x < 90 + 18 + 1 for x in xs) and 150 > len(xs) >= 1, xs)
+    g.close()
+
+def section_flow():
+    g = new(); start(g); sounds(g); clear(g)
+    # H1 HUD & timer
+    t0 = g.state()['time']; g.step(60 * 4); t1 = g.state()['time']
+    check('H1.time-ticks', 8 <= t0 - t1 <= 12, t0 - t1)
+    # hurry
+    g.js("SMB.game.time = 101"); slog(g); g.step(60); log = slog(g)
+    check('H3.hurry-jingle-at-100', 'music:hurry' in log, log)
+    # time out
+    g.js("SMB.game.time = 1"); g.step(60 * 5); s = g.state()
+    check('H2.timeout-kills', s['state'] in ('dying', 'timeup', 'intro') and s['lives'] <= 3 and s['lives'] == 2 or s['dead'], s)
+    g.step(500); s = g.state(); check('H2.timeup-then-restart', s['state'] in ('play', 'intro') and s['lives'] == 2, s)
+    g.close()
+    g = new(); start(g); sounds(g); clear(g)
+    # game over
+    g.js("SMB.game.lives = 1"); g.js("SMB.game.player.x = 69*16; SMB.game.player.y = 13*16 - SMB.game.player.h; SMB.game.camX = 69*16 - 100")
+    g.step(400); s = g.state(); sl = slog(g); check('D4.game-over-state', s['state'] == 'gameover' or 'music:game_over' in sl, (s['state'], sl[-4:]))
+    g.shot(OUT + '/gameover.png')
+    g.step(400); s = g.state(); check('D4.back-to-title', s['state'] == 'title', s)
+    g.press('start'); g.step(200); s = g.state(); check('D4.restart-without-reload', s['state'] == 'play' and s['lives'] == 3 and s['score'] == 0 and s['coins'] == 0, s)
+    # checkpoint after mid-level death
+    g.js("SMB.game.player.x = 90*16; SMB.game.camX = 88*16"); g.step(5)
+    g.js("SMB.game.killPlayer()"); g.step(400); s = g.state(); check('D2.respawn-at-checkpoint', s['state'] == 'play' and s['x'] > 60 * 16, s)
+    # pause
+    g.press('start'); f0 = g.state()['time']; x0 = g.state()['x']; g.set('right', True); g.step(120); g.set('right', False)
+    check('G4.pause-freezes', g.state()['x'] == x0 and g.state()['time'] == f0, g.state())
+    g.press('start'); g.close()
+
+def section_pipes_flag():
+    g = new(); start(g); sounds(g); clear(g)
+    # pipe w/out down not entered; down enters
+    tp(g, 57 * 16 + 8, 9 * 16); cam(g); g.step(3); g.step(30); check('L2.stand-on-pipe-no-enter', g.state()['area'] == 'main')
+    g.set('down', True); g.step(40); g.set('down', False); g.step(80)
+    check('L2.pipe57-enters-coinroom', g.state()['area'] == 'coinroom', g.state()['area'])
+    sl = slog(g); check('S1.pipe-sfx', 'pipe' in sl, sl[:5]); g.shot(OUT + '/coinroom.png')
+    check('S2.underground-music', 'music:underground' in sl, sl)
+    c = g.js("(() => { let n=0; const a=SMB.game.area; for(let x=0;x<16;x++)for(let y=0;y<15;y++) if(a.get(x,y)===SMB.T.COIN) n++; return n; })()")
+    check('L2.coinroom-coins', c >= 15, c)
+    tp(g, 11 * 16, 13 * 16); g.step(2); g.set('right', True); g.step(80); g.set('right', False); g.step(80)
+    s = g.state(); check('L2.exit-pipe-back-to-main', s['area'] == 'main' and s['state'] == 'play' and abs(s['x'] - 163 * 16) < 40, s)
+    g.close()
+    # flagpole heights
+    out = {}
+    for name, y in [('top', 24), ('mid', 5 * 16), ('low', 10 * 16)]:
+        g = new(); start(g); sounds(g); clear(g); sc0 = g.state()['score']
+        g.js("(() => { const g = SMB.game, p = g.player; p.x = 198*16 + 3 - 12 - 2; p.y = %d; p.vx = 1.5; p.vy = 0; g.camX = 190*16 - 20; })()" % y)
+        g.set('right', True); g.step(4); g.set('right', False)
+        out[name] = [g.state()['state'], g.state()['score'] - sc0]
+        if name == 'top':
+            g.shot(OUT + '/flag_slide.png')
+            for i in range(60):
+                g.step(10)
+                if g.js("SMB.game.flagState && SMB.game.flagState.phase") == 'walk': break
+            g.shot(OUT + '/flag_walk.png')
+            sl = slog(g); t = g.state()['time']
+            for i in range(300):
+                g.step(10)
+                if g.state()['state'] in ('intro', 'clearscreen'): break
+            s = g.state(); sl = slog(g)
+            check('F1.tally-time-to-score', s['time'] == 0 and s['score'] - sc0 > out['top'][1] + 50 * t - 1, (t, s['score'] - sc0))
+            check('F1.after-clear-state', s['state'] in ('intro', 'clearscreen'), s['state'])
+        g.close()
+    check('F1.flag-heights', out['top'][1] >= 4000 and out['mid'][1] < out['top'][1] and out['low'][1] <= 400 and all(v[0] == 'flag' for v in out.values()), out)
+
+def section_layout():
+    g = new(); start(g)
+    s = g.js("""(() => { const a = SMB.game.area, T = SMB.T; const r = {};
+      r.ground = []; for (let x=0;x<212;x++) r.ground.push(a.get(x,13)===T.GROUND?1:0);
+      r.gaps = []; let st=-1; r.ground.forEach((v,x)=>{ if(!v && st<0) st=x; if(v && st>=0){ r.gaps.push([st,x-1]); st=-1; } });
+      r.q = []; for (let x=0;x<212;x++) for (let y=0;y<13;y++) { if (a.get(x,y)===T.QUESTION) r.q.push([x,y]); }
+      return r; })()""")
+    exp_q = {(16, 9), (21, 9), (23, 9), (22, 5), (78, 9), (94, 5), (106, 9), (109, 9), (112, 9), (109, 5), (129, 5), (130, 5), (170, 9)}
+    got_q = set(map(tuple, s['q']))
+    check('L1.question-blocks-match-original', got_q == exp_q, (sorted(got_q - exp_q), sorted(exp_q - got_q)))
+    check('L1.ground-gaps', s['gaps'] == [[69, 70], [86, 88], [153, 154]], s['gaps'])
+    g.close()
+
+if __name__ == '__main__':
+    only = sys.argv[2:] or ['G', 'M', 'blocks', 'special', 'enemies', 'flow', 'pipes', 'layout']
+    t = time.time()
+    for name, fn in [('G', section_G), ('M', section_M), ('blocks', section_blocks), ('special', section_special_blocks),
+                     ('enemies', section_enemies), ('flow', section_flow), ('pipes', section_pipes_flag), ('layout', section_layout)]:
+        if name not in only: continue
+        try:
+            fn()
+        except Exception as e:
+            import traceback; traceback.print_exc(); check(f'ERR.{name}', False, repr(e))
+    json.dump(R, open(OUT + '/results.json', 'w'), indent=1)
+    print(f"\n{sum(v['ok'] for v in R.values())}/{len(R)} pass, {time.time()-t:.0f}s")

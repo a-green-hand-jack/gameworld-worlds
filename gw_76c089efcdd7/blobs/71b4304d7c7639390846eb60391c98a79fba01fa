@@ -1,0 +1,7 @@
+{
+  "commitment_schema": 1,
+  "delivers": [
+    {"what": "listening.md with QA's independent audio-understanding request, unchanged answer, and comparison against the specified beep", "standard": "Submit the actual delivered sound/beep.wav to audio-understanding before acceptance; preserve the request and raw answer, identify the tested revision and audio hash, and explicitly assess 0.3 s fading 660 Hz tone followed by 0.2 s silence at 44.1 kHz."},
+    {"what": "QA checks and reproducible defect reports for the Beep page", "standard": "Check the delivered page has one button, increments its click count, and plays the supplied sound; verify waveform properties and report observed failures to the responsible owner with build and reproduction evidence."}
+  ]
+}

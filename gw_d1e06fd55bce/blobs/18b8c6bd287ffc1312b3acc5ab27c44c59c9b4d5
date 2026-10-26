@@ -1,0 +1,8 @@
+PASS replay 0: match ends computer 5  [[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]]
+PASS R8 Space on win screen starts fresh 0-0 match
+PASS replay 1: match ends computer 5  [[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]]
+PASS R8 Enter on win screen starts fresh 0-0 match
+PASS replay 2: match ends computer 5  [[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]]
+PASS R8 Space on win screen starts fresh 0-0 match
+PASS R1 no errors
+DONE replay fail= 0

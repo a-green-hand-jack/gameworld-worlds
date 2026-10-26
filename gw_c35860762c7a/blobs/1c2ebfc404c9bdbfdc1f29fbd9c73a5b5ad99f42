@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Replayable playtest driver: serve a build, play a JSON input script with real
+keyboard events in headless Chromium, keep screenshots / frame strips / video / logs.
+
+  python3 tools/playtest/playtest.py --root DIR_OR_URL --script steps.json --out evidence/<build-id>
+
+Script = JSON list of steps:
+  {"wait": ms}                       sleep
+  {"down": "ArrowRight"} / {"up": k} hold / release a key
+  {"press": "Space", "hold": ms}     tap or hold a key for ms
+  {"shot": "name"}                   full-page screenshot -> name.png
+  {"strip": "name", "n": 8, "every": 150}   n screenshots stitched into name.png
+  {"click": [x, y]}                  click at page coordinates
+  {"eval": "js", "as": "label"}      evaluate JS, store result in log under label
+"""
+import argparse, functools, http.server, json, os, sys, threading, time
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+from PIL import Image
+
+os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "/hutian/.pw")
+
+def serve(root):
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+    handler.log_message = lambda *a, **k: None
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, f"http://127.0.0.1:{srv.server_port}/"
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--root", required=True, help="directory of the build, or an http(s) URL")
+    ap.add_argument("--entry", default="index.html")
+    ap.add_argument("--script", help="JSON steps file")
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--size", default="1280x720")
+    ap.add_argument("--no-video", action="store_true")
+    ap.add_argument("--settle", type=int, default=1500, help="ms to wait after load")
+    a = ap.parse_args()
+
+    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    srv = None
+    if a.root.startswith("http"):
+        url = a.root
+    else:
+        srv, base = serve(Path(a.root).resolve()); url = base + a.entry
+    w, h = map(int, a.size.split("x"))
+    steps = json.loads(Path(a.script).read_text()) if a.script else []
+    log = {"url": url, "console": [], "pageerrors": [], "requestfailed": [], "evals": {}, "timeline": []}
+    t0 = time.time()
+
+    with sync_playwright() as p:
+        b = p.chromium.launch(args=["--no-sandbox", "--autoplay-policy=no-user-gesture-required"])
+        ctx = b.new_context(viewport={"width": w, "height": h},
+                            **({} if a.no_video else {"record_video_dir": str(out / "video"), "record_video_size": {"width": w, "height": h}}))
+        pg = ctx.new_page()
+        pg.on("console", lambda m: log["console"].append([round(time.time() - t0, 2), m.type, m.text]))
+        pg.on("pageerror", lambda e: log["pageerrors"].append([round(time.time() - t0, 2), str(e)]))
+        pg.on("requestfailed", lambda r: log["requestfailed"].append([r.url, r.failure]))
+        pg.on("response", lambda r: r.status >= 400 and log["requestfailed"].append([r.url, r.status]))
+        pg.goto(url, wait_until="load")
+        pg.wait_for_timeout(a.settle)
+        pg.screenshot(path=str(out / "00-loaded.png"))
+        pg.mouse.click(w // 2, h // 2)  # focus the page / satisfy audio-unlock gestures
+        for i, s in enumerate(steps):
+            log["timeline"].append([round(time.time() - t0, 2), s])
+            if "wait" in s: pg.wait_for_timeout(s["wait"])
+            elif "down" in s: pg.keyboard.down(s["down"])
+            elif "up" in s: pg.keyboard.up(s["up"])
+            elif "press" in s:
+                pg.keyboard.down(s["press"]); pg.wait_for_timeout(s.get("hold", 80)); pg.keyboard.up(s["press"])
+            elif "shot" in s: pg.screenshot(path=str(out / f"{s['shot']}.png"))
+            elif "click" in s: pg.mouse.click(*s["click"])
+            elif "eval" in s: log["evals"][s.get("as", f"eval{i}")] = pg.evaluate(s["eval"])
+            elif "strip" in s:
+                n, every, frames = s.get("n", 8), s.get("every", 150), []
+                for k in range(n):
+                    fp = out / f".f{k}.png"; pg.screenshot(path=str(fp)); frames.append(Image.open(fp).convert("RGB")); fp.unlink()
+                    pg.wait_for_timeout(every)
+                cols = min(4, n); rows = (n + cols - 1) // cols
+                tw, th = frames[0].width // 2, frames[0].height // 2
+                sheet = Image.new("RGB", (tw * cols, th * rows))
+                for k, f in enumerate(frames): sheet.paste(f.resize((tw, th)), ((k % cols) * tw, (k // cols) * th))
+                sheet.save(out / f"{s['strip']}.png")
+        pg.screenshot(path=str(out / "99-final.png"))
+        ctx.close(); b.close()
+    if srv: srv.shutdown()
+    (out / "log.json").write_text(json.dumps(log, indent=1, ensure_ascii=False))
+    print(f"errors: {len(log['pageerrors'])}  console: {len(log['console'])}  failed requests: {len(log['requestfailed'])}  out: {out}")
+
+if __name__ == "__main__":
+    sys.exit(main())

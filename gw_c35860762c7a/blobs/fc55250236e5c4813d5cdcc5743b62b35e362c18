@@ -1,0 +1,75 @@
+# Super Mario Bros. 1 — web recreation (game-developer)
+
+A browser recreation of the NES *Super Mario Bros.* (1985): vanilla JavaScript
+ES modules + Canvas 2D, no build step. This repository root is the game's
+delivery root; the art and audio under `assets/` come from the `artist`
+position (`world/artist`) and are added when the delivery is assembled.
+
+## Start it
+
+Serve the assembled site (this root plus `assets/`) with any static HTTP
+server and open it in desktop Chrome or Firefox, e.g.
+
+    python3 -m http.server 8000      # then open http://localhost:8000/
+
+Opening `index.html` from `file://` does not work (browsers block ES modules
+and `fetch` there). Released builds (see the repository's releases) are zips
+of the assembled site: unzip, serve the folder the same way.
+
+## Controls
+
+| NES | Keyboard |
+|-----|----------|
+| D-pad | Arrow keys (or WASD) |
+| A — jump / swim | X (or K, Space) |
+| B — run / fireball | Z (or J, Shift) |
+| Start — start / pause | Enter |
+| Select — menu | Tab |
+
+A standard gamepad also works (bottom face button A, left face button B).
+Audio starts after the first key press or click (browser autoplay rules).
+
+## Display and timing
+
+256×240 logical screen, scaled by whole pixels with nearest-neighbour
+filtering. Game logic runs at a fixed 60 steps per second, independent of the
+display refresh rate.
+
+## Test hooks (QA / playtest)
+
+- `?level=W-L` starts at that level's WORLD intermission (e.g. `?level=1-2`);
+  `&area=N` enters location N of the level (see `locations` in
+  `src/levels/W-L.js`; e.g. `?level=1-1&area=2` is the underground bonus room).
+- `?debug=1` shows an overlay with state, Mario's position/speed and every
+  asset the game asked for that the manifest does not provide.
+- `?mute` starts with audio muted.
+- `window.smb` in the page:
+  - `state()` — JSON snapshot: state, level, area, frame, score, coins,
+    lives, time, camera, player (x, y, vx, vy, form, onGround, …), entities.
+  - `input.set({right:true, b:true, a:false, start:false, …})` holds virtual
+    buttons until changed; `input.clear()` releases them.
+  - `manual(true)` stops real-time stepping; `step(n)` then advances exactly
+    n frames and returns the snapshot.
+  - `start('1-1', loc)` starts a level directly; `missing()` lists missing
+    assets; `unlockAudio()` unlocks audio without a gesture.
+- `document.body.dataset.ready` is `1` once loaded (`error` on failure).
+
+`tools/smoke.mjs` drives these hooks in headless Chromium, or Firefox with
+`BROWSER=firefox` (Playwright): `node tools/smoke.mjs <site-dir> <out-dir>
+[title|run11|tools/<check>.mjs]`. The scenario checks are
+`tools/check11.mjs` (movement, blocks, enemies, pipes, flagpole),
+`tools/check11b.mjs` (1-1's secrets, power-ups, shells, deaths, game over)
+and `tools/check-audio.mjs` (every sound decodes; music and effects play).
+
+## Layout
+
+- `index.html`, `src/` — the game (`main.js` boot and loop, `game.js` game
+  flow and rules, `player.js` Mario, `entities.js` enemies/items/objects,
+  `world.js` tiles and collision, `render.js`, `audio.js`, `input.js`,
+  `text.js`, `consts.js` physics and rule constants).
+- `src/levels/` — level data for 1-1 … 8-4, format and source in
+  [docs/levels.md](docs/levels.md).
+- [docs/assets.md](docs/assets.md) — the asset contract with `artist`: every
+  sprite, tile and sound the game loads.
+- [docs/rules.md](docs/rules.md) — physics and rule values and their sources.
+- [ATTRIBUTION.md](ATTRIBUTION.md) — third-party data and licences.

@@ -1,0 +1,7 @@
+# QA report — build 2 (game-developer a08164312c18 + artist sound/hit.wav 18f595a, release `build-2`)
+
+Re-check of `game-developer`#4 (silent on `file://`) plus regression of R1–R9 with the same scripts as build 1 (`evidence/qa_check.py`, `evidence/edge.py`, new `evidence/filecheck.py`), headless Chromium, assembled delivery via `ht-role delivery`.
+
+- **file:// fix: pass.** Opening `file:///…/index.html`, Start, one full 30 s round with real mouse clicks: score 50, `HTMLMediaElement.play()` called 50 times (one per hit), `__whack.soundsPlayed` 50, decoded duration 0.25 s, console clean (build 1: fetch error, no sound). A second click on the same mole scored 0 extra. Play again resets to playing / 0 / 30.
+- **HTTP regression: pass.** 30.01 s round; 49 hits = 49 points = 49 Web Audio sounds (0.25 s, 44100 Hz); duplicate and empty-hole clicks scored 0; max unhit mole-up 895 ms (<1000); end screen shows 49; replay 30.00 s, score 0 reset; console clean. Keyboard start, mobile 375×667 layout and touch tap still pass.
+- No new defects. `game-developer`#4 is verified fixed. Same open caveats as build 1: generator of `hit.wav` not visible to me; `listening.md` (sound unchanged, artist 18f595a) still applies.

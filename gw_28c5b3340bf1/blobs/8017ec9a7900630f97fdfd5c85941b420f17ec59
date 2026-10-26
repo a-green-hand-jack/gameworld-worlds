@@ -1,0 +1,137 @@
+[
+ {
+  "check": "R1 loads from file:// with no console errors / network",
+  "ok": true,
+  "detail": "([], [])"
+ },
+ {
+  "check": "R6 title screen on load",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R6 title shows name and how to play",
+  "ok": true,
+  "detail": "SNAKE\n\nSteer with the \u2190 \u2191 \u2192 \u2193 arrow keys.\nEat food to grow and score. Don't hit the walls or yourself.\n\nStart\n\nor press Enter / Space"
+ },
+ {
+  "check": "title: snake does not move before start",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "title: arrow key does not start game (informational)",
+  "ok": true,
+  "detail": "title"
+ },
+ {
+  "check": "R7 score visible during play",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R9 page fits 1366x768 without scrolling",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R2 moves one cell per step in current direction",
+  "ok": true,
+  "detail": "({'x': 10, 'y': 10}, {'x': 11, 'y': 10})"
+ },
+ {
+  "check": "R2 steady pace (~120ms)",
+  "ok": true,
+  "detail": "[116.80000000000018, 116.5, 116.69999999999982, 133.30000000000018, 116.79999999999995, 116.60000000000014]"
+ },
+ {
+  "check": "R3 direct reverse ignored",
+  "ok": true,
+  "detail": "{'s': 'playing', 'score': 0, 'snake': [{'x': 12, 'y': 10}, {'x': 11, 'y': 10}, {'x': 10, 'y': 10}], 'food': {'x': 1, 'y': 0}, 'dir': 'right', 'over': False, 'cause': None}"
+ },
+ {
+  "check": "R3 two quick turns (Up,Left) both applied, no self-reversal",
+  "ok": true,
+  "detail": "{'s': 'playing', 'score': 0, 'snake': [{'x': 10, 'y': 9}, {'x': 11, 'y': 9}, {'x': 11, 'y': 10}], 'food': {'x': 1, 'y': 0}, 'dir': 'left', 'over': False, 'cause': None}"
+ },
+ {
+  "check": "R3 Up+Down in one step does not kill",
+  "ok": true,
+  "detail": "{'s': 'playing', 'score': 0, 'snake': [{'x': 11, 'y': 8}, {'x': 11, 'y': 9}, {'x': 11, 'y': 10}], 'food': {'x': 1, 'y': 0}, 'dir': 'up', 'over': False, 'cause': None}"
+ },
+ {
+  "check": "R3 arrows do not scroll page",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R5 wall ends game",
+  "ok": true,
+  "detail": "{'s': 'gameover', 'score': 0, 'snake': [{'x': 19, 'y': 10}, {'x': 18, 'y': 10}, {'x': 17, 'y': 10}], 'food': {'x': 1, 'y': 0}, 'dir': 'right', 'over': True, 'cause': 'wall'}"
+ },
+ {
+  "check": "R5 head not drawn/moved outside grid",
+  "ok": true,
+  "detail": "{'x': 19, 'y': 10}"
+ },
+ {
+  "check": "R8 game over shows final score and play again",
+  "ok": true,
+  "detail": "GAME OVER\n\nYou ran into the wall.\n\nFinal score 0\n\nPlay again\n\nor press Enter / Space"
+ },
+ {
+  "check": "R8 play again via click: fresh state",
+  "ok": true,
+  "detail": "{'s': 'playing', 'score': 0, 'snake': [{'x': 10, 'y': 10}, {'x': 9, 'y': 10}, {'x': 8, 'y': 10}], 'food': {'x': 12, 'y': 10}, 'dir': 'right', 'over': False, 'cause': None}"
+ },
+ {
+  "check": "R8 play again via Space: fresh state",
+  "ok": true,
+  "detail": "{'s': 'playing', 'score': 0, 'snake': [{'x': 10, 'y': 10}, {'x': 9, 'y': 10}, {'x': 8, 'y': 10}], 'food': {'x': 7, 'y': 19}, 'dir': 'right', 'over': False, 'cause': None}"
+ },
+ {
+  "check": "R8 play again via Enter: fresh state",
+  "ok": true,
+  "detail": "{'s': 'playing', 'score': 0, 'snake': [{'x': 10, 'y': 10}, {'x': 9, 'y': 10}, {'x': 8, 'y': 10}], 'food': {'x': 11, 'y': 5}, 'dir': 'right', 'over': False, 'cause': None}"
+ },
+ {
+  "check": "R4 long game: invariants (len=3+score, food off snake, contiguity, HUD==score)",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "check": "R4 reached score >= 30 by eating",
+  "ok": true,
+  "detail": "(60, 'playing', None)"
+ },
+ {
+  "check": "R5 self-collision ends game",
+  "ok": true,
+  "detail": "{'s': 'gameover', 'score': 3, 'snake': [{'x': 17, 'y': 14}, {'x': 17, 'y': 13}, {'x': 16, 'y': 13}, {'x': 16, 'y': 14}, {'x': 15, 'y': 14}, {'x': 15, 'y': 15}], 'food': {'x': 5, 'y': 10}, 'dir': 'left', 'over': True, 'cause': 'self'}"
+ },
+ {
+  "check": "R5 self game-over screen",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R5 tail-cell leaving is not a collision",
+  "ok": true,
+  "detail": "{'tail': 'move', 'tailEat': 'self', 'body': 'self', 'badFood': 0, 'winFood': {'x': 2, 'y': 0}, 'winStep': 'win', 'winWon': True}"
+ },
+ {
+  "check": "R4/R5 eating onto tail cell is a collision (tail does not leave)",
+  "ok": true,
+  "detail": "{'tail': 'move', 'tailEat': 'self', 'body': 'self', 'badFood': 0, 'winFood': {'x': 2, 'y': 0}, 'winStep': 'win', 'winWon': True}"
+ },
+ {
+  "check": "R5 body collision",
+  "ok": true,
+  "detail": "{'tail': 'move', 'tailEat': 'self', 'body': 'self', 'badFood': 0, 'winFood': {'x': 2, 'y': 0}, 'winStep': 'win', 'winWon': True}"
+ },
+ {
+  "check": "R4 food never spawns on snake (300 trials)",
+  "ok": true,
+  "detail": "{'tail': 'move', 'tailEat': 'self', 'body': 'self', 'badFood': 0, 'winFood': {'x': 2, 'y': 0}, 'winStep': 'win', 'winWon': True}"
+ }
+]

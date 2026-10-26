@@ -1,0 +1,137 @@
+// Loads the artist's assets/manifest.json (contract: docs/assets.md) and
+// draws its frames.  Nothing is invented here: a frame the manifest does not
+// provide is drawn as a magenta box of the size the contract gives it, and
+// its name is reported once with console.warn and in the ?debug=1 overlay.
+
+const BASE = 'assets/';
+
+// Sizes the contract gives to frames, used only for the missing-asset box.
+const FALLBACK_SIZE = [
+  [/^(small_|star\d_small_)/, [16, 16]],
+  [/^(big_|fire_|star\d_big_|star\d_fire_)/, [16, 32]],
+  [/^(koopa|paratroopa|piranha|blooper|toad|princess|hammerbro)/, [16, 24]],
+  [/^(bowser_flame)/, [24, 8]],
+  [/^(bowser)/, [32, 32]],
+  [/^(fireball|brick_debris|hud_coin|mushroom_cursor|lift$)/, [8, 8]],
+  [/^(spring)/, [16, 32]],
+  [/^hill_large/, [80, 35]], [/^hill_small/, [48, 19]],
+  [/^bush1/, [32, 16]], [/^bush2/, [48, 16]], [/^bush3/, [64, 16]],
+  [/^cloud1/, [32, 24]], [/^cloud2/, [48, 24]], [/^cloud3/, [64, 24]],
+  [/^castle_small/, [80, 80]], [/^castle_large/, [144, 176]],
+  [/^tree_small/, [16, 32]], [/^tree_large/, [16, 48]],
+  [/^score_/, [16, 8]],
+];
+
+function fallbackSize(name) {
+  for (const [re, size] of FALLBACK_SIZE) if (re.test(name)) return size;
+  return [16, 16];
+}
+
+export class Assets {
+  constructor() {
+    this.manifest = null;
+    this.images = new Map(); // file -> HTMLImageElement (loaded) | null (failed)
+    this.missing = new Set();
+    this.frameIndex = new Map(); // frame name -> sheet name
+    this.error = null;
+  }
+
+  async load() {
+    try {
+      const res = await fetch(BASE + 'manifest.json', { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`assets/manifest.json: HTTP ${res.status}`);
+      this.manifest = await res.json();
+    } catch (e) {
+      this.error = String(e.message || e);
+      console.warn('[assets] no manifest:', this.error);
+      this.manifest = { sheets: {}, audio: {} };
+    }
+    const m = this.manifest;
+    m.sheets ||= {};
+    m.audio ||= {};
+    const files = new Set();
+    for (const [name, sheet] of Object.entries(m.sheets)) {
+      if (sheet.file) files.add(sheet.file);
+      for (const f of Object.values(sheet.variants || {})) files.add(f);
+      for (const frame of Object.keys(sheet.frames || {})) if (!this.frameIndex.has(frame)) this.frameIndex.set(frame, name);
+    }
+    if (m.font?.file) files.add(m.font.file);
+    if (m.title?.file) files.add(m.title.file);
+    await Promise.all([...files].map((f) => this.loadImage(f)));
+  }
+
+  loadImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { this.images.set(file, img); resolve(); };
+      img.onerror = () => {
+        this.images.set(file, null);
+        this.reportMissing(`file ${file}`);
+        resolve();
+      };
+      img.src = BASE + file;
+    });
+  }
+
+  reportMissing(what) {
+    if (this.missing.has(what)) return;
+    this.missing.add(what);
+    console.warn('[assets] missing:', what);
+  }
+
+  palette(key, fallback) {
+    return this.manifest?.palette?.[key] || fallback;
+  }
+
+  // Returns {img, rect} for a frame in a sheet (with theme variant), or null.
+  frame(sheetName, name, variant) {
+    const sheet = this.manifest.sheets[sheetName];
+    const rect = sheet?.frames?.[name];
+    if (!rect) return null;
+    let file = sheet.file;
+    if (variant && sheet.variants && sheet.variants[variant]) file = sheet.variants[variant];
+    const img = this.images.get(file);
+    if (!img) return null;
+    return { img, rect };
+  }
+
+  has(sheetName, name) {
+    return !!this.manifest.sheets[sheetName]?.frames?.[name];
+  }
+
+  // Draws a frame with its top-left at (x, y).
+  drawTL(ctx, sheetName, name, x, y, opts = {}) {
+    const f = this.frame(sheetName, name, opts.variant);
+    if (!f) {
+      this.reportMissing(`${sheetName}/${name}`);
+      const [w, h] = opts.size || fallbackSize(name);
+      ctx.fillStyle = '#ff00ff';
+      ctx.fillRect(Math.round(x), Math.round(y), w, h);
+      return [w, h];
+    }
+    const [sx, sy, sw, sh] = f.rect;
+    const dx = Math.round(x), dy = Math.round(y);
+    if (opts.flip || opts.flipV) {
+      ctx.save();
+      ctx.translate(dx + (opts.flip ? sw : 0), dy + (opts.flipV ? sh : 0));
+      ctx.scale(opts.flip ? -1 : 1, opts.flipV ? -1 : 1);
+      ctx.drawImage(f.img, sx, sy, sw, sh, 0, 0, sw, sh);
+      ctx.restore();
+    } else {
+      ctx.drawImage(f.img, sx, sy, sw, sh, dx, dy, sw, sh);
+    }
+    return [sw, sh];
+  }
+
+  // Draws a frame anchored at its bottom centre (cx, bottom), as sprites are.
+  draw(ctx, sheetName, name, cx, bottom, opts = {}) {
+    const f = this.frame(sheetName, name, opts.variant);
+    const [w, h] = f ? [f.rect[2], f.rect[3]] : (opts.size || fallbackSize(name));
+    return this.drawTL(ctx, sheetName, name, cx - w / 2, bottom - h, opts);
+  }
+
+  size(sheetName, name) {
+    const r = this.manifest.sheets[sheetName]?.frames?.[name];
+    return r ? [r[2], r[3]] : fallbackSize(name);
+  }
+}

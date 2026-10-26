@@ -1,0 +1,114 @@
+# Brief — round 2
+
+## What the input asks (quoted, `producer`#13 "Game objective")
+
+> 在上一轮的游戏上加入超级马里奥 1 的 World 2
+
+("Add Super Mario Bros. 1's World 2 to last round's game.") No other material is supplied.
+
+"Last round's game" is the World 1 recreation accepted and released in round 1: game-developer
+`64cdad2a466e670275fbc0bf69b4c9afac1b99d8` + artist `144b1149ff7aa4cd2bfbd8e88e3572183f399cdd` (release `build-5` in
+`world/producer`, acceptance record `acceptance.md` of round 1 in git history at producer `63e8ecedab8b`). Round 1's input was
+*复刻经典版本的超级马里奥 1，做成网页游戏* (recreate classic SMB1 as a web game); its brief (producer `63e8ecedab8b:brief.md`)
+still sets the look, feel, originality and platform standard, restated below where it applies.
+
+## What that means for this round
+
+The same browser game, now with World 2 of the 1985 NES *Super Mario Bros.* (levels 2-1, 2-2, 2-3, 2-4) added after World 1,
+so that a player who knows SMB1 recognises World 2 and it plays like it. The game still opens from a static `index.html` in a
+current desktop browser (Chrome/Firefox), keyboard only, no server code, no install, offline from the delivered files.
+
+### Priorities (in order)
+
+1. **P0 — World 1 stays as accepted.** Everything that passed in round 1 (P1 1-1 and P2 1-2…1-4, title, HUD, lives, game over,
+   sound) still passes. A regression in World 1 blocks the release just like a World 2 defect.
+2. **P1 — World 2, complete and faithful (the release bar).** All four levels, each playable start to flag (axe in 2-4) and to
+   game over / restart:
+   - **2-1** (overworld): layout as in the original, with its `?` blocks, bricks, hidden blocks, pipes, the **vine** that grows
+     from a block and climbs to the **coin heaven** bonus area in the sky (cloud platform, coins) and drops Mario back into the
+     level; the **springboard** (bounces, higher when A is pressed at the right moment); Goombas, green Koopa Troopas, green
+     **Koopa Paratroopas** (bouncing; stomp removes the wings), Piranha Plants; stairs, flagpole, castle.
+   - **2-2** (underwater): the pipe intro scene (as before 1-2), then **swimming**: A strokes up, Mario sinks under SMB1's light
+     underwater gravity, keeps left/right momentum as in SMB1, can't stomp, fireballs still work, swim animation for small/big/fire Mario; **Bloopers** (chase in pulses),
+     **Cheep Cheeps** (red and grey/green swimmers), coral/seaweed and sea floor, water surface Mario can't leave upward; the exit
+     pipe at the end leads out to the short overworld section with stairs and the flagpole. Underwater music.
+   - **2-3** (bridge): the long bridges with gaps, **flying Cheep Cheeps** leaping out from below across the screen throughout the
+     level, and the items of the original map (its Koopas are hard-mode only in the original data, so absent in normal play); flagpole and castle.
+   - **2-4** (castle): layout as in the original with firebars, lava, **Podoboos** (lava bubbles jumping out of the lava), the
+     lifts, Bowser on the bridge (fake Bowser: fire defeats it and it is revealed as a Koopa Troopa, as in SMB1 2-4), axe, bridge
+     collapse, Toad's "THANK YOU MARIO! BUT OUR PRINCESS IS IN ANOTHER CASTLE!".
+   - **Every object and enemy in the original World 2 maps** is present and behaves as in SMB1, not only the ones named above.
+     (Hammer Bros, Lakitu/Spiny, Bullet Bill and Buzzy Beetle are only needed if the original World 2 maps place them.)
+   - **Progression:** after 1-4's Toad, play continues into 2-1 with score, coins, lives and power state carried over as in SMB1;
+     the **1-2 warp zone pipe to World 2 now leads to 2-1** (the pipes to 3 and 4 may keep the "not in this version" screen);
+     HUD reads WORLD 2-x; after 2-4's Toad the game ends on a clear / "not in this version" screen, then back to the title.
+     Game over in World 2 returns to the title as in round 1.
+   - **Sound:** World 2 uses the existing overworld/underground/castle/star/hurry-up themes as in SMB1 plus an **underwater**
+     theme; SFX for the new events (vine sprouting, springboard, swim stroke, Podoboo/Bowser fire as needed).
+   - A way to start any level directly for testing (the existing `#level=` parameter covering 2-1…2-4) stays available.
+3. **P2 — polish once P1 holds:** the SMB1 continue (A+Start on the title after a game over restarts at the world's first level)
+   and anything else that makes World 2 closer to the original. Not required for the release.
+
+Worlds 3-8 are not part of this round.
+
+### Standard every part is judged against (unchanged from round 1)
+
+- **Recognisable**: screens, level layout, enemies, HUD and sounds read as SMB1 at a glance and by ear; NES look (256×240 logical
+  resolution, 16×16 tiles, integer-scaled, pixel-crisp, NES palette feel). The underwater and coin heaven screens look like their
+  SMB1 counterparts.
+- **Plays right**: controls responsive at 60 Hz fixed-step logic; no falling through floors, no getting stuck in walls, no
+  softlocks (including on the vine, in coin heaven, on the springboard, in water and on lifts); every mechanic above works on
+  the delivered build in a real browser.
+- **Complete for its priority**: a released level is playable start to flag (or axe) and to game over / restart; World 1 and
+  World 2 can be played as one continuous game from the title.
+- **Assets are original recreations** made for this game in the SMB1 style by the art position (pixel art and synthesised
+  chiptune audio), not ripped ROM graphics or recorded/transcribed Nintendo audio. Level layouts follow the original maps (tile
+  layout and object positions only), as round 1 settled; no original game code is ported into the delivery.
+
+### Controls (unchanged)
+
+Arrows = move, Down = crouch/enter pipe, Up = climb vine; `Z` or `J` = B (run / fireball); `X`, `K` or Space = A (jump / swim);
+Enter = Start/pause.
+
+## Decisions taken (round 2)
+
+- **Scope:** World 2 (2-1…2-4) is this round's target and the release bar, on top of an unchanged World 1. The art position draws
+  what World 2 needs beyond the World 1 set: underwater tiles (water surface, sea floor, coral/seaweed), Blooper, Cheep Cheep (red,
+  grey/green), springboard, vine (and its sprouting block), coin heaven clouds/platform, Podoboo, any World 2 bridge or scenery
+  tile not yet drawn, the underwater music and the new SFX. Build and art settle the exact list in `docs/assets.md` of
+  game-developer, as in round 1.
+- **Builds:** game-developer publishes World 2 candidates as releases of its repository; producer republishes each candidate as
+  `build-N` (continuing from `build-5`) in `world/producer` for playtester and qa.
+- **Reports** stay working material in qa's and playtester's repositories; they reach acceptance through issues and releases and
+  have no delivered path.
+
+## Decisions on the build-6 playtest (producer#14)
+
+- Podoboos stay silent and the springboard plays no sound of its own: no evidence the original plays one; a jump sound on the
+  high throw is optional polish.
+- Water physics: the build's underwater fall force (about 10/256 px per frame squared) and kept horizontal momentum match SMB1's
+  values; the brief's earlier "sinks slowly, with water drag" wording was imprecise and is corrected above.
+- 2-3 has no ground Koopas in normal play (hard-mode entries in the original data), as with 1-4's Podoboos in round 1.
+- Coin heaven returning Mario further along 2-1 and the 2-4 Podoboo count follow the original data. Mario reaching the HUD rows
+  at the 2-2 surface, the coin heaven tune (overworld fallback) and README/file headers naming files outside the zip are
+  optional polish, not release blockers.
+
+## What I could not establish
+
+- Whether the user wants World 2 reached only by normal play or also by the warp zone; I set both, as in SMB1.
+- How the game should end after 2-4 in a version that stops at World 2; I set a clear / "not in this version" screen as round 1
+  did after 1-4.
+- Exact original graphics/audio are still out (original recreations in the same style), as in round 1.
+- Sound by ear and side-by-side comparison with the NES original: no sandbox has an audio device or the original; audio is
+  checked as decoded, non-silent files and as the game's sound calls.
+
+## How work flows this round
+
+- `game-developer` extends the game in its repository (root, `index.html`, `src/`) and publishes each playable candidate as a
+  release with a self-contained zip (game + current `assets/`).
+- `artist` delivers everything under `assets/`, to the manifest in game-developer `docs/assets.md`.
+- `producer` republishes each candidate as `build-N` in `world/producer` with what to play; `qa` checks it against this brief
+  (World 2 and a World 1 regression pass); `playtester` plays it as a player, including one continuous game from the title
+  through World 1 into World 2.
+- Defects go to the owner of the affected part; producer accepts only a candidate qa has checked and playtester has played and
+  reported on.

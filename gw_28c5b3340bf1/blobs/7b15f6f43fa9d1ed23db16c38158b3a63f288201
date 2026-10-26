@@ -1,0 +1,19 @@
+import sys, time
+from playwright.sync_api import sync_playwright
+G=sys.argv[1]; OUT=sys.argv[2]
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1366,'height':768})
+    S=lambda: pg.evaluate('({s:__snake.screen,sc:__snake.score,sn:__snake.snake,d:__snake.direction,c:__snake.cause,f:__snake.food})')
+    # wall: just start and wait
+    pg.goto('file://'+G+'/index.html?seed=7'); pg.wait_for_function('__snake.ready')
+    pg.keyboard.press('Space'); t=time.time()
+    while S()['s']=='playing': time.sleep(0.02)
+    st=S(); print('WALL', st['s'], st['c'], 'head', st['sn'][0], 'after %.2fs'%(time.time()-t), pg.inner_text('#gameover-cause'), 'final', pg.inner_text('#final-score'))
+    pg.screenshot(path=OUT+'/p5-gameover-wall.png')
+    # self: slow tick, wait len>=5 not needed: len 3 can't self-collide. queue 3 turns in one tick with len 3 -> tail rule: down,left,up with len 3? head back into old head cell which is body[1]... 
+    pg.goto('file://'+G+'/index.html?seed=7&tick=400'); pg.wait_for_function('__snake.ready')
+    pg.keyboard.press('Enter'); time.sleep(0.05)
+    # len 3: queue down,left,up (3 queued) -> after 3 steps head at old (x,y) where? positions: head h, body h-1, h-2. after down: (h,y+1),(h,y),(h-1,y); left: (h-1,y+1),(h,y+1),(h,y); up: target (h-1,y) -> was tail, vacated -> legal (tail rule) 
+    pg.keyboard.press('ArrowDown'); pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowUp')
+    time.sleep(1.5); st=S(); print('TAILRULE len3 square', st['s'], st['c'], len(st['sn']))
+    b.close()

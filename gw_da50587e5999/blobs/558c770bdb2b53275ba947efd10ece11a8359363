@@ -1,0 +1,5 @@
+# Brief
+Objective (quoted): "Beep", a web page with one button that plays a short sound when clicked, and shows how many times it was clicked. Sound `sound/beep.wav`: 0.3 s of 660 Hz tone fading out, then 0.2 s silence, 44.1 kHz (0.5 s total). Before acceptance, QA and playtester each send `sound/beep.wav` to `audio-understanding`, and keep request, raw answer and match verdict in `listening.md` in their own repo.
+
+Priorities: artist delivers sound/beep.wav; game-developer delivers index.html (button, counter, plays sound/beep.wav); qa and playtester do the listening checks and play the build.
+Unknown: nothing.

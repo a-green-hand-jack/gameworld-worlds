@@ -1,0 +1,30 @@
+# Builds handed to qa and playtester
+
+| tag | game-developer | artist | assignment | notes |
+|---|---|---|---|---|
+| build-1 | a72265d7d707d5bd7aca34b5360548c458f04d7c | 35440031d24312c194d6f420d55e45b8808fe4d4 | 2e1c8ace | 1-1 early preview; dev tests/mechanics.py 20/20 in headless Chromium, no page errors; shots in notes/shots/b1_* |
+| build-2 | 8bbb0325661334ec3511fbb7be27d2d558ec6f27 | c042385d007674cce5de34db0ebe885e84f6f225 | 2e1c8ace | = game-developer w1-rc1 (sha256 3cfe5541…cd4e); bot clears 1-1 0 deaths, no page errors; mechanics2 25/26 (star test artifact, star kill verified by probe); shot notes/shots/b2_bot_end.png |
+| build-3 | 1eea70ba6c8222e9a05218eec6ffc390bac47348 | 608fc6d2cf342eb846ece6383b03b2631c0dba07 | 2e1c8ace | World 1 complete; = w1-rc2 code + artist castle_big; zip sha256 ebdbc46248147f81ca7e293d79c80d783de7e179a819a473e1b16558c6793623; on this delivery: levels 24/24, sound_input 7/7, mechanics 20/20, mechanics2 26/26, mechanics3 19/19, bot 1-1 flag 0 deaths -> 1-2, no page errors, no missing-asset warnings; shots notes/shots/b3_* |
+| build-4 | 0fbd0f2c7dc1596e5416ef84eec5fa786c618b65 | 144b1149ff7aa4cd2bfbd8e88e3572183f399cdd | d6fce5c2 | = w1-rc4 code; enemies face their way (#10), Bowser redrawn, level ends walled at every height (#11); zip sha256 81372969779ba2b9236448ae174abe91a26a01b484dd2ed67207ae3c819f1d8f; on this delivery: levels 25/25, sound_input 7/7, mechanics 20/20, mechanics2 26/26, mechanics3 19/19, bot 1-1 flag 0 deaths -> 1-2, unzipped zip starts from file:// with no errors/warnings; shot notes/shots/b4_1-4_bowser.png |
+| build-5 | 64cdad2a466e670275fbc0bf69b4c9afac1b99d8 | 144b1149ff7aa4cd2bfbd8e88e3572183f399cdd | 01d4daf7 | = w1-rc5 code; 1-3 rising lift rideable, #level fallback, decoder off main (game-developer#12); zip sha256 f4ce1ab2fe7021ffa7a83481d6cd23b699325494bbc0a496c65ee309f2d1404c; on this delivery: levels 27/27, sound_input 7/7, mechanics 20/20, mechanics2 26/26, mechanics3 19/19, bot 1-1 flag 0 deaths -> 1-2, unzipped zip starts from file:// with no errors/warnings |
+
+## Checks reported on build-3
+
+- qa (qa main 12e2a074, `qa/reports/build-3.md`): P1 83/83, P2 43/43, 0 console errors, 0 off-origin requests, 256x240 at 4x crisp,
+  .ogg decode; game-developer#7 and #8 verified fixed. Same results on w1-rc3 (game-developer 6fefbbda + artist 144b1149), which also
+  fixes game-developer#10 (backwards Koopas/Bowser). Open: game-developer#11 (1-2 offscreen run above the ceiling) — producer wants it
+  fixed before release. Not checked by qa: music by ear, keyboard feel, fair 1-2..1-4 play (playtester).
+- playtester: build-3 playtest requested in playtester#3, pending.
+- Next: build-4 = current delivery once #11 is on main; qa reruns, playtester replays the changes (enemy facing, Bowser art, #11).
+
+## Checks reported on build-3 / build-4 (continued)
+
+- qa on build-4 (`qa/reports/build-4.md`, qa f273075c): 1-1 83/83, P2 43/43, smoke clean, #11 verified fixed, warp zone works; qa passes build-4.
+- playtester on build-3 (producer#10, `playtests/build-3/report.md` at playtester 296dbb08): played title -> 1-1 ... 1-4 -> clear screen
+  with keys only in Chromium and Firefox, 0 deaths; P1 29/29 rows pass, no regressions. Open:
+  - N4 major: 1-3 vertical lift drops Mario while rising faster than 1 px/f -> game-developer#12 (release held for it).
+  - N5 (enemy facing): fixed in build-4 (#10).
+  - N6: provenance decision: decoded layouts stay; tools/smb_levels.py (port of original parser code) out of the delivered repo; README fix -> game-developer#12.
+  - N7: `#level=9-9` crash -> game-developer#12 (polish).
+  - Podoboos absent in 1-4: the decoded entries are hard-mode only, accepted as is.
+- Next: build-5 once #12 is on main; qa reruns, playtester re-plays N4..N7 and one continuous World 1 game.

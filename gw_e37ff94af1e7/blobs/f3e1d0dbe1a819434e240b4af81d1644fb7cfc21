@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Click Ten</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:sans-serif;text-align:center;margin-top:15vh}
+#count{font-size:4rem;margin:1rem}
+button{font-size:1.5rem;padding:.6em 1.2em;cursor:pointer}
+#win{display:none}
+</style></head><body>
+<h1>Click Ten</h1>
+<div id="count">0</div>
+<button id="click">Click me</button>
+<div id="win"><p id="msg">You did it!</p><button id="again">Play again</button></div>
+<script>
+var n=0,c=document.getElementById('count'),b=document.getElementById('click'),w=document.getElementById('win');
+b.onclick=function(){if(n>=10)return;n++;c.textContent=n;if(n==10){b.style.display='none';w.style.display='block';}};
+document.getElementById('again').onclick=function(){n=0;c.textContent=0;b.style.display='';w.style.display='none';};
+</script></body></html>

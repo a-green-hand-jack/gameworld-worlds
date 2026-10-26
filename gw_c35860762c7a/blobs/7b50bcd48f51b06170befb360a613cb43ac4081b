@@ -1,0 +1,65 @@
+// Rules and physics of NES Super Mario Bros., in pixels and frames (60 Hz).
+// Values come from the public SMB1 disassembly and documentation of the
+// original's scoring; docs/rules.md lists them with their sources.  Speeds
+// and forces keep the original's byte units.
+
+export const SCREEN_W = 256;
+export const SCREEN_H = 240;
+export const TILE = 16;
+export const ROWS = 15;
+
+export const PHYS = {
+  // Horizontal speeds in 1/16 px per frame, friction adders in 1/256 of that.
+  maxSpeed: [0x28, 0x18, 0x10], // running, walking (and in the air below 0x19), on the ground under water
+  maxEntry: 0x0c, // walking into a level by himself
+  friction: [0xe4, 0x98, 0xd0], // running, walking, released from a fast run; doubled while turning
+  skidTurn: 0x0b, // a skid turns Mario around below this speed
+  maxFall: 4, // px per frame
+  // Jump take-off by horizontal speed: tiers start at 0, 9, 16, 25 and 28;
+  // entries 5 and 6 are a swim stroke and a stroke in a whirlpool.
+  jump: {
+    tiers: [0x09, 0x10, 0x19, 0x1c],
+    force: [0x20, 0x20, 0x1e, 0x28, 0x28, 0x0d, 0x04], // gravity while A is held and Mario rises
+    fallForce: [0x70, 0x70, 0x60, 0x90, 0x90, 0x0a, 0x09], // gravity otherwise
+    speed: [-4, -4, -4, -5, -5, -2, -1],
+    initForce: [0, 0, 0, 0, 0, 0x80, 0],
+    entranceFall: 0x28, // falling gravity before the first jump of an area
+    surfaceForce: 0x18, // swimming at the surface
+  },
+  swimTopY: 36, // Mario cannot swim higher than this (NES y 0x14)
+  stompBounce: -4,
+  deathForce: 0x28,
+  climbSpeed: 0.75,
+};
+
+export const RULES = {
+  startLives: 3,
+  frameUnitsPerTimeUnit: 24, // one tick of the level timer every 24 frames
+  hurryAt: 100,
+  coinScore: 200,
+  brickScore: 50,
+  powerupScore: 1000,
+  stompChain: [100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000],
+  shellChain: [500, 800, 1000, 2000, 4000, 5000, 8000],
+  kickScore: 400,
+  fireScore: { goomba: 100, koopa: 200, beetle: 200, piranha: 200, spiny: 200, blooper: 200, cheep: 200, bullet: 200, hammerbro: 1000, lakitu: 200, podoboo: 0, bowser: 5000 },
+  flagScores: [[5000, -Infinity], [2000, 50], [800, 96], [400, 120], [100, 160]], // [score, from Mario's top y on screen]
+  timeBonus: 50,
+  fireworksFor: { 1: 1, 3: 3, 6: 6 },
+  fireworkScore: 500,
+  starFrames: 735, // 35 ticks of the 21-frame interval timer
+  starMusicEnd: 84, // area music returns with 4 ticks left; palette slows with 8 left
+  starSlowFlash: 168,
+  invulnFrames: 168, // 8 ticks of the 21-frame interval timer
+  maxFireballs: 2,
+  coinsForLife: 100,
+  multiCoinFrames: 231, // 11 ticks of the 21-frame interval timer
+  // coins to collect in x-3 (in one go) for the hidden 1-UP block of the next world's x-1
+  hidden1upCoins: [21, 35, 22, 27, 23, 24, 35, 99],
+};
+
+// Page (256 px) at which a level's halfway point lies; dying beyond it restarts there.
+export const HALFWAY = {
+  '1-1': 5, '1-2': 6, '1-3': 4, '2-1': 6, '2-2': 5, '2-3': 7, '3-1': 6, '3-2': 6, '3-3': 4,
+  '4-1': 6, '4-2': 6, '4-3': 4, '5-1': 6, '5-2': 6, '5-3': 6, '6-1': 6, '6-2': 5, '6-3': 7,
+};

@@ -1,0 +1,7 @@
+# Beep QA checks
+
+Build: game-developer `8063df5ac6b6aaa38f6a40c086216b4b7068cfee`, artist `d75a5b6e61b86b06a6889c944e9743450844cba4`, assembled with producer assignment `6a6ca70af59d783301361af9f2d2f35e66ee6289`.
+
+Chromium 156.0.8078.4, Python Playwright. Served assembled directory with Python HTTP server. Exactly one button and initial visible count 0. First click set count 1; audio fetched successfully and emitted playing/ended. Ten clicks, then Enter and Space activations, produced count 12. Repeated activations restarted playback, final audio ended without media error, and there were no JavaScript page errors. Screenshot: page.png. Script: check.py. Raw measured results: check-results.json. Browser playback events verify decoding and playback progression, not human hearing.
+
+WAV measurements pass sample rate, duration, frequency, fading amplitude and trailing digital silence. See listening.md for the required independent audio-understanding request and unchanged answer. That answer does NOT match the specified timing or fade; producer must see the discrepancy before acceptance. No reproducible page or waveform defect found in these checks.

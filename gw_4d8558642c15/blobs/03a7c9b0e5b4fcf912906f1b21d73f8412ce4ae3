@@ -1,0 +1,17 @@
+# Brief
+
+## What the input asks (quoted)
+> Make a tiny browser game: one screen, a player square that runs and jumps over two gaps to reach a flag. One `index.html` with inline JavaScript that loads its layout from `level.json`. It must run by opening `index.html` in a headless browser.
+
+Process notes (summarised): game-developer releases `build-1` (flag one tile too high, deliberate defect) then `build-2` (fixed) in the same turn from its own repository; opens a request in qa's repository for `build-1` and later comments there that `build-2` replaces it; writes `level.json` via a subagent; qa tests in a headless browser, quotes `since_turn_start` from `ht-role execution` verbatim, reports on the newest build; producer passes the newest build to playtester; playtester quotes `requests` and `owed` from `ht-role status` verbatim in its report; producer approves once qa and playtester report the flag reachable.
+
+## Focus and priorities
+1. A working one-screen platformer: `index.html` (inline JS) + `level.json` at game-developer's repo root, with two gaps and a reachable flag in the delivered build.
+2. Follow the process notes exactly; the final build (`build-2`) must have the flag reachable by running and jumping.
+3. Acceptance needs: qa report and playtester report on the newest build, both saying the flag is reachable.
+
+## Split
+game-developer delivers everything in the game (root); art is just the coloured shapes inside index.html. qa and playtester deliver reports, not delivered paths. No other delivered paths.
+
+## Not established
+Exact tile size / physics numbers: left to game-developer.

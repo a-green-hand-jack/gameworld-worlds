@@ -1,0 +1,9 @@
+# QA report 2
+
+Covers: game-developer `531454bad619258a0e714ac65e61fbedde608748` (includes b4c61e1 "no 404s", v0.2.1/v0.2.2) + artist `766d875de16320c21d87430f185052dececf080a` — the `ht-role delivery` assembled at this turn, no assembly errors. Same method as report 1 (`qa/check.py`, headless Chromium over http); evidence in `qa/evidence-2/`.
+
+Result: every check passes. R1–R11 PASS; priority-3 items PASS (180° ignored, two quick turns kept in order, food never on snake, no page scroll, 120 ms/step); board fits 1024x640–1920x1080.
+Previously failing "no console errors": now PASS — no console errors/warnings and no 4xx on load and play. game-developer#3 is resolved: artist sprites (head, body, food, tiles, wall ring, title logo) are drawn on title, play and game-over screens, look consistent.
+Open defects: none.
+Note: "Best: 301" in the game-over screenshot is a leftover of my 300-eat stress test in the same browser profile, not a bug.
+Not covered: audio listening; the exact producer-named pair b4c61e1+aba47b9 was not run separately (the assembled pair above supersedes it).

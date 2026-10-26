@@ -1,0 +1,68 @@
+"""Producer's acceptance play-through: serve an assembled delivery, play it with the keyboard in headless Chromium.
+usage: python3 play.py DELIVERY_DIR OUT_DIR"""
+import sys, time, json, threading, functools, http.server, socketserver
+from playwright.sync_api import sync_playwright
+
+root, out = sys.argv[1], sys.argv[2]
+H = functools.partial(http.server.SimpleHTTPRequestHandler, directory=root)
+http.server.SimpleHTTPRequestHandler.log_message = lambda *a: None
+srv = socketserver.TCPServer(("127.0.0.1", 0), H); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+log = []
+def note(*a):
+    s = " ".join(str(x) for x in a); print(s, flush=True); log.append(s)
+
+def play_match(pg, skill, limit=300):
+    """skill: 'good' tracks the ball with arrow keys; 'idle' presses nothing."""
+    held = None; t0 = time.time(); last = None
+    while time.time() - t0 < limit:
+        s = pg.evaluate("pong.getState()")
+        if s["score"] != last: note("  score", s["score"], "t=%.0fs" % (time.time() - t0)); last = s["score"]
+        if s["screen"] != "play": break
+        want = None
+        if skill == "good":
+            b = s["ball"]; py = s["player"]["y"] + 48
+            target = b["y"] + 8 if b["vx"] < 0 else 300
+            if target < py - 12: want = "ArrowUp"
+            elif target > py + 12: want = "ArrowDown"
+        if want != held:
+            if held: pg.keyboard.up(held)
+            if want: pg.keyboard.down(want)
+            held = want
+        time.sleep(0.02)
+    if held: pg.keyboard.up(held)
+    return pg.evaluate("pong.getState()")
+
+with sync_playwright() as p:
+    br = p.chromium.launch(); pg = br.new_page(viewport={"width": 900, "height": 700})
+    errs = []
+    pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.on("requestfailed", lambda r: errs.append("requestfailed " + r.url))
+    pg.goto(f"http://127.0.0.1:{port}/index.html"); pg.wait_for_timeout(1500)
+    s = pg.evaluate("pong.getState()"); note("loaded screen=", s["screen"], "assets=", json.dumps(s["assets"]))
+    pg.screenshot(path=f"{out}/1-title.png")
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(400)
+    s = pg.evaluate("pong.getState()"); note("after Enter:", s["screen"], s["score"])
+    # keyboard moves paddle
+    y0 = s["player"]["y"]; pg.keyboard.down("ArrowUp"); pg.wait_for_timeout(300); pg.keyboard.up("ArrowUp")
+    y1 = pg.evaluate("pong.getState()")["player"]["y"]
+    pg.keyboard.down("KeyS"); pg.wait_for_timeout(300); pg.keyboard.up("KeyS")
+    y2 = pg.evaluate("pong.getState()")["player"]["y"]; note("paddle y: start", y0, "after Up", y1, "after S", y2)
+    pg.wait_for_timeout(1500); pg.screenshot(path=f"{out}/2-play.png")
+    note("match 1 (tracking player):")
+    s = play_match(pg, "good"); note("match 1 end:", s["screen"], s["winner"], s["score"], "rallies", s["rallies"])
+    pg.wait_for_timeout(300); pg.screenshot(path=f"{out}/3-over-1.png")
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(100)
+    note("Enter 0.4 s after the end ->", pg.evaluate("pong.getState()")["screen"])
+    pg.wait_for_timeout(1200); pg.screenshot(path=f"{out}/3b-over-1-after-lock.png")
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(400)
+    s = pg.evaluate("pong.getState()"); note("play again:", s["screen"], s["score"], s["winner"])
+    pg.wait_for_timeout(1200); pg.screenshot(path=f"{out}/4-play-again.png")
+    note("match 2 (idle player):")
+    s = play_match(pg, "idle"); note("match 2 end:", s["screen"], s["winner"], s["score"])
+    pg.wait_for_timeout(300); pg.screenshot(path=f"{out}/5-over-2.png")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300); note("Esc on end screen ->", pg.evaluate("pong.getState()")["screen"])
+    note("console/page errors:", errs)
+    br.close()
+open(f"{out}/play.log", "w").write("\n".join(log) + "\n")

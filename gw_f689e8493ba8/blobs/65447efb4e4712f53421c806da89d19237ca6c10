@@ -1,0 +1,2 @@
+# 跳方块
+解压 zip 后打开根目录的 index.html。空格键跳跃，碰到障碍结束，空格重开。最高分存于 localStorage。

@@ -1,0 +1,44 @@
+import sys, time, json, threading, http.server, functools, os
+from playwright.sync_api import sync_playwright
+os.environ['PLAYWRIGHT_BROWSERS_PATH']='/hutian/pw'
+H=functools.partial(http.server.SimpleHTTPRequestHandler, directory='/hutian/work')
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self,*a): pass
+srv=http.server.ThreadingHTTPServer(('127.0.0.1',8765),functools.partial(Q,directory='/hutian/work'))
+threading.Thread(target=srv.serve_forever,daemon=True).start()
+log=[]
+def P(page):
+    return page.evaluate("()=>({x:game.player.x,y:game.player.y,g:game.player.onGround,s:game.state,f:game.frame})")
+def run(url, tag):
+    with sync_playwright() as p:
+        b=p.chromium.launch(); pg=b.new_page(viewport={'width':700,'height':440})
+        errs=[]; pg.on('console',lambda m: errs.append(m.text) if m.type=='error' else None); pg.on('pageerror',lambda e: errs.append(str(e)))
+        pg.goto(url); pg.wait_for_function("window.game&&game.ready")
+        print(tag,'levelSource',pg.evaluate("game.levelSource"),'title',pg.title(),'msg',pg.inner_text('#msg'))
+        pg.screenshot(path=f'shots/{tag}_1_start.png')
+        s0=P(pg); print('start',s0)
+        # right
+        pg.keyboard.down('ArrowRight'); time.sleep(0.5); pg.keyboard.up('ArrowRight'); s1=P(pg); print('after right 0.5s',s1)
+        pg.keyboard.down('ArrowLeft'); time.sleep(0.4); pg.keyboard.up('ArrowLeft'); s2=P(pg); print('after left 0.4s',s2)
+        pg.keyboard.press('r'); time.sleep(.1); print('after R',P(pg))
+        # bot: hold right, jump near gap edges
+        pg.keyboard.down('ArrowRight')
+        shot=set(); t0=time.time(); jumps=0; maxy=1e9; last_jump_x=-99
+        edges=[(160,'gap1'),(352,'gap2'),(520,'flag')]  # player x at which to jump (left edge of player)
+        pending=list(edges)
+        while time.time()-t0<25:
+            s=P(pg)
+            if s['s']=='won': break
+            if pending and s['g'] and s['x']>=pending[0][0]-0:
+                name=pending.pop(0)[1]
+                pg.screenshot(path=f'shots/{tag}_2_before_{name}.png')
+                pg.keyboard.down('Space'); time.sleep(0.03); pg.keyboard.up('Space'); jumps+=1
+                time.sleep(0.25); pg.screenshot(path=f'shots/{tag}_3_air_{name}.png'); print('jump',name,P(pg))
+            time.sleep(0.005)
+        s=P(pg); print('end',s,'jumps',jumps,'time',round(time.time()-t0,1))
+        pg.keyboard.up('ArrowRight')
+        pg.screenshot(path=f'shots/{tag}_4_end.png')
+        print('msg',pg.inner_text('#msg'),'errors',errs)
+        b.close()
+run('http://127.0.0.1:8765/index.html?x=1','http')
+run('file:///hutian/work/index.html','file')

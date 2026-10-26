@@ -1,0 +1,384 @@
+"""QA checks of the Snake delivery against brief R1-R10 (independent of game-developer's tests/check.py).
+
+Usage: python3 tests/qa_check.py DELIVERY_DIR OUT_DIR
+Writes OUT_DIR/results.json and screenshots; exit 1 if any check fails.
+"""
+import functools, http.server, json, os, sys, threading, time
+from playwright.sync_api import sync_playwright
+
+root = os.path.abspath(sys.argv[1]); out = os.path.abspath(sys.argv[2]); os.makedirs(out, exist_ok=True)
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Q, directory=root))
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+BASE = 'http://127.0.0.1:%d/index.html' % srv.server_address[1]
+results = []
+def check(req, name, ok, detail=''):
+    results.append({'req': req, 'check': name, 'ok': bool(ok), 'detail': str(detail)})
+    print(('PASS' if ok else 'FAIL'), req, name, detail if not ok else '')
+
+KEY = {'up': 'ArrowUp', 'down': 'ArrowDown', 'left': 'ArrowLeft', 'right': 'ArrowRight'}
+def st(p): return p.evaluate('() => __snake.state')
+def gm(p): return p.evaluate('() => JSON.parse(JSON.stringify(__snake.game))')
+def head(p): return gm(p)['snake'][0]
+def score_dom(p): return p.inner_text('#score')
+def shot(p, n): p.screenshot(path=os.path.join(out, n + '.png'))
+
+with sync_playwright() as pw:
+    br = pw.chromium.launch()
+    def newpage(url_suffix='?manual=1&seed=1', viewport=(1280, 720)):
+        ctx = br.new_context(viewport={'width': viewport[0], 'height': viewport[1]})
+        p = ctx.new_page(); p.errors = []; p.requests = []; p.failed = []
+        p.on('console', lambda m: p.errors.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') else None)
+        p.on('pageerror', lambda e: p.errors.append('pageerror: ' + str(e)))
+        p.on('request', lambda r: p.requests.append(r.url))
+        p.on('response', lambda r: p.failed.append(r.url) if r.status >= 400 else None)
+        p.goto(BASE + url_suffix); p.wait_for_timeout(500)
+        return p
+    def start(p, key='Enter'):
+        p.keyboard.press(key); p.wait_for_timeout(50)
+    def tick(p, n=1):
+        for _ in range(n): p.evaluate('() => __snake.tick()')
+    def setg(p, snake, dir_, food=None):
+        p.evaluate('([s,d,f]) => {const g=__snake.game; g.snake=s; g.dir=d; g.queue=[]; if(f) g.food=f; __snake.draw();}', [snake, dir_, food])
+    def line(x, y, n, dx, dy): return [{'x': x - dx * i, 'y': y - dy * i} for i in range(n)]
+
+    # ---------- R1 / R7 title ----------
+    p = newpage()
+    check('R7', 'title shown on load', st(p) == 'title' and p.is_visible('#title-screen'))
+    txt = p.inner_text('#title-screen').lower()
+    alt = p.get_attribute('#title-logo', 'alt') or ''
+    check('R7', 'title names game, says how to start and control', ('snake' in txt or 'snake' in alt.lower()) and 'arrow' in txt and ('start' in txt or 'enter' in txt), txt)
+    check('R7', 'game not playing before start (no game object)', p.evaluate('() => __snake.game') is None)
+    shot(p, '01-title')
+    for k in ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'a', 'w']:
+        p.keyboard.press(k)
+    p.wait_for_timeout(300)
+    check('R7', 'arrows/other keys on title do not start play', st(p) == 'title')
+    check('R7', 'score HUD hidden on title', not p.is_visible('#hud'))
+    check('R1', 'no console errors/warnings on load', not p.errors, p.errors)
+    check('R1', 'no failed (>=400) responses', not p.failed, p.failed)
+    ext = [u for u in p.requests if not u.startswith('http://127.0.0.1')]
+    check('R1', 'no network requests outside the local server (offline play)', not ext, ext)
+    a = p.evaluate('() => __snake.assets()')
+    check('R1', 'all assets loaded', len(a['images']) == 5 and len(a['sounds']) == 3 and a['logo'] and a['font'], a)
+    p.context.close()
+
+    # file:// load
+    ctx = br.new_context(); fp = ctx.new_page(); ferr = []
+    fp.on('console', lambda m: ferr.append(m.text) if m.type in ('error',) else None)
+    fp.on('pageerror', lambda e: ferr.append(str(e)))
+    fp.goto('file://' + os.path.join(root, 'index.html') + '?manual=1'); fp.wait_for_timeout(500)
+    fp.keyboard.press('Enter'); fp.wait_for_timeout(100)
+    check('R1', 'opens and starts from file:// without errors', st(fp) == 'playing' and not ferr, ferr)
+    ctx.close()
+
+    # ---------- start variants & double start ----------
+    for key in ['Enter', ' ']:
+        p = newpage(); start(p, key)
+        check('R7', 'start with %r' % key, st(p) == 'playing')
+        tick(p, 2); h = head(p)
+        # press Space/Enter again while playing -> must not restart
+        p.keyboard.press('Enter'); p.keyboard.press(' '); p.wait_for_timeout(50)
+        check('R7', 'Enter/Space during play do not restart (%r start)' % key, head(p) == h and st(p) == 'playing', (h, head(p)))
+        p.context.close()
+    p = newpage(); p.click('#start-button'); p.wait_for_timeout(50)
+    check('R7', 'start by clicking button', st(p) == 'playing'); p.context.close()
+    p = newpage(); p.keyboard.press('Enter'); p.keyboard.press('Enter'); p.keyboard.press(' ')
+    p.wait_for_timeout(50); check('R7', 'rapid Enter,Enter,Space starts exactly once (still state playing, 3 long)', st(p) == 'playing' and len(gm(p)['snake']) == 3)
+    p.context.close()
+
+    # ---------- R2 grid movement real-time ----------
+    p = newpage('?seed=3'); start(p)
+    check('R8', 'HUD visible during play with score 0', p.is_visible('#hud') and score_dom(p) == '0')
+    shot(p, '02-playing')
+    xs = []; t0 = time.time()
+    for _ in range(14):
+        xs.append(head(p)['x']); p.wait_for_timeout(60)
+    check('R2', 'snake advances continuously rightwards in real time', xs[-1] > xs[0] and all(b >= a for a, b in zip(xs, xs[1:])), xs)
+    # cadence: count cells moved over 1.5 s
+    gm0 = head(p); p.wait_for_timeout(100)
+    h1 = head(p); t1 = time.time(); p.wait_for_timeout(1000); h2 = head(p); dt = time.time() - t1
+    if h2['x'] > h1['x']:
+        rate = (h2['x'] - h1['x']) / dt
+        check('R2', 'pace is steady and playable (4-15 cells/s)', 4 <= rate <= 15, '%.1f cells/s' % rate)
+    sz = p.evaluate('() => [document.getElementById("board").width, document.getElementById("board").height]')
+    check('R2', 'board is a visible grid 20x20 of 32px cells', sz == [640, 640], sz)
+    bb = p.eval_on_selector('#board', 'e=>{const r=e.getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]}')
+    check('R2', 'board fully inside 1280x720 viewport', bb[0] >= 0 and bb[1] <= 720 and bb[2] >= 0 and bb[3] <= 1280, bb)
+    p.context.close()
+
+    # ---------- R3 turning (manual) ----------
+    p = newpage(); start(p)
+    h0 = head(p); p.keyboard.press('ArrowUp'); tick(p)
+    check('R3', 'Up turns snake on next step', head(p) == {'x': h0['x'], 'y': h0['y'] - 1}, head(p))
+    p.keyboard.press('ArrowLeft'); tick(p); check('R3', 'Left turns', head(p)['x'] == h0['x'] - 1, head(p))
+    p.keyboard.press('ArrowDown'); tick(p); check('R3', 'Down turns', head(p)['y'] == h0['y'], head(p))
+    p.keyboard.press('ArrowRight'); tick(p); check('R3', 'Right turns', head(p)['x'] == h0['x'], head(p))
+    p.context.close()
+    # reversal from start (moving right, press Left)
+    p = newpage(); start(p); p.keyboard.press('ArrowLeft'); tick(p, 3)
+    check('R3', 'immediate 180 (Left while moving Right) does not kill and keeps going right', st(p) == 'playing' and head(p)['x'] == gm(p)['snake'][1]['x'] + 1, gm(p)['snake'])
+    p.context.close()
+    # up then down quickly within one tick, then left+..
+    p = newpage(); start(p); p.keyboard.press('ArrowUp'); p.keyboard.press('ArrowDown'); tick(p, 3)
+    check('R3', 'Up,Down within one step does not self-kill', st(p) == 'playing', gm(p)['snake'])
+    p.context.close()
+    # two quick turns within one step must both be honored in order
+    p = newpage(); start(p); h0 = head(p)
+    p.keyboard.press('ArrowUp'); p.keyboard.press('ArrowLeft'); tick(p, 2)
+    check('R3', 'Up,Left pressed within one step -> up then left (neither lost)', head(p) == {'x': h0['x'] - 1, 'y': h0['y'] - 1} and st(p) == 'playing', head(p))
+    p.context.close()
+    # three quick presses (u-turn attempt): right -> up, left, down within one step
+    p = newpage(); start(p); h0 = head(p)
+    for k in ['ArrowUp', 'ArrowLeft', 'ArrowDown']: p.keyboard.press(k)
+    tick(p, 4)
+    check('R3', 'three quick presses Up,Left,Down: no self-kill on a 3-long snake', st(p) == 'playing', (st(p), gm(p)['snake']))
+    p.context.close()
+    # moving up, quick Left then Down and Right? (hook around) — attempt classic 'double-turn suicide': moving right, press Up then Left then ... covered
+    # real-time quick double press
+    p = newpage('?seed=3'); start(p); p.wait_for_timeout(300)
+    p.keyboard.press('ArrowUp'); p.keyboard.press('ArrowLeft'); p.wait_for_timeout(400)
+    g = gm(p); ok = st(p) == 'playing' and g['dir'] == 'left'
+    check('R3', 'real-time: Up+Left pressed back-to-back both applied (dir ends left, alive)', ok, (st(p), g['dir']))
+    p.context.close()
+    # scroll test
+    p = newpage('?manual=1', viewport=(500, 300)); sh = p.evaluate('() => document.documentElement.scrollHeight > innerHeight')
+    start(p); base = p.evaluate('() => [scrollX, scrollY]')
+    for k in ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', ' ']:
+        p.keyboard.press(k)
+    sy = p.evaluate('() => [scrollX, scrollY]')
+    check('R3', 'arrow keys/Space do not scroll page (page scrollable in 500x300: %s)' % sh, sy == base, (base, sy))
+    p.context.close()
+
+    # ---------- R4 food ----------
+    p = newpage(); start(p); g = gm(p); h = g['snake'][0]
+    setg(p, g['snake'], 'right', {'x': h['x'] + 1, 'y': h['y']})
+    n0 = len(gm(p)['snake']); tick(p)
+    g = gm(p)
+    check('R4', 'eating: length +1', len(g['snake']) == n0 + 1, (n0, len(g['snake'])))
+    check('R4', 'eating: score +1 (game and HUD)', g['score'] == 1 and score_dom(p) == '1', (g['score'], score_dom(p)))
+    occupied = {(s['x'], s['y']) for s in g['snake']}
+    check('R4', 'new food off the snake and on board', (g['food']['x'], g['food']['y']) not in occupied and 0 <= g['food']['x'] < 20 and 0 <= g['food']['y'] < 20, g['food'])
+    tick(p); g2 = gm(p)
+    check('R4', 'length stays after growth tick (no drift)', len(g2['snake']) == n0 + 1 and g2['score'] == 1)
+    shot(p, '03-after-eat')
+    # 5 foods in a row: exactly +1 each
+    ok = True
+    for i in range(5):
+        g = gm(p); h = g['snake'][0]; d = g['dir']
+        dx, dy = {'right': (1, 0), 'left': (-1, 0), 'up': (0, -1), 'down': (0, 1)}[d]
+        if not (0 <= h['x'] + dx < 20 and 0 <= h['y'] + dy < 20):
+            break
+        setg(p, g['snake'], d, {'x': h['x'] + dx, 'y': h['y'] + dy}); l0, s0 = len(g['snake']), g['score']; tick(p); g = gm(p)
+        ok &= (len(g['snake']) == l0 + 1 and g['score'] == s0 + 1 and score_dom(p) == str(g['score']))
+    check('R4', 'consecutive foods each exactly +1 length/+1 score', ok)
+    p.context.close()
+    # food never on snake: autopilot many games through the real page logic
+    p = newpage('?manual=1&seed=7'); start(p)
+    bad = p.evaluate('''() => {
+      const L = window.SnakeLogic; let viol = 0, eaten = 0, games = 0, notBoard = 0;
+      for (let seed = 1; seed <= 150; seed++) {
+        const g = L.createGame({cols: 20, rows: 20, rng: L.makeRng(seed)});
+        for (let t = 0; t < 3000 && !g.over; t++) {
+          // greedy toward food avoiding immediate death
+          const h = g.snake[0], f = g.food; const opts = ['up','down','left','right'].filter(d => d !== L.OPPOSITE[g.dir]);
+          const occ = new Set(g.snake.slice(0,-1).map(s => s.x+','+s.y));
+          const sc = d => {const v=L.DIRS[d]; const nx=h.x+v.x, ny=h.y+v.y; if(nx<0||ny<0||nx>=20||ny>=20||occ.has(nx+','+ny)) return 1e9; return Math.abs(nx-f.x)+Math.abs(ny-f.y)+Math.random()*0.1;};
+          opts.sort((a,b)=>sc(a)-sc(b)); L.turn(g, opts[0]);
+          const before = g.score, len = g.snake.length; const r = L.step(g);
+          if (g.score !== before) { eaten++; if (g.score !== before + 1 || g.snake.length !== len + 1) viol++; }
+          else if (!g.over && g.snake.length !== len) viol++;
+          if (g.food) { if (g.snake.some(s => s.x === g.food.x && s.y === g.food.y)) viol++; if (g.food.x<0||g.food.y<0||g.food.x>=20||g.food.y>=20) notBoard++; }
+          const cells = new Set(g.snake.map(s => s.x+','+s.y)); if (cells.size !== g.snake.length && !g.over) viol++;
+        }
+        games++;
+      }
+      return {viol, eaten, games, notBoard};
+    }''')
+    check('R4', 'autopilot, 150 games: food never on snake/off board; every eat is +1/+1 (eaten=%d)' % bad['eaten'], bad['viol'] == 0 and bad['notBoard'] == 0 and bad['eaten'] > 300, bad)
+    # win by filling board
+    w = p.evaluate('''() => { const L = window.SnakeLogic; const g = L.createGame({cols:3, rows:2, length:3, rng: L.makeRng(1)});
+      // snake fills row y=1 (x=1,0,-1)? length 3 on 3 cols starts at hx=1 -> x 1,0,-1 invalid; use cols 4
+      return null; }''')
+    p.context.close()
+
+    # ---------- R5 walls ----------
+    walls = {
+        'right': (lambda: None, [], 'right'),
+        'up': (None, ['ArrowUp'], 'up'),
+        'down': (None, ['ArrowDown'], 'down'),
+        'left': (None, ['ArrowUp', 'ArrowLeft'], 'left'),  # go up one, then left (can't reverse directly)
+    }
+    for name, (_, keys, d) in walls.items():
+        p = newpage(); start(p)
+        for k in keys: p.keyboard.press(k); tick(p)
+        steps = 0
+        while st(p) == 'playing' and steps < 40:
+            tick(p); steps += 1
+        g = gm(p); h = g['snake'][0]
+        inside = 0 <= h['x'] < 20 and 0 <= h['y'] < 20
+        check('R5', 'wall %s ends the game (no wrap)' % name, st(p) == 'gameover' and inside, (st(p), h, steps))
+        check('R9', 'game over shown after %s wall with final score' % name, p.is_visible('#gameover-screen') and p.inner_text('#final-score') == str(g['score']))
+        if name == 'right': shot(p, '04-gameover-wall')
+        p.context.close()
+    # wall hit after scoring: final score matches
+    p = newpage(); start(p); g = gm(p); h = g['snake'][0]
+    for i in range(3):
+        g = gm(p); h = g['snake'][0]; setg(p, g['snake'], 'right', {'x': h['x'] + 1, 'y': h['y']}); tick(p)
+    check('R8', 'HUD score shows 3 after 3 foods', score_dom(p) == '3', score_dom(p))
+    while st(p) == 'playing': tick(p)
+    check('R9', 'final score equals 3 on game-over screen', p.inner_text('#final-score') == '3' and '3' in p.inner_text('#gameover-screen'), p.inner_text('#gameover-screen'))
+    check('R9', 'game over screen mentions game over', 'over' in p.inner_text('#gameover-screen').lower())
+    shot(p, '05-gameover-score3')
+    # arrows on game over do not restart
+    p.keyboard.press('ArrowUp'); p.keyboard.press('ArrowLeft'); p.wait_for_timeout(300)
+    check('R10', 'arrow keys on game over do not restart / change screen', st(p) == 'gameover')
+    # ---------- R10 play again ----------
+    p.evaluate('() => window.__marker = 42')
+    n_req = len(p.requests)
+    p.click('#play-again-button'); p.wait_for_timeout(50)
+    g = gm(p)
+    check('R10', 'Play again button starts fresh run: playing, score 0 (game+HUD), length 3, dir right, queue empty',
+          st(p) == 'playing' and g['score'] == 0 and score_dom(p) == '0' and len(g['snake']) == 3 and g['dir'] == 'right' and not g['queue'] and not g['over'], (st(p), g['score'], len(g['snake']), g['dir']))
+    check('R10', 'no page reload on restart', p.evaluate('() => window.__marker') == 42)
+    check('R10', 'fresh run has food off snake', (g['food']['x'], g['food']['y']) not in {(s['x'], s['y']) for s in g['snake']})
+    check('R10', 'game over screen hidden after restart', not p.is_visible('#gameover-screen'))
+    h = head(p); tick(p); check('R10', 'restarted game moves', head(p)['x'] == h['x'] + 1)
+    p.context.close()
+    for key in ['Enter', ' ']:
+        p = newpage(); start(p)
+        while st(p) == 'playing': tick(p)
+        p.keyboard.press(key); p.wait_for_timeout(50); g = gm(p)
+        check('R10', 'restart with %r key from game over' % key, st(p) == 'playing' and g['score'] == 0 and len(g['snake']) == 3)
+        h = head(p); p.keyboard.press(key); p.keyboard.press('Enter'); p.wait_for_timeout(50)
+        check('R10', 'extra Enter/Space after restart does not double-start', st(p) == 'playing' and head(p) == h)
+        p.context.close()
+    # restart state leakage: queue/turn pending at death
+    p = newpage(); start(p)
+    p.keyboard.press('ArrowUp'); p.keyboard.press('ArrowLeft')  # queued, not ticked
+    while st(p) == 'playing': tick(p)
+    p.keyboard.press('Enter'); h = head(p); tick(p)
+    check('R10', 'no stale queued turns carried into restarted run', head(p)['x'] == h['x'] + 1 and head(p)['y'] == h['y'], (h, head(p)))
+    p.context.close()
+    # repeated restarts: score multiple times
+    p = newpage(); ok = True
+    for i in range(5):
+        start(p)
+        g = gm(p); h = g['snake'][0]; setg(p, g['snake'], 'right', {'x': h['x'] + 1, 'y': h['y']}); tick(p)
+        ok &= score_dom(p) == '1'
+        while st(p) == 'playing': tick(p)
+        ok &= p.inner_text('#final-score') == '1'
+    check('R10', '5 consecutive runs each score/final-score correct', ok)
+    p.context.close()
+
+    # ---------- R6 self collision ----------
+    p = newpage(); start(p)
+    # snake length 6 heading right, then up, left, down => hits itself
+    setg(p, line(10, 10, 6, 1, 0), 'right')
+    p.keyboard.press('ArrowUp'); tick(p); p.keyboard.press('ArrowLeft'); tick(p); p.keyboard.press('ArrowDown'); tick(p)
+    check('R6', 'U-turn loop into body ends game (length 6)', st(p) == 'gameover', (st(p), gm(p)['snake'][:3]))
+    check('R9', 'game over screen after self collision', p.is_visible('#gameover-screen'))
+    shot(p, '06-gameover-self')
+    p.context.close()
+    # self collision with real keypresses, grown by eating
+    p = newpage(); start(p)
+    for i in range(3):
+        g = gm(p); h = g['snake'][0]; setg(p, g['snake'], 'right', {'x': h['x'] + 1, 'y': h['y']}); tick(p)
+    check('R4', 'length 6 after 3 foods from 3', len(gm(p)['snake']) == 6)
+    for k in ['ArrowUp', 'ArrowLeft', 'ArrowDown']:
+        p.keyboard.press(k); tick(p)
+    check('R6', 'natural play: grown snake (6) turning up,left,down dies', st(p) == 'gameover', st(p))
+    check('R9', 'final score 3 after self-death', p.inner_text('#final-score') == '3')
+    p.context.close()
+    # tail-chase: head into the cell tail just vacated -> allowed; snake [head(5,5), (6,5), (6,6), (5,6)tail] dir left, press down
+    p = newpage(); start(p)
+    setg(p, [{'x': 5, 'y': 5}, {'x': 6, 'y': 5}, {'x': 6, 'y': 6}, {'x': 5, 'y': 6}], 'left', {'x': 15, 'y': 15})
+    p.keyboard.press('ArrowDown'); tick(p)
+    tail_cell_allowed = st(p) == 'playing'
+    check('R6', 'moving into the cell the tail just vacated is allowed (standard Snake)', tail_cell_allowed, st(p))
+    p.context.close()
+    # same but eating on that move -> tail does not vacate -> must die
+    p = newpage(); start(p)
+    setg(p, [{'x': 5, 'y': 5}, {'x': 6, 'y': 5}, {'x': 6, 'y': 6}, {'x': 5, 'y': 6}], 'left', {'x': 5, 'y': 6})
+    p.keyboard.press('ArrowDown'); tick(p)
+    check('R6', 'entering tail cell while eating (food on it) is a collision', st(p) == 'gameover', st(p))
+    p.context.close()
+    # moving into second segment / neck via instant reversal impossible; head into middle body cell
+    p = newpage(); start(p)
+    setg(p, [{'x': 5, 'y': 5}, {'x': 6, 'y': 5}, {'x': 7, 'y': 5}, {'x': 7, 'y': 4}, {'x': 6, 'y': 4}, {'x': 5, 'y': 4}, {'x': 4, 'y': 4}], 'left', {'x': 15, 'y': 15})
+    p.keyboard.press('ArrowUp'); tick(p)
+    check('R6', 'head into a mid-body cell ends game', st(p) == 'gameover', st(p))
+    p.context.close()
+    # real-time self death
+    p = newpage('?seed=2'); start(p)
+    g = gm(p); setg(p, line(10, 10, 6, 1, 0), 'right')
+    for k in ['ArrowUp', 'ArrowLeft', 'ArrowDown']:
+        h0 = head(p); p.keyboard.press(k)
+        for _ in range(40):  # wait for exactly the tick that applies this key
+            if st(p) != 'playing' or head(p) != h0: break
+            p.wait_for_timeout(10)
+    p.wait_for_timeout(300)
+    check('R6', 'real-time: loop into itself ends game', st(p) == 'gameover', st(p))
+    p.context.close()
+
+    # ---------- pause / blur ----------
+    p = newpage('?seed=1'); start(p); p.wait_for_timeout(200)
+    p.keyboard.press('p'); p.wait_for_timeout(100); h = head(p); p.wait_for_timeout(500)
+    check('R2', 'P pauses (no movement) and resume continues', st(p) == 'paused' and head(p) == h)
+    p.keyboard.press('p'); p.wait_for_timeout(400)
+    check('R2', 'resume after pause moves again and not dead', st(p) == 'playing' and head(p) != h)
+    p.context.close()
+
+    # win condition on small board
+    p = newpage(); start(p)
+    w = p.evaluate('''() => { const L = window.SnakeLogic; const g = L.createGame({cols:4, rows:1, length:3, rng:L.makeRng(1)});
+      return {snake: g.snake.map(s=>[s.x,s.y]), food: g.food}; }''')
+    p.context.close()
+
+    # pause/resume variants (build 3 added Enter/Space/click resume)
+    for how in ['p', 'Escape', 'Enter', ' ', 'click']:
+        p = newpage('?manual=1'); start(p); tick(p, 2); g0 = gm(p)
+        p.keyboard.press('p'); p.wait_for_timeout(50)
+        ok_p = st(p) == 'paused' and p.is_visible('#pause-screen')
+        tick(p, 0)
+        if how == 'click': p.click('#pause-screen')
+        else: p.keyboard.press(how)
+        p.wait_for_timeout(50); g1 = gm(p)
+        check('R2', 'pause then resume with %r: same run continues (not restarted)' % how, ok_p and st(p) == 'playing' and g1['snake'] == g0['snake'] and g1['score'] == g0['score'], (st(p),))
+        p.context.close()
+    p = newpage('?manual=1'); start(p); p.keyboard.press('p'); p.keyboard.press('ArrowUp'); p.keyboard.press('p'); tick(p)
+    check('R3', 'arrow pressed while paused does not turn', gm(p)['dir'] == 'right')
+    p.context.close()
+
+    # layout at several viewports: HUD + board + screens fully inside the window, no scroll
+    JS_BOX = """() => { const r = s => { const e = document.querySelector(s); const q = e.getBoundingClientRect(); return [q.top, q.bottom, q.left, q.right]; };
+      return {game: r('#game'), hud: r('#hud'), wrap: r('#board-wrap'), sy: scrollY, sh: document.documentElement.scrollHeight}; }"""
+    def inside(b, vw, vh): return b[0] >= -0.5 and b[1] <= vh + 0.5 and b[2] >= -0.5 and b[3] <= vw + 0.5
+    def screen_fit(p, sel):
+        return p.evaluate("""(sel) => { const s = document.querySelector(sel); const w = document.getElementById('board-wrap').getBoundingClientRect();
+          const bad = []; for (const c of s.querySelectorAll('*')) { if (c.offsetParent === null) continue; const q = c.getBoundingClientRect();
+            if (q.width && (q.top < w.top - 0.5 || q.bottom > w.bottom + 0.5 || q.left < w.left - 0.5 || q.right > w.right + 0.5)) bad.push(c.tagName + '#' + c.id); } return bad; }""", sel)
+    for vw, vh in [(1280, 720), (1366, 650), (1366, 768), (1024, 600), (800, 600), (800, 500), (1920, 1080), (500, 700)]:
+        p = newpage('?manual=1', viewport=(vw, vh))
+        bt = screen_fit(p, '#title-screen'); shot(p, '07-%dx%d-title' % (vw, vh))
+        start(p); b = p.evaluate(JS_BOX)
+        check('R1', 'title/HUD/board fully inside %dx%d, no scroll, title text within board' % (vw, vh), inside(b['game'], vw, vh) and inside(b['hud'], vw, vh) and b['sy'] == 0 and b['sh'] <= vh and not bt, (b, bt))
+        check('R8', 'HUD score visible at %dx%d' % (vw, vh), p.is_visible('#hud') and p.evaluate("() => { const q = document.getElementById('score').getBoundingClientRect(); return q.top >= 0 && q.bottom <= innerHeight; }"))
+        shot(p, '07-%dx%d-playing' % (vw, vh))
+        p.keyboard.press('p'); bp = screen_fit(p, '#pause-screen'); shot(p, '07-%dx%d-paused' % (vw, vh)); p.keyboard.press('p')
+        while st(p) == 'playing': tick(p)
+        bg = screen_fit(p, '#gameover-screen'); b2 = p.evaluate(JS_BOX)
+        check('R9', 'game-over screen fits inside board at %dx%d, final score visible, no scroll' % (vw, vh), not bg and not bp and inside(b2['game'], vw, vh) and b2['sy'] == 0 and p.is_visible('#final-score'), (bg, bp))
+        shot(p, '07-%dx%d-gameover' % (vw, vh))
+        p.context.close()
+    # canvas stays square and cells aligned when scaled
+    p = newpage('?manual=1', viewport=(800, 500)); start(p)
+    r = p.eval_on_selector('#board', 'e => { const q = e.getBoundingClientRect(); return [q.width, q.height]; }')
+    check('R2', 'board remains square when scaled to 800x500', abs(r[0] - r[1]) < 1, r); p.context.close()
+    br.close()
+
+json.dump(results, open(os.path.join(out, 'results.json'), 'w'), indent=1)
+bad = [r for r in results if not r['ok']]
+print('%d/%d passed' % (len(results) - len(bad), len(results)))
+sys.exit(1 if bad else 0)

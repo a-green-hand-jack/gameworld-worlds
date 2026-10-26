@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""QA smoke harness: serve a delivery dir, drive it in headless Chromium, log console errors,
+capture screenshots per phase. Usage: run_checks.py <delivery_dir> <out_dir>"""
+import sys, os, json, threading, http.server, functools, time
+from playwright.sync_api import sync_playwright
+
+root, out = sys.argv[1], sys.argv[2]
+os.makedirs(out, exist_ok=True)
+h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=root)
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Q, directory=root))
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+url = f"http://127.0.0.1:{srv.server_port}/index.html"
+log = {"console_errors": [], "failed_requests": [], "steps": []}
+
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    pg = b.new_page(viewport={"width": 1280, "height": 720})
+    pg.on("console", lambda m: m.type in ("error", "warning") and log["console_errors"].append(f"{m.type}: {m.text}"))
+    pg.on("pageerror", lambda e: log["console_errors"].append(f"pageerror: {e}"))
+    pg.on("response", lambda r: r.status >= 400 and log["failed_requests"].append(f"{r.status} {r.url}"))
+    pg.goto(url); pg.wait_for_timeout(800)
+    pg.screenshot(path=f"{out}/01_title.png")
+    log["pong_hook"] = pg.evaluate("typeof window.pong")
+    log["pong_keys"] = pg.evaluate("window.pong ? Object.keys(window.pong) : null")
+    log["pong_state0"] = pg.evaluate("window.pong && window.pong.state ? JSON.stringify(typeof window.pong.state==='function'?window.pong.state():window.pong.state) : null")
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(1500)
+    pg.screenshot(path=f"{out}/02_play.png")
+    pg.keyboard.down("ArrowUp"); pg.wait_for_timeout(600); pg.screenshot(path=f"{out}/03_up.png"); pg.keyboard.up("ArrowUp")
+    pg.keyboard.down("ArrowDown"); pg.wait_for_timeout(1200); pg.screenshot(path=f"{out}/04_down.png"); pg.keyboard.up("ArrowDown")
+    log["pong_state1"] = pg.evaluate("window.pong && window.pong.state ? JSON.stringify(typeof window.pong.state==='function'?window.pong.state():window.pong.state) : null")
+    b.close()
+json.dump(log, open(f"{out}/smoke.json", "w"), indent=1)
+print(json.dumps(log, indent=1))

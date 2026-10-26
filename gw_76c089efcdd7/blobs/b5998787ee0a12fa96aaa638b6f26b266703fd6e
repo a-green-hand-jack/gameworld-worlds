@@ -1,0 +1,7 @@
+# Acceptance: Beep
+
+Inspected the assembled delivery (no delivery errors): artist d75a5b6e, game-developer 8063df5a (release v1).
+- sound/beep.wav measured: 44.1 kHz mono 16-bit, 22050 frames (0.5 s), ~660 Hz, amplitude 4088 at start falling to 377 near 0.3 s, then exact zeros for the last 0.2 s. Matches spec.
+- index.html: one button, click handler increments and shows count, plays sound/beep.wav. QA (browser) and playtester both report it works.
+- listening.md exists in qa and playtester repos; both record request, raw answer and a mismatch verdict: the audio-understanding service described the sound differently (leading silence, constant tone). My measurements of the file contradict the service, so the mismatch is the listener's error, not a defect in the sound. The objective is a listening check, and it was carried out and honestly reported.
+Conclusion: accept.

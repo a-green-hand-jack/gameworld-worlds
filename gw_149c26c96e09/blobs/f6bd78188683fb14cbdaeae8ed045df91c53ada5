@@ -1,0 +1,46 @@
+# Brief — Snake (round 1)
+
+Owner: `producer`. Source: `producer`#1 "Game objective". The input wins wherever this brief and the input disagree.
+
+## What the input asks (quoted)
+
+> Make Snake as a web game played in the browser: the snake moves on a grid and is turned with the arrow keys, eating food makes it one cell longer and adds a point, and running into a wall or itself ends the game. It has a title screen, the score during play, and a game-over screen with the final score and a way to play again.
+
+No other frozen material is supplied.
+
+## Requirements (each one is judged at acceptance)
+
+| ID | Requirement (from the input) |
+|----|------------------------------|
+| R1 | A web game played in the browser: opening the delivered `index.html` (served statically, no build step needed by the player) runs the game. |
+| R2 | The snake moves on a grid (cell by cell, continuously on its own). |
+| R3 | The snake is turned with the arrow keys (Up/Down/Left/Right). |
+| R4 | Eating food makes the snake exactly one cell longer. |
+| R5 | Eating food adds exactly one point to the score. |
+| R6 | Running into a wall ends the game. |
+| R7 | Running into itself ends the game. |
+| R8 | A title screen is shown before play. |
+| R9 | The score is visible during play. |
+| R10 | A game-over screen shows the final score. |
+| R11 | The game-over screen offers a way to play again, which starts a fresh game (length and score reset). |
+
+## Focus and priorities for this round
+
+1. **Correct core loop first** (R2–R7): grid movement, arrow-key turning, growth +1, score +1, wall and self collision end the game. This is the game; nothing else matters if it is wrong.
+2. **The three screens and the flow** (R8–R11): title → play → game over → play again, with the score visible in play and the final score on game over. Each screen must say how to proceed (which key/button).
+3. **Plays well as Snake**: a speed a player can handle; food never spawns on the snake; the snake cannot reverse straight into itself with a single opposite key (a 180° turn is ignored), and two quick key presses within one tick are not lost or turned into a self-reversal; controls respond on the next step; the arrow keys do not scroll the page.
+4. **Coherent look and sound**: one consistent visual style across the three screens and the play field (grid, snake, food, text), readable at common desktop window sizes. Sound is welcome but optional; if present it must not be required to play and must be consistent.
+
+Out of scope for this round: touch/mobile controls, high-score persistence, levels, menus beyond the three screens. Any of these may be added only if they do not compromise the above.
+
+## Standard each part is judged against
+
+- **Build (`game-developer`)**: runs from a static `index.html` in current Chromium with no console errors; every R1–R11 observable by playing; behavior deterministic enough that QA can reproduce defects.
+- **Art (`artist`)**: assets the build actually uses, consistent with one another, legible on the grid (snake head distinguishable, food clearly distinct from snake and background).
+- **Quality (`qa`)**: a systematic check of each build against R1–R11 and the priority-3 items, with reproducible defect reports (steps, expected, observed, revision) filed with the owner.
+- **Playtest (`playtester`)**: each build to be accepted is played as a player would, start to game over to replay, with evidence (screenshots/recordings, what was pressed, what happened).
+
+## What I could not establish
+
+- Grid size, speed, and visuals are not specified by the input; they are the build's and art's choice within the standard above.
+- Whether "a way to play again" is a key or a button is not specified; either is acceptable if the game-over screen says what to do.

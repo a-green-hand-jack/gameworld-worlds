@@ -1,0 +1,186 @@
+{
+ "build": "/hutian/builds/build-5/game/w1",
+ "mode": "manual",
+ "browser": "chromium",
+ "frames_in_log": 794,
+ "seconds": 20.8,
+ "final": {
+  "fr": 1245,
+  "st": "play",
+  "lv": "1-3",
+  "ar": "main",
+  "x": 905,
+  "y": 155.4,
+  "sc": 300,
+  "co": 1,
+  "li": 3,
+  "t": 255,
+  "pw": 0,
+  "dead": false,
+  "i": 300
+ },
+ "trace": [
+  {
+   "fr": 152,
+   "st": "play",
+   "lv": "1-3",
+   "ar": "main",
+   "x": 34,
+   "y": 194,
+   "sc": 0,
+   "co": 0,
+   "li": 3,
+   "t": 300,
+   "pw": 0,
+   "dead": false,
+   "i": 1
+  }
+ ],
+ "events": [
+  {
+   "type": "intro",
+   "frame": 1,
+   "level": "1-3",
+   "lives": 3
+  },
+  {
+   "type": "start",
+   "frame": 151,
+   "level": "1-3",
+   "area": "main"
+  },
+  {
+   "type": "goomba",
+   "frame": 422,
+   "res": null
+  }
+ ],
+ "sound_calls": [
+  {
+   "f": 1,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 151,
+   "k": "playMusic",
+   "a": [
+    "overworld",
+    "true"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 151,
+   "k": "stopMusic",
+   "a": [],
+   "muted": false,
+   "have": null
+  },
+  {
+   "f": 260,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 290,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 356,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 386,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 403,
+   "k": "play",
+   "a": [
+    "coin"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 422,
+   "k": "play",
+   "a": [
+    "stomp"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 500,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 530,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 578,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 698,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  },
+  {
+   "f": 746,
+   "k": "play",
+   "a": [
+    "jump_small"
+   ],
+   "muted": false,
+   "have": true
+  }
+ ],
+ "console": [],
+ "errors": [],
+ "failed": []
+}

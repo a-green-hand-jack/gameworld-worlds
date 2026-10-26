@@ -1,0 +1,60 @@
+# Brief — round 1
+
+## What the input asks (quoted, `producer`#1 "Game objective")
+
+> 复刻经典版本的超级马里奥 1，做成网页游戏
+
+"Recreate the classic version of Super Mario Bros. 1 as a web game." No other material is supplied.
+
+## What that means for this round
+
+The deliverable is a browser game that a player who knows the 1985 NES *Super Mario Bros.* recognises as that game:
+same structure, same levels, same rules, same feel. "Classic version" = the original NES release (not All-Stars, Deluxe or Lost Levels).
+
+### The game must be and do
+
+1. **Runs as a web game.** A static site: open `index.html` (served by any static HTTP server) in a current desktop Chrome/Firefox and play. No server-side code, no install step for the player. Keyboard controls, shown on the title screen; separate *jump* (A) and *run/fireball* (B) buttons; Enter = start/pause. Gamepad is a bonus, not required.
+2. **NES presentation.** 256×240 logical screen (16×16 tiles), scaled up with crisp pixels and kept at aspect ratio; fixed 60 Hz logic step independent of monitor refresh. HUD as in the original: `MARIO` + 6-digit score, coin counter, `WORLD x-y`, `TIME` counting down from the level's start time.
+3. **Game flow.** Title screen (1 player game) → "WORLD x-y / lives" intermission → level → … ; lives (start 3), extra life at 100 coins and from 1-UP mushrooms; death by enemy, pit, or time-out; restart from level start or mid-level checkpoint as in the original; GAME OVER back to title. Top score kept for the session.
+4. **Mario.** Small / Super / Fire states; power-up and damage transitions with the original's rules (hit as Super/Fire → small with invincibility frames; hit as small → death). Original-feel physics: walk/run acceleration and momentum, skid on turn, variable jump height, higher jump at run speed, air control, stomp bounce, crouch as Super, ducking under, head-bumping blocks from below (Super breaks bricks, small bumps them, bump kills enemies standing on top). Camera scrolls only forward; left screen edge is a wall.
+5. **Objects and enemies** as they appear in the levels: ? blocks, bricks, multi-coin bricks, hidden blocks, coins, Super Mushroom, Fire Flower, Starman (invincible + kills on touch), 1-UP; Goomba, Koopa Troopa green/red (shell kick, shell chain kills), Koopa Paratroopa, Piranha Plant, Buzzy Beetle, Hammer Bro, Lakitu + Spiny, Bullet Bill / Blaster, Cheep-Cheep (swimming and flying), Blooper, Podoboo, Fire bars, Bowser (with fake Bowsers in castles 1–7). Fireballs kill what they kill in the original. Score values and the stomp-chain combo as in the original.
+6. **Level mechanics.** Pipes you can enter (bonus rooms and back), vines to coin heavens, warp zones (1-2, 4-2), moving / falling / balance-lift platforms, springboards, water levels (swimming), castle mazes (4-4, 7-4, 8-4 loop until the correct path), axe + bridge to defeat Bowser, Toad / Princess messages, flagpole with height-based score, time-bonus count-down, castle entry and fireworks rule.
+7. **Content: all 32 levels, World 1-1 to 8-4,** with the original layouts (terrain, blocks, item contents, enemies, pipes, secrets) and the original level types (overworld, underground, underwater, castle, athletic/sky) with their palettes. Completing 8-4 ends the game with the princess ending.
+8. **Audio.** Music per level type (overworld, underground, underwater, castle, star, hurry-up at 100 time, level clear, death, game over, ending) and the sound effects for jump, stomp, coin, bump, break, power-up appear / get, fireball, kick, pipe/damage, 1-UP, flagpole, Bowser fall. Must start only after a user gesture (browser autoplay rules).
+
+### Asset rule (applies to every position)
+
+No ROM, no ripped sprite sheets, no recorded/extracted Nintendo audio files. Visual and audio assets are made by this organisation in the NES 8-bit style (16×16 tiles, NES-like palette, chiptune/synth audio) so they read clearly as the classic characters, objects and level types. Gameplay rules, level layouts and numbers are reproduced from public knowledge of the original. Third-party code or libraries only under a licence that permits use, with attribution in the delivery.
+
+## Focus and priorities for this round
+
+Work in this order; each milestone is a playable build published as a release.
+
+- **P0 – World 1-1 complete and faithful** (items 1–5 needed by 1-1, pipe bonus room, flagpole, castle, HUD, title, lives, death, audio for overworld). The feel of Mario's movement is the first thing judged; get it right here.
+- **P1 – World 1 complete** (1-2 underground + warp zone, 1-3 athletic, 1-4 castle with fire bars, Bowser, axe, Toad message) and the full game flow between levels.
+- **P2 – Worlds 2–8**, all remaining levels, enemies and mechanics, ending.
+
+The objective is the whole game (P2 included). Priorities set the order, not the scope: a P0/P1 build is a milestone, not the finished delivery, and I keep the remaining levels open until they are delivered or the budget truly cannot carry them.
+
+## Acceptance standard
+
+I accept a release when, on the assembled delivery:
+- it loads from a static server in headless and normal Chromium with no console errors, and plays at a steady 60 Hz logic rate;
+- each level present matches the original layout and contents (QA checks level by level against reference), and the rules in items 3–6 behave as in the original;
+- the playtester has played the build through (World 1 at least end-to-end, plus samples of every world delivered) and reports that it feels like SMB1, with no blockers;
+- QA's open defects contain no blocker (crash, softlock, unbeatable level, broken progression, wrong physics core) and no major deviation from the original left unaddressed;
+- assets follow the asset rule and are visually consistent.
+
+## Who does what (see `assignment.json`)
+
+- `game-developer`: the game — code, level data, rules, build (repository root of the delivery).
+- `artist`: all sprites, tiles, fonts, palettes and audio (music + SFX) under `assets/` of the delivery, in formats and sizes agreed with `game-developer`.
+- `qa`: systematic checks of each build against this brief and the original (level-by-level, rule-by-rule), reproducible defect reports in the owner's repository.
+- `playtester`: plays each build I hand over (as releases of `world/producer`), reports the experience with captures.
+- `producer`: this brief, the assignment, handing builds to the playtester, acceptance.
+
+## What I could not establish
+
+- No reference material was supplied; level layouts and numbers must come from public knowledge of the original. Where sources disagree, the NES original behaviour wins; record the choice.
+- Whether the user wants mobile/touch support — not asked for; desktop keyboard is the target, touch is optional.
+- Language of on-screen text: the original is English; keep English in-game text.

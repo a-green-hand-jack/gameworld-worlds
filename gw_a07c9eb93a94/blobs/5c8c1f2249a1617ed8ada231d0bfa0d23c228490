@@ -1,0 +1,12 @@
+# Bot jumps when next obstacle is a fixed time-to-contact away; reports survival. Usage: python3 checks/bot.py <dir> [seconds]
+import sys,os
+from playwright.sync_api import sync_playwright
+d=os.path.abspath(sys.argv[1]); T=float(sys.argv[2]) if len(sys.argv)>2 else 40
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(); pg.goto('file://'+d+'/index.html')
+    pg.keyboard.press('Space')
+    pg.evaluate("""()=>{setInterval(()=>{if(state!=='play')return;const o=obs.find(o=>o.x+o.w>p.x);
+      if(o&&(o.x-(p.x+p.w))/speed<0.2&&(o.x-(p.x+p.w))>-1)jump();},5);}""")
+    pg.wait_for_timeout(int(T*1000))
+    print('state',pg.evaluate('state'),'score',pg.evaluate('Math.floor(score)'),'speed',pg.evaluate('Math.round(speed)'))
+    b.close()

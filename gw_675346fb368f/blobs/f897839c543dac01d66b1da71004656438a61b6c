@@ -1,0 +1,47 @@
+# Acceptance notes (working material, not a delivery)
+
+## Delivery game-developer a7bc95f2f1d393fbce150f265e06861cb7fc00e2 + artist assets/ 92b3b8e2f66c0b127388dca16b270890e9eb8c17
+
+Assembled with `ht-role delivery --into`, served over http, played with `acceptance/play.py` (Playwright, headless Chromium), keyboard input only for the player. Log and screenshots in `acceptance/a7bc95f/`.
+
+Observed:
+- title screen with logo, rules ("first to 5 points wins") and controls (W/S or arrows); all 8 artist assets loaded, none missing
+- Enter -> play at 0-0; ArrowUp and S move the left paddle
+- match 1, ball-tracking player: won 5-3 in ~139 s, 85 paddle hits, scores alternated (computer beatable, not trivial)
+- end screen "YOU WIN!" + final score; Enter -> new match at 0-0
+- match 2, idle player: lost 0-5 in ~35 s; "THE COMPUTER WINS"; Esc -> title
+- no console errors, page errors or failed requests
+
+Findings: none against R1-R9 at this revision. Pending before approval: playtester report, QA results.
+
+## Delivery game-developer 015fd093e2bc960aa6c7b81496d7795ef394fcd7 + artist e3bead3114349f338d97e4400c58f23ed17d2f4b
+
+Same game code as above (015fd09 adds only `checks/runs/` captures; src/ and index.html unchanged); artist changed only `assets/img/logo.svg`. Loaded in headless Chromium: 8/8 assets, no console errors; title logo no longer overlaps the attract rally (`a7bc95f/1b-title-artist-e3bead3.png`). Handed to playtester as my release `build-015fd09` (playtester#2). Pending: playtest report, QA results.
+
+## Verdict pass 1 (world quiet, delivery dev 015fd09 + artist e3bead3)
+
+Not approved yet: my own play finds no defect against R1-R9, but neither the playtester's report (playtester#2) nor QA's results (qa#2) exist yet, and the acceptance standard requires both. Both requests re-pinged with the build to use.
+
+## Playtest received (playtester 4ee56bb04855ba3171b73be75e608dbeb4e5d0b4, playtest/report.md, build-015fd09)
+
+Verdict "playable and complete", R1-R9 observed, no stuck ball, no console errors, every match ended exactly at 5, play again at 0-0, scaling at 600x400 and 1280x720. Notes weighed:
+- difficulty: sloppy bot loses every match (1-5, 0-5, 2-5); anticipating bot wins 5-0; my tracking bot won 5-3. Computer is beatable but not trivial -> meets the brief; not sent as a finding.
+- cosmetic: attract ball may cross the title subtitle; Q (pause) vs Esc (end screen) to return to title; prompts blink. Not against R1-R9; not sent.
+Still waiting: QA results (qa#2, QA running now).
+
+## Verdict pass 2: revise (game-developer#8)
+
+QA results (world/qa qa/results-015fd09-e3bead3.md @ 14e2dda): R1-R9 PASS (http and file://, no console errors); open low defect game-developer#7. Playtest final (7204d2e): attentive bot 5-0 in 4/4, casual bot lost 4/4.
+Findings sent as revise to game-developer in game-developer#8:
+- F1: winner screen (R8) can be skipped by click/Enter/Space at the moment the match ends (#7).
+- F2: the computer never scores against an attentive player (0 points in 10 matches across QA and playtest), contrary to brief focus 2.
+Not sent (cosmetic): attract ball over title subtitle; Q vs Esc to title.
+
+## Delivery game-developer 44ae1c8ff08eb4a95077946205ea39c2e0b2c8b6 (build-2) + artist e3bead3114349f338d97e4400c58f23ed17d2f4b
+
+Own play (acceptance/play.py, headless Chromium over http, keyboard only; log/screens in `acceptance/44ae1c8/`):
+- 8/8 assets, title, Enter -> 0-0, ArrowUp/S move the paddle; no console/page errors, no failed requests.
+- F1: Enter 0.4 s after the match ends leaves the end screen up ("over"); after the 1 s lock the steady prompt "Press Enter or Space to play again" shows (3b-over-1-after-lock.png) and Enter starts a new match at 0-0. Esc within the lock is also ignored (consistent; Esc after the lock -> title per code, line 343).
+- F2: my reactive tracking bot (follows the ball's current height) won 5-3 in one run and lost 0-5 in another; idle lost 0-5. The computer now wins points from a player who returns the ball; developer's sim (checks/runs/rev2/sim-difficulty.txt): attentive bot wins 20/20 conceding 18-27 points per 20 matches; casual bots score 9-16 points per 20 matches.
+Handed to playtester (playtester#4, my release build-44ae1c8) and QA (qa#5). Approval waits on both.
+Playtest of build-44ae1c8 received (world/playtester playtest/report-build-44ae1c8.md @ dad5f8218e79cf3cf5aacfa47dd1fcc67311b14f): pass, R1-R9 hold; F1 12/12 winner screen not skipped by Enter/Space in the first 0.8 s, play again 0-0 12/12, Esc -> title; F2 attentive bot wins 6/6 conceding 0-2 points per match (was 5-0 x4), casual bot loses 6/6 scoring 0-3 per match. Remaining note "still easy for a skilled player" is tuning, not against the brief (computer now wins points). Waiting: QA (qa#5).

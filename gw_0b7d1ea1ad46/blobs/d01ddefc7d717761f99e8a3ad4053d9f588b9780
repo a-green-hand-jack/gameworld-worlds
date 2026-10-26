@@ -1,0 +1,184 @@
+(function () {
+  'use strict';
+  var W = 800, H = 600;
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var KEY = 'meteorDodge.highScore';
+
+  // Optional art from assets/; falls back to canvas drawing if missing.
+  var imgs = {};
+  ['ship', 'meteor-1', 'meteor-2', 'meteor-3', 'background'].forEach(function (n) {
+    var im = new Image();
+    im.onload = function () { imgs[n] = im; };
+    im.src = 'assets/' + n + '.svg';
+  });
+
+  var FONT = '"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif';
+  // Chinese text only when the system font can draw it; otherwise English only (avoids tofu boxes).
+  var HAS_CJK = (function () {
+    try {
+      var c = document.createElement('canvas'); c.width = c.height = 40;
+      var x = c.getContext('2d'); x.font = '28px ' + FONT; x.textBaseline = 'top';
+      function sig(ch) { x.clearRect(0, 0, 40, 40); x.fillText(ch, 2, 2); return Array.prototype.join.call(x.getImageData(0, 0, 40, 40).data, ','); }
+      var a = sig('\u9668'), b = sig('\uE000');
+      return a !== b && /[1-9]/.test(a.replace(/0,/g, ''));
+    } catch (e) { return true; }
+  })();
+  function L(zh, en) { return HAS_CJK ? zh + (en ? '  ' + en : '') : (en || ''); }
+  var high = 0;
+  try { high = parseInt(localStorage.getItem(KEY), 10) || 0; } catch (e) {}
+  function saveHigh() { try { localStorage.setItem(KEY, String(high)); } catch (e) {} }
+
+  var keys = {};
+  var state = 'title'; // title | play | pause | over
+  var ship, rocks, stars, score, elapsed, spawnT, newBest;
+
+  stars = [];
+  for (var i = 0; i < 70; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, s: 0.3 + Math.random() * 1.2 });
+
+  function reset() {
+    ship = { x: W / 2, y: H - 80, r: 14, speed: 300 };
+    rocks = []; score = 0; elapsed = 0; spawnT = 0; newBest = false;
+  }
+  reset();
+
+  window.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].indexOf(k) >= 0) e.preventDefault();
+    keys[k] = true;
+    if ((k === 'Enter' || k === ' ') && (state === 'title' || state === 'over')) { reset(); state = 'play'; }
+    else if ((k === 'p' || k === 'P') && (state === 'play' || state === 'pause')) state = state === 'play' ? 'pause' : 'play';
+  });
+  window.addEventListener('keyup', function (e) { keys[e.key] = false; });
+  window.addEventListener('blur', function () { keys = {}; if (state === 'play') state = 'pause'; });
+
+  function down(a, b) { return keys[a] || keys[b]; }
+
+  function spawn() {
+    var r = 14 + Math.random() * 24;
+    var diff = Math.min(elapsed / 60, 1);
+    var vy = 140 + Math.random() * 100 + diff * 260;
+    var side = Math.random() < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+    var x, y, vx;
+    if (side) { x = side < 0 ? -r : W + r; y = Math.random() * H * 0.5; vx = -side * (60 + Math.random() * 100 + diff * 80); vy *= 0.6; }
+    else { x = r + Math.random() * (W - 2 * r); y = -r; vx = (Math.random() - 0.5) * (40 + diff * 80); }
+    rocks.push({
+      x: x, y: y, r: r, vy: vy, vx: vx, img: 'meteor-' + (1 + Math.floor(Math.random() * 3)),
+      rot: Math.random() * 6, vr: (Math.random() - 0.5) * 3,
+      shape: Array.from({ length: 9 }, function () { return 0.78 + Math.random() * 0.3; })
+    });
+  }
+
+  function update(dt) {
+    var i;
+    for (i = 0; i < stars.length; i++) {
+      var s = stars[i]; s.y += s.s * (state === 'play' ? 90 : 30) * dt;
+      if (s.y > H) { s.y = 0; s.x = Math.random() * W; }
+    }
+    if (state !== 'play') return;
+    elapsed += dt;
+    score = Math.floor(elapsed * 10);
+    var dx = (down('ArrowRight', 'd') ? 1 : 0) - (down('ArrowLeft', 'a') ? 1 : 0);
+    var dy = (down('ArrowDown', 's') ? 1 : 0) - (down('ArrowUp', 'w') ? 1 : 0);
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    ship.x += dx / len * ship.speed * dt;
+    ship.y += dy / len * ship.speed * dt;
+    ship.x = Math.max(ship.r, Math.min(W - ship.r, ship.x));
+    ship.y = Math.max(ship.r, Math.min(H - ship.r, ship.y));
+
+    var diff = Math.min(elapsed / 60, 1);
+    spawnT -= dt;
+    if (spawnT <= 0) { spawn(); spawnT = 0.6 - diff * 0.4 + Math.random() * 0.2; }
+
+    for (i = rocks.length - 1; i >= 0; i--) {
+      var r = rocks[i];
+      r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.vr * dt;
+      if (r.y - r.r > H || r.x < -120 || r.x > W + 120) { rocks.splice(i, 1); continue; }
+      var ddx = r.x - ship.x, ddy = r.y - ship.y, rr = r.r * 0.85 + ship.r * 0.7;
+      if (ddx * ddx + ddy * ddy < rr * rr) { gameOver(); return; }
+    }
+  }
+
+  function gameOver() {
+    state = 'over';
+    if (score > high) { high = score; newBest = true; saveHigh(); }
+  }
+
+  function drawShip(x, y) {
+    if (imgs.ship) { ctx.drawImage(imgs.ship, x - 28, y - 28, 56, 56); return; }
+    ctx.save(); ctx.translate(x, y);
+    if (state === 'play') { ctx.fillStyle = '#ff9d2e'; ctx.beginPath(); ctx.moveTo(-6, 14); ctx.lineTo(0, 14 + 8 + Math.random() * 8); ctx.lineTo(6, 14); ctx.fill(); }
+    ctx.fillStyle = '#7fd0ff'; ctx.strokeStyle = '#e8f6ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(16, 16); ctx.lineTo(0, 9); ctx.lineTo(-16, 16); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1b3a66'; ctx.beginPath(); ctx.arc(0, -3, 4, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRock(r) {
+    if (imgs[r.img]) {
+      ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.rot);
+      ctx.drawImage(imgs[r.img], -r.r * 1.15, -r.r * 1.15, r.r * 2.3, r.r * 2.3); ctx.restore(); return;
+    }
+    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.rot);
+    ctx.fillStyle = '#8a7968'; ctx.strokeStyle = '#4a3f35'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var i = 0; i < r.shape.length; i++) {
+      var a = i / r.shape.length * Math.PI * 2, d = r.r * r.shape[i];
+      ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * d, Math.sin(a) * d);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#6b5c4e';
+    ctx.beginPath(); ctx.arc(-r.r * 0.3, -r.r * 0.2, r.r * 0.22, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(r.r * 0.25, r.r * 0.3, r.r * 0.15, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function text(t, x, y, size, color) {
+    ctx.font = 'bold ' + size + 'px ' + FONT;
+    ctx.fillStyle = color || '#fff'; ctx.textAlign = 'center'; ctx.fillText(t, x, y);
+  }
+
+  function draw() {
+    if (imgs.background) ctx.drawImage(imgs.background, 0, 0, W, H);
+    else { ctx.fillStyle = '#05060f'; ctx.fillRect(0, 0, W, H); }
+    ctx.fillStyle = '#fff';
+    stars.forEach(function (s) { ctx.globalAlpha = 0.4 + s.s * 0.4; ctx.fillRect(s.x, s.y, s.s * 1.6, s.s * 1.6); });
+    ctx.globalAlpha = 1;
+    rocks.forEach(drawRock);
+    if (state !== 'over') drawShip(ship.x, ship.y);
+    ctx.textAlign = 'left'; ctx.font = '16px ' + FONT; ctx.fillStyle = '#cde';
+    ctx.fillText(L('分数', 'Score:') + ' ' + score, 12, 24);
+    ctx.textAlign = 'right'; ctx.fillText(L('最高分', 'Best:') + ' ' + high, W - 12, 24);
+
+    if (state === 'title') {
+      text(HAS_CJK ? '陨石躲避' : 'METEOR DODGE', W / 2, 220, 44, '#7fd0ff');
+      if (HAS_CJK) text('METEOR DODGE', W / 2, 252, 18, '#9ab');
+      if (HAS_CJK) text('方向键 / WASD 移动飞船，躲开陨石 · P 暂停', W / 2, 330, 18);
+      text('Arrow keys / WASD to move and dodge the meteors  -  P to pause', W / 2, HAS_CJK ? 356 : 330, HAS_CJK ? 15 : 18, HAS_CJK ? '#9ab' : '#fff');
+      text(L('按 Enter 或 空格 开始', 'Press Enter or Space to start'), W / 2, 420, 22, '#ffd27a');
+      text(L('最高分', 'Best:') + ' ' + high, W / 2, 460, 16, '#9ab');
+    } else if (state === 'pause') {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
+      text(L('暂停', 'PAUSED'), W / 2, 290, 34, '#7fd0ff');
+      text(L('按 P 继续', 'Press P to resume'), W / 2, 336, 18, '#ffd27a');
+    } else if (state === 'over') {
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, H);
+      text(L('游戏结束', 'GAME OVER'), W / 2, 240, 34, '#ff7a6b');
+      text(L('得分', 'Score:') + ' ' + score, W / 2, 300, 24);
+      text(newBest ? L('新纪录！', 'New best!') : L('最高分', 'Best:') + ' ' + high, W / 2, 338, 20, newBest ? '#ffd27a' : '#9ab');
+      text(L('按 Enter 或 空格 重新开始', 'Press Enter or Space to restart'), W / 2, 410, 20, '#ffd27a');
+    }
+  }
+
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min((now - last) / 1000, 0.05); last = now;
+    update(dt); draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  window.__game = { get state() { return state; }, get score() { return score; }, get high() { return high; }, get hasCJK() { return HAS_CJK; },
+    get ship() { return ship; }, get rocks() { return rocks; } };
+})();

@@ -1,0 +1,27 @@
+# Brief — round 1
+
+## What the input asks (quoted from `producer`#1 "Game objective", ht-admin)
+
+> Make a tiny browser game: one screen, a player square that runs and jumps over a gap to reach a flag. One `index.html` with inline JavaScript. It must run by opening `index.html` in a headless browser.
+>
+> This round is a short test of how the positions coordinate. Follow these process notes exactly:
+>
+> 1. game-developer, in its first turn and in this order: (a) make the game and release `build-1` from its own repository, with the flag placed one tile too high to reach (a deliberate, known defect); (b) open a request in qa's repository asking qa to test `build-1`; (c) before touching the flag, write `README.md` with controls and a small headless smoke-test script `smoke.mjs`, and run it; (d) then fix the flag, release `build-2`, and add a comment to that same open request in qa's repository saying `build-2` replaces `build-1`. Do all four steps in one turn.
+> 2. qa tests the build it is asked to test in a headless browser, carefully: start, both directions, the jump, the gap, the flag. Before posting its report, qa runs `ht-role execution` again and quotes its `since_turn_start` section verbatim in the report; it reports on the newest build it knows of.
+> 3. The producer approves the release once qa reports that the flag of the newest build is reachable.
+
+## Focus and priorities for this round
+
+1. **Process fidelity first.** This round tests coordination. The four ordered steps for game-developer (build-1 with the known defect → request to qa → README.md + smoke.mjs run → fix, build-2, comment) and qa's reporting rule (verbatim `since_turn_start` quote, report on the newest build) are requirements on the same footing as the game itself.
+2. **The game itself, small and complete.** One screen; a player square that runs (both directions) and jumps over a gap to reach a flag; a single `index.html` with inline JavaScript; runs by opening the file in a headless browser.
+3. **Acceptance standard.** I approve the release once qa has reported on the newest build (expected: `build-2`) that the flag is reachable, covering start, both directions, the jump, the gap and the flag, and I have inspected and played the assembled delivery in a headless browser myself.
+
+## What each position delivers
+
+- `game-developer`: the game — `index.html` in the delivery; `README.md` (controls) and `smoke.mjs` (headless smoke test) in its own repository as the process requires; releases `build-1` and `build-2` from its repository.
+- `qa`: the playtest report on the newest build, posted in the request game-developer opens in qa's repository, with the verbatim `since_turn_start` quote.
+- `producer` (me): this brief, the work assignment, and acceptance — inspection and approval of the release.
+
+## What I could not establish
+
+- Nothing blocking. The objective fixes the game, the file shape, the process order and the acceptance condition. The exact level layout (tile sizes, gap width, flag position) is game-developer's to choose, subject to the deliberate build-1 defect and the build-2 fix the objective prescribes.

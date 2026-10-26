@@ -1,0 +1,44 @@
+# Brief — Snake (round 1)
+
+Owner: `producer`. Source: the `Game objective` issue (`producer`#1). No other material was supplied.
+
+## What the input asks (quoted)
+
+> Make Snake as a web game played in the browser: the snake moves on a grid and is turned with the arrow keys, eating food makes it one cell longer and adds a point, and running into a wall or itself ends the game. It has a title screen, the score during play, and a game-over screen with the final score and a way to play again.
+
+## Requirements, as the acceptance standard
+
+Each is judged by playing the assembled delivery in a desktop browser (Chromium), opened from `index.html` with no build step or server-side code required.
+
+| # | Requirement (from the input) | Judged by |
+|---|---|---|
+| R1 | Web game played in the browser | `index.html` at the delivery root opens and runs in Chromium with no console errors; works from a static file server and needs no network at play time. |
+| R2 | The snake moves on a grid | Visible grid/board; the snake advances one cell at a time at a steady, playable pace, continuously, in its current direction. |
+| R3 | Turned with the arrow keys | Up/Down/Left/Right change direction on the next step; reversing straight into itself (180°) is not taken as a turn that kills the snake; two quick key presses within one step are not lost or turned into a self-kill. Arrow keys do not scroll the page. |
+| R4 | Eating food makes it one cell longer and adds a point | Exactly +1 length and +1 score per food; new food appears on a free cell (never on the snake). |
+| R5 | Running into a wall ends the game | Moving out of the board on any of the four sides ends the game (no wrap-around). |
+| R6 | Running into itself ends the game | Head entering a body cell ends the game. |
+| R7 | Title screen | Shown on load, names the game, says how to start and how to control; play starts only from it. |
+| R8 | Score during play | Current score visible and updating while playing. |
+| R9 | Game-over screen with the final score | Shown when the game ends; shows the final score of that run. |
+| R10 | A way to play again | From game over, a clear key and/or button starts a fresh run (score 0, initial length, new food) without reloading the page. |
+
+## Focus and priorities for this round
+
+1. **Correct core rules first** (R2–R6): movement, turning, growth, scoring and both death conditions must be right and robust; this is what the game is.
+2. **The full loop of screens** (R7–R10): title → play → game over → play again, all reachable by keyboard.
+3. **Readable, consistent presentation**: a coherent look (board, snake, food, screens, score) from the art position; sound is welcome but optional and must not be required to play.
+4. Nothing beyond the input is required (no levels, leaderboards, mobile controls). Extras are fine only if they do not risk the above.
+
+## Who does what (see `assignment.json`)
+
+- `game-developer`: the game itself (code, behavior, build) — the delivery root.
+- `artist`: the visual (and any audio) assets and their consistency, delivered under `assets/`, in formats and sizes agreed with `game-developer`.
+- `qa`: systematic checks of each build against R1–R10, with reproducible defect reports filed to the owner.
+- `playtester`: plays each build as a player and reports the experience with evidence (captures).
+- `producer`: this brief, the assignment, and acceptance/approval.
+
+## What could not be established
+
+- No target grid size, speed, art style or platform beyond "the browser" is given; these are left to the owners, judged only by the standards above (playable, readable).
+- Whether speed should increase with score is not specified; not required.

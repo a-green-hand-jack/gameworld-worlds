@@ -1,0 +1,47 @@
+import asyncio
+from playwright.async_api import async_playwright
+OUT='/hutian/repo/evidence/build-3/'
+async def main():
+    async with async_playwright() as pw:
+        b=await pw.chromium.launch(); p=await b.new_page(viewport={'width':1280,'height':800})
+        errs=[]; p.on('console',lambda m: errs.append(m.text) if m.type in('error','warning') else None); p.on('pageerror',lambda e: errs.append(str(e)))
+        await p.goto('http://localhost:8000/'); await asyncio.sleep(0.5)
+        # start via mouse click on Start
+        await p.click('#start-button'); await asyncio.sleep(0.2)
+        print('click start ->',await p.evaluate('__snake.state'))
+        for how in ['p','Escape','click-then-key']:
+            await p.keyboard.press('p' if how!='Escape' else 'Escape'); await asyncio.sleep(0.2)
+            st=await p.evaluate('__snake.state'); h1=await p.evaluate('__snake.game.snake[0].x')
+            if how=='p': await p.keyboard.press('p')
+            elif how=='Escape': await p.keyboard.press('Escape')
+            await asyncio.sleep(0.15)
+            print(how,'paused:',st,'resumed:',await p.evaluate('__snake.state'))
+        # resume with Enter, Space, click
+        for k in ['Enter','Space','click']:
+            await p.keyboard.press('p'); await asyncio.sleep(0.15)
+            if k=='click': await p.mouse.click(640,400)
+            else: await p.keyboard.press(k)
+            await asyncio.sleep(0.15)
+            print('resume by',k,'->',await p.evaluate('__snake.state'),'score',await p.evaluate("document.getElementById('score').textContent"))
+        # quick-turn stress: spam arrows
+        import random
+        random.seed(3)
+        for _ in range(40):
+            await p.keyboard.press(random.choice(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'])); await asyncio.sleep(0.05)
+            if await p.evaluate('__snake.state')!='playing': break
+        r=await p.evaluate('[__snake.state,__snake.game.reason]'); print('after arrow mash',r)
+        # mash can only die by wall or self; verify the reason
+        # Enter held during gameover doesn't instantly restart twice: press Enter on game over
+        await asyncio.sleep(3)
+        print('state',await p.evaluate('__snake.state'))
+        if await p.evaluate('__snake.state')=='gameover':
+            await p.keyboard.press('Enter'); await asyncio.sleep(0.1)
+            print('restart by Enter',await p.evaluate('[__snake.state,__snake.game.score,__snake.game.snake.length]'))
+        # refresh keeps best
+        await p.reload(); await asyncio.sleep(0.3)
+        print('best after reload',await p.evaluate("document.getElementById('best').textContent"))
+        # sound assets loaded
+        print(await p.evaluate('__snake.assets()'))
+        print('errors',errs)
+        await b.close()
+asyncio.run(main())

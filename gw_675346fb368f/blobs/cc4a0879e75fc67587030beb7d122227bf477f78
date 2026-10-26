@@ -1,0 +1,31 @@
+# Pong (game-developer)
+
+Browser Pong: you (left paddle) against the computer (right paddle); first to 5 points wins.
+
+## Start it
+
+- Open `index.html` in a desktop browser (double-click works), or serve the delivery
+  directory with any static server, e.g. `python3 -m http.server 8000` and open
+  <http://localhost:8000/>. No install or build step.
+- `assets/` (sounds, logo, favicon) comes from the artist's repository; the game also
+  runs without it, drawing everything itself and playing no sound.
+
+## Controls
+
+- W / S or Arrow Up / Down: move your paddle
+- Enter or Space (or click): start, and play again from the end screen
+- P or Esc: pause / resume; Q while paused: back to the title
+- Esc on the end screen: back to the title (the end screen ignores input for its first second); M: sound on/off
+
+## For checks
+
+- `window.pong.getState()` (alias `pong.state()`) returns screen (`loading|title|play|over`),
+  score, winner, ball, paddles, rallies and the asset load report; `pong.constants` gives sizes and speeds.
+- `?seed=N` makes serve angles and the computer's aim errors reproducible.
+- `node checks/sim.js attentive|casual|idle MATCHES [SEED] [LATENCY_MS]` runs src/game.js in Node with simulated
+  time and a keyboard bot (intercept-predicting or ball-chasing) to measure difficulty in seconds.
+- `checks/run_check.py GAME_DIR OUT_DIR` plays a full run in headless Chromium (Playwright):
+  title, controls, a match the computer wins, play again, a match an anticipating keyboard bot
+  wins, pause, and fails on any page error. Captures from runs are under `checks/`.
+
+Asset contract with the artist: `docs/assets.md`.

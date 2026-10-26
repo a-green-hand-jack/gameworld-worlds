@@ -1,0 +1,24 @@
+# Playtest report — Pong, release `build-44ae1c8` (world/producer)
+
+Build: game-developer 44ae1c8ff08eb4a95077946205ea39c2e0b2c8b6 + artist e3bead3114349f338d97e4400c58f23ed17d2f4b (zip `pong-build-44ae1c8.zip`, downloaded from producer's release, unzipped, opened from `index.html`).
+Method as in `report.md` (headless Chromium 156, keyboard input only; bots with human-like delays, `playtest/play.py`; bots only *read* the state hook to see). This is a bot-based judgement, not hands-on human play, and audio was not heard. Changes vs `build-015fd09` (from `diff` of `src/game.js`): end-screen input lock (F1), computer shot logic + title overlay darker (F2).
+Evidence: `playtest/shots2/{a,b}/` (two independent runs per profile: screenshots and `*-log.json`).
+
+## F1 — winner screen lock
+- For all 12 matches (6 casual, 6 good) my script pressed Enter/Space 9 times in the first 0.8 s after the match ended. Every time the screen stayed on the end screen (`endLocked` true) — no skip. At the first moment the end screen shows only the headline and final score (`shots2/a/casual-over-1-t0.png`), no prompt; ~0.5 s later the steady prompt "Press Enter or Space to play again / Esc for the title screen" appears (`shots2/a/casual-over-1.png`), no longer blinking.
+- After the lock, Enter/Space started a new match at 0–0 every time (the script asserts score 0–0 on every match start; 12/12). Esc after the lock → title worked (casual runs, `casual-back-to-title.png`).
+- Winner screen is therefore always seen, both for "YOU WIN!" and "THE COMPUTER WINS". One small point: ~1 s of an empty-looking lower half of the end screen before the prompt — fine, intended.
+
+## F2 — computer strength (same profiles as before)
+| Profile | Build 015fd09 | Build 44ae1c8 |
+|---|---|---|
+| good (anticipating, 100 ms delay) | 4 of 4 won 5–0 (computer scored 0) | 6 of 6 won, scores 5–1, 5–0, 5–1, 5–1, 5–2, 5–1 (computer scores ~0.8 pt/match, 5 of 6 matches it took a point) |
+| casual (follows ball, 200 ms delay) | 4 of 4 lost, scored 1,0,2,0 | 6 of 6 lost, scored 1,3,1 / 1,0,1 |
+Match length: good 63–119 s, casual 30–48 s. No stuck ball, zero console/page errors in all 12 matches.
+So: an attentive player now loses a point or two per match but still wins every match; a casual player still scores occasionally but loses. Judgement: the computer is no longer scoreless against attentive play, which the producer asked for. It still looks easy for a skilled human (5–0/5–1 results) and decisive against a sloppy one; a middling human is likely to land in between. I cannot say more without human play. If closer matches are wanted, the gap between my two profiles is the thing to tune.
+
+## Full loop R1–R9 on this build
+Title (blinking start prompt, controls, goal) → Enter/Space start at 0–0 → score "YOU/CPU" visible and updating → first to 5 ends the match exactly at 5 (12 of 12 end at 5, no 6) → end screen names the winner and final score → play again at 0–0 / Esc to title: all observed. Walls/paddle bounces, serve pause after each point, no ball through a paddle (no stuck/tunnel observed). Pause and window scaling were not re-run (code unchanged in those paths; checked on 015fd09, see `report.md`).
+
+## Verdict
+**Pass: R1–R9 hold on `build-44ae1c8`; F1 and F2 behave as intended; no defect found.** Same cosmetic notes as before (Q vs Esc for "title" on pause vs end screen).

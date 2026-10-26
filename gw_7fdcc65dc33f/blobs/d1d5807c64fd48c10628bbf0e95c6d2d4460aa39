@@ -1,0 +1,31 @@
+# Playtest of build `play-2` (release candidate)
+
+**Build played:** release `play-2` in world/producer, `whack-a-mole-play-2.zip` (game-developer a081643 + artist sound/hit.wav 18f595a). Unzipped into an empty directory. `diff` against play-1's `src/` shows only the hit-sound loading changed in `src/game.js` (file:// -> `<audio>` element clone per hit; http -> Web Audio as before).
+**How played:** headless Chromium (Playwright 1.64), 1280x800, real mouse clicks, two sessions run side by side:
+1. **file://** — `file:///.../index.html` opened straight from disk (`location.protocol == "file:"` confirmed in the page).
+2. **http** — the same files served with `python3 -m http.server`.
+Each session: title -> Start -> full 30 s round -> end screen -> Play again -> second full 30 s round -> end screen. Script: `playtest/play-2-script.py`. Videos: `playtest/play-2-file-rounds.webm`, `playtest/play-2-http-rounds.webm`. Screenshots: `playtest/shots/play2-{file,http}-*.png`. I cannot hear audio in headless mode; "sound fired" below means the game's own counter of sounds started (Web Audio source started / `<audio>.play()` resolved).
+
+## Verdict
+play-2 plays correctly both from disk (file://) and over HTTP. No defect found against R1–R8; the file:// sound fix works. No console errors or page errors in either session. I have nothing blocking the release.
+
+## Results
+| | file:// | http |
+|---|---|---|
+| Title -> Start -> play | ok | ok |
+| Round 1: clicks on an up mole | 45 | 44 |
+| Round 1: score / hits / sounds fired | 45 / 45 / 45 | 44 / 44 / 44 |
+| Round 1 end screen final score | 45 (= in-game score) | 44 (= in-game score) |
+| Clicks on empty holes, all scored 0 | 45 clicks, score == hits | 44 clicks, score == hits |
+| Play again: score / time at start | 0 / 30 | 0 / 30 |
+| Round 2: score / hits / sounds (sound counter is cumulative) | 44 / 44 / 89 (=45+44) | 46 / 46 / 90 (=44+46) |
+| Round 2 end screen final score | 44 | 46 |
+| Sound asset seen by page | duration 0.25 s (from `<audio>`) | duration 0.25 s (Web Audio) |
+| Console / page errors | none | none |
+
+Each round ended by itself after the 30 s timer; layout and screens are identical to play-1 (shots/play2-*-1-title.png, -2-mole-up.png, -3-end.png, -4-replay.png).
+
+Not re-measured in this build: "mole up under 1 s" (play-1 measured 561–898 ms for expired moles; the mole timing code is unchanged in the play-2 diff). In these runs my clicks hit moles after ~200 ms, so recorded appearances were hit-shortened (max 312 ms).
+
+## Notes
+The cosmetic notes from play-1 still apply (egg-shaped holes, hit mole lingers briefly); none is against a requirement. Not tested: touch, browsers other than Chromium, actually hearing the bonk (QA's listening check covers the asset).

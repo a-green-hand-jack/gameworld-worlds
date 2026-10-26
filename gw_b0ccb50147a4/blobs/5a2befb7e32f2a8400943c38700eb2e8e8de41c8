@@ -1,0 +1,157 @@
+(function () {
+  "use strict";
+  var W = 800, H = 600, DURATION = 30, R = 16, STAR_R = 14, SPEED = 300, MAX_STARS = 3;
+  var BEST_KEY = "starCatcher.best";
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  var elScore = document.getElementById("score");
+  var elTime = document.getElementById("time");
+  var elBest = document.getElementById("best");
+  var overlay = document.getElementById("overlay");
+  var elTitle = document.getElementById("title");
+  var elMsg = document.getElementById("msg");
+
+  var bg = new Image();
+  var bgOk = false;
+  bg.onload = function () { bgOk = true; };
+  bg.src = "assets/bg.png";
+
+  var memBest = 0;
+  function loadBest() {
+    try { return Math.max(memBest, parseInt(localStorage.getItem(BEST_KEY), 10) || 0); } catch (e) { return memBest; }
+  }
+  function saveBest(v) {
+    memBest = v;
+    try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) {}
+  }
+
+  var state = "ready"; // ready | playing | over
+  var best = loadBest();
+  var score = 0, timeLeft = DURATION;
+  var ball = { x: W / 2, y: H / 2 };
+  var stars = [];
+  var particles = [];
+  var keys = {};
+  var last = 0, t = 0;
+
+  elBest.textContent = best;
+
+  function spawnStar() {
+    for (var tries = 0; tries < 30; tries++) {
+      var x = 40 + Math.random() * (W - 80), y = 60 + Math.random() * (H - 100);
+      var dx = x - ball.x, dy = y - ball.y;
+      if (dx * dx + dy * dy > 120 * 120) { stars.push({ x: x, y: y, ph: Math.random() * 6 }); return; }
+    }
+    stars.push({ x: 60, y: 90, ph: 0 });
+  }
+
+  function start() {
+    score = 0; timeLeft = DURATION;
+    ball.x = W / 2; ball.y = H / 2;
+    stars = []; particles = [];
+    for (var i = 0; i < MAX_STARS; i++) spawnStar();
+    state = "playing";
+    overlay.classList.add("hidden");
+    render();
+  }
+
+  function finish() {
+    state = "over";
+    var isNew = score > best;
+    if (isNew) { best = score; saveBest(best); }
+    elTitle.textContent = "时间到！";
+    elMsg.innerHTML = "本局得分 <b style='color:#ffd84a'>" + score + "</b>" +
+      (isNew ? "　<b style='color:#7dffa0'>新纪录！</b>" : "　最高分 " + best);
+    overlay.querySelector(".hint").innerHTML = "按 <kbd>空格</kbd> / <kbd>回车</kbd> 再玩一次";
+    overlay.classList.remove("hidden");
+    render();
+  }
+
+  window.addEventListener("keydown", function (e) {
+    var k = e.key;
+    if (k === "ArrowUp" || k === "ArrowDown" || k === "ArrowLeft" || k === "ArrowRight" || k === " ") e.preventDefault();
+    keys[k] = true;
+    if ((k === " " || k === "Enter") && state !== "playing") start();
+  });
+  window.addEventListener("keyup", function (e) { keys[e.key] = false; });
+  window.addEventListener("blur", function () { keys = {}; });
+
+  function update(dt) {
+    t += dt;
+    if (state !== "playing") return;
+    var dx = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
+    var dy = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
+    if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
+    ball.x = Math.max(R, Math.min(W - R, ball.x + dx * SPEED * dt));
+    ball.y = Math.max(R, Math.min(H - R, ball.y + dy * SPEED * dt));
+
+    for (var i = stars.length - 1; i >= 0; i--) {
+      var s = stars[i], ax = s.x - ball.x, ay = s.y - ball.y;
+      if (ax * ax + ay * ay < (R + STAR_R) * (R + STAR_R)) {
+        score++;
+        for (var p = 0; p < 10; p++) {
+          var a = Math.random() * 6.283, v = 60 + Math.random() * 140;
+          particles.push({ x: s.x, y: s.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.5 });
+        }
+        stars.splice(i, 1);
+        spawnStar();
+      }
+    }
+    for (var j = particles.length - 1; j >= 0; j--) {
+      var q = particles[j];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+      if (q.life <= 0) particles.splice(j, 1);
+    }
+    timeLeft -= dt;
+    if (timeLeft <= 0) { timeLeft = 0; finish(); }
+  }
+
+  function drawStar(x, y, r, rot) {
+    ctx.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var rad = i % 2 ? r * 0.45 : r, a = rot + (Math.PI * i) / 5 - Math.PI / 2;
+      ctx[i ? "lineTo" : "moveTo"](x + Math.cos(a) * rad, y + Math.sin(a) * rad);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "#ffd84a"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#fff6c0"; ctx.stroke();
+  }
+
+  function render() {
+    if (bgOk) ctx.drawImage(bg, 0, 0, W, H);
+    else { ctx.fillStyle = "#10142b"; ctx.fillRect(0, 0, W, H); }
+
+    stars.forEach(function (s) {
+      ctx.save(); ctx.shadowColor = "#ffd84a"; ctx.shadowBlur = 14;
+      drawStar(s.x, s.y + Math.sin(t * 3 + s.ph) * 3, STAR_R * (1 + Math.sin(t * 4 + s.ph) * 0.08), t * 0.8 + s.ph);
+      ctx.restore();
+    });
+    particles.forEach(function (q) {
+      ctx.globalAlpha = Math.max(0, q.life * 2);
+      ctx.fillStyle = "#ffe98a"; ctx.fillRect(q.x - 2, q.y - 2, 4, 4);
+    });
+    ctx.globalAlpha = 1;
+
+    var g = ctx.createRadialGradient(ball.x - 5, ball.y - 6, 2, ball.x, ball.y, R);
+    g.addColorStop(0, "#c8f1ff"); g.addColorStop(1, "#2e8bff");
+    ctx.save(); ctx.shadowColor = "#4aa8ff"; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, R, 0, 6.283); ctx.fillStyle = g; ctx.fill();
+    ctx.restore();
+
+    elScore.textContent = score;
+    elTime.textContent = Math.ceil(timeLeft);
+    elBest.textContent = best;
+  }
+
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000 || 0);
+    last = now;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  window.__game = { get state() { return state; }, get score() { return score; }, get timeLeft() { return timeLeft; }, ball: ball, get stars() { return stars; } };
+})();

@@ -1,0 +1,4 @@
+trials compared 480
+vert#0 falling 7 trials differ; first: [('ph10', 24, (True, False, [37, 207.8, -1.03, 1.47]), (True, True, None)), ('ph10', 40, (True, False, [33, 207.8, -1.03, 1.47]), (True, True, None)), ('ph11', 2, (True, False, [35, 207.1, -1.05, 1.49]), (True, True, None))]
+vert#0 level 5 trials differ; first: [('ph12', 2, (True, False, [25, 207.4, -1.04, 1.48]), (True, True, None)), ('ph12', 6, (True, False, [23, 207.4, -1.04, 1.48]), (True, True, None)), ('ph12', 12, (True, False, [21, 207.4, -1.04, 1.48]), (True, True, None))]
+vert#0 rising 41 trials differ; first: [('ph13', 2, (True, False, [14, 207.8, -1.03, 1.47]), (True, True, None)), ('ph13', 6, (False, None, None), (True, True, None)), ('ph13', 12, (False, None, None), (True, True, None))]

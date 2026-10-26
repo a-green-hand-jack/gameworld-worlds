@@ -1,0 +1,36 @@
+# Brief — Pong (round 1)
+
+## What the input asks (quoted from `producer`#1, "Game objective")
+
+> Make Pong as a web game played in the browser: one player against a computer opponent, the player's paddle moved with the keyboard, first to 5 points wins. It has a title screen, the score during play, and a screen saying who won with a way to play again.
+
+## Requirements, as the input states them
+
+- R1. **Pong**: two paddles and a ball; the ball bounces off the top/bottom walls and off paddles; a ball passing a paddle scores a point for the other side.
+- R2. **Web game played in the browser**: opens and runs in a desktop browser from the delivered files, with no install step for the player.
+- R3. **One player vs a computer opponent**: one paddle is the human's, the other is moved by the game itself.
+- R4. **Player's paddle moved with the keyboard**.
+- R5. **First to 5 points wins**: the match ends exactly when either side reaches 5.
+- R6. **Title screen** shown before play, from which the player starts the game.
+- R7. **Score shown during play** for both sides, updating as points are scored.
+- R8. **End screen saying who won** (player or computer).
+- R9. **A way to play again** from the end screen, starting a fresh match at 0–0.
+
+## Focus and priorities for this round
+
+1. **A complete, playable loop first**: title → match → win/lose screen → play again → title/match again, all in the browser. Every R1–R9 must be present; nothing is cut for a demo.
+2. **It must play like Pong**: responsive keyboard control with no noticeable lag; a ball that is always visible and never gets stuck or passes through a paddle; a computer opponent that is beatable but not trivial (a reasonable player can win some points and a match, and the computer also wins points); a short pause or serve after each point so the player can follow the score.
+3. **Clarity**: the controls are told to the player on the title screen; the score is readable at all times during play; the end screen names the winner unambiguously and says how to play again.
+4. **Coherent look and sound**: one consistent visual style across title, play and end screens; sound effects are welcome if they are consistent and not required to play.
+
+## Standard each part is judged against
+
+- **Build** (`game-developer`): R1–R9 all work in a headless/desktop Chromium from the delivered files; no console errors during a full match; the game is opened from `index.html` at the delivery root (static files, runnable from a plain static file server).
+- **Art** (`artist`): the visual (and any audio) assets the game uses are delivered, consistent with each other, readable (score, text, ball and paddles clearly distinguishable), and actually used by the build.
+- **Quality** (`qa`): every requirement R1–R9 checked against each build handed over, with reproducible defect reports in the owner's repository.
+- **Playtest** (`playtester`): each build played as a player would, start to finish including play again, with evidence (screenshots/logs) of what happened and where it confuses or breaks.
+
+## What I could not establish
+
+- The input fixes no keys, screen size, ball speed, AI difficulty or visual style; these are the owners' choices, judged against the standard above. Suggested default controls: Up/Down arrows (W/S also welcome).
+- The input does not say whether "play again" returns to the title or starts a new match directly; either is accepted as long as the new match starts at 0–0.

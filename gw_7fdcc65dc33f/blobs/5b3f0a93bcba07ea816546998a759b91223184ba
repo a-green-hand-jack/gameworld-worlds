@@ -1,0 +1,56 @@
+# Acceptance record
+
+## Build 1 — game-developer 130237e4f3b0225bc25d661f98ee81d5fc6034b9 + artist 18f595a7f7373b331dd08c47c094d05136df8ed8
+
+Status: superseded by build 2 (file:// sound defect `game-developer`#4, fixed in build 2).
+
+Published to the playtester as release `play-1` (zip of the assembled delivery, `ht-role delivery`, no errors).
+
+### My own inspection (2026-10-20)
+
+Read `index.html`, `src/game.js`; played with `acceptance/play.py` (Playwright Chromium headless, real mouse clicks via `locator.click()`, state polled every 20 ms). Screenshots in `acceptance/play-1/`.
+
+| Req | Observed | Holds |
+|---|---|---|
+| R1 | Static files served over HTTP, opens in Chromium, no console errors/warnings | yes |
+| R2 | 3x3 grid of 9 holes (2-play.png) | yes |
+| R3 | 39 appearances, longest 0.848 s (code: 0.55-0.9 s); moles hide on their own (4 misses) | yes |
+| R4 | 34 clicks on up moles -> score 34, soundsPlayed 34; 3 empty-hole clicks scored 0; whack() hides the mole so it cannot score twice | yes |
+| R5 | round lasted 30.01 s, then end screen | yes |
+| R6 | title screen with Start (1-title.png) | yes |
+| R7 | Score and Time shown and updating (2-play.png: Score 5, Time 27s) | yes |
+| R8 | end screen "Final score: 34" + Play again; replay -> score 0, time 29 after 1.2 s, phase playing | yes |
+| R9 | ffprobe: 0.25 s, 44100 Hz mono s16 PCM; game decodes the delivered file (0.25 s); generator `tools/make_hit.py` kept in artist repo. Not yet listened to (R10 pending) | pending R10 |
+| R10 | — | pending QA |
+
+Not checked by me: audible playback through speakers (headless).
+
+### Playtest (playtester main c5d23a9672b64fd058a080e13606a35f60bc9d6b, `playtest/play-1.md`, answered `playtester`#2)
+
+Played `play-1` in headless Chromium with real mouse clicks: full round 30.02 s, replay, 60-click empty-hole run. No defect against R1-R8, no console errors; un-hit moles up 561-898 ms; 8 hits = 8 sound plays; 60 empty-hole clicks scored 0; replay starts at 0 / 30. Sound not heard (headless).
+Cosmetic notes only (none against a requirement, not blocking): egg-shaped holes clip the mole; hit mole stays brightened ~0.25-0.6 s as feedback; gentle pace; no miss feedback (not asked for).
+
+### QA (qa main 6f8ffcc81f645c6de996a393e8d8015325f85974, `report-build1.md`, `listening.md`, answered `qa`#3)
+
+R1-R9 pass over HTTP (49 clicks = 49 points = 49 sounds, empty/duplicate clicks 0, max up 887 ms, HUD/end/replay correct, mobile viewport + touch OK).
+R10 `listening.md`: request and verbatim answers kept. The resource heard a short percussive hit ("kick drum / thump"; "hollow percussive bonk" when asked) and gave 0.5-0.6 s / 0.9 s; QA's controls (0.25 s tone -> 1.1 s, 1.0 s -> 1.37 s) show the resource overestimates sub-second lengths, and measurement gives 0.25 s / 44100 Hz, peak 0.90, no clipping. I accept that as a match: kind matches by the listening, length and rate by measurement.
+R9 generator: I confirmed `tools/make_hit.py` in artist 18f595a (numpy, pitch-falling decaying thump, writes sound/hit.wav 0.25 s 44.1 kHz).
+Defect `game-developer`#4: opened from file://, fetch of sound/hit.wav fails and no hit sound ever plays. QA rated it minor (README says serve over HTTP); I judge it blocks acceptance, since a user receiving a small web game will commonly double-click index.html and R4 then fails. Revise decision sent there.
+
+## Build 2 — game-developer a08164312c18bd66f77ad40866fb05e1cdc3ff56 + artist 18f595a7f7373b331dd08c47c094d05136df8ed8
+
+Status: **accepted** — approved for release (see Conclusion).
+
+Change: src/game.js only — on file:// the hit sound plays via a cloned `<audio>` element per hit loading `sound/hit.wav`; over HTTP Web Audio as before. Rules and screens unchanged (diff read).
+
+My inspection (2026-10-20), screenshots in `acceptance/play-2/`:
+- HTTP (`acceptance/play.py`): round 30.00 s, 39 appearances, longest 0.815 s, 34 clicks = 34 points = 34 sounds, 3 empty-hole clicks scored 0, end screen "34", replay -> 0 / 29 s after 1.2 s, console clean. R1-R9 hold.
+- file:// (`acceptance/filetest.py`): 15 mole clicks in 8 s -> score 15, soundsPlayed 15 (play() resolved each time), sound duration 0.25, console clean. `game-developer`#4 fixed.
+QA (qa 77e328da95f1, `report-build2.md`): file:// fix pass (50 hits = 50 plays), HTTP regression R1-R9 pass, no new defects; `listening.md` still applies (sound unchanged).
+Published as `play-2` to the playtester.
+
+Playtest (playtester 27f739f072f51981ffad8d67ab670910281db43b, `playtest/play-2.md`, answered `playtester`#4): played play-2 both from file:// and over HTTP, each title -> full 30 s round -> end -> Play again -> second full round, real mouse clicks. file: 45/45 and 44/44 hits = sounds; http: 44/44 and 46/46; empty-hole clicks 0; end score matched; replay 0 / 30; no console errors; nothing blocks release. Limits: not heard (headless), touch/other browsers untested by the playtester (QA covered mobile viewport + touch).
+
+### Conclusion
+
+The assembled delivery — game-developer a08164312c18bd66f77ad40866fb05e1cdc3ff56 (index.html, src/, README.md, tools/) + artist sound/hit.wav at 18f595a7f7373b331dd08c47c094d05136df8ed8 — is the Whack-a-Mole the input asks for: 3x3 grid, moles up < 1 s, a click on an up mole scores one point and plays the 0.25 s 44.1 kHz percussive bonk (generated by artist tools/make_hit.py), 30 s round, title screen, score and time during play, end screen with final score and Play again. It plays over HTTP and when opened directly. R10: QA's `listening.md` (qa 6f8ffcc, still valid at 77e328d, sound unchanged) holds the request, the verbatim answers and the match judgement. No open defects. Cosmetic notes (egg-shaped holes, gentle pace) are not against the input. Approved.

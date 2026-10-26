@@ -1,0 +1,20 @@
+# QA report — Snake build 3
+
+Build tested: assembled delivery = game-developer `dcc9ebb6d219` + artist `bcf60b1e443a`. Headless Chromium (Playwright 1.64), static HTTP server (+ `file://` run). `tests/qa_check.py DELIVERY OUT` (extended since build 1 with pause/resume variants and an 8-viewport fit matrix); results `evidence/build-3/results.json`, screenshots alongside. Run twice: 101/101 pass both times.
+
+**D1 (game-developer#6) is FIXED.** At 1280x720, 1366x650, 1366x768, 1024x600, 800x600, 800x500, 1920x1080 and 500x700 the HUD, board, title screen text, pause screen and game-over screen are fully inside the window and the board, scrollY is 0, the score is visible, and the board stays square (`07-*` captures).
+
+| Req | Verdict | Notes |
+|---|---|---|
+| R1 | PASS | no console errors/warnings, no failed or external requests, all assets load, works from `file://`; fits all 8 viewports |
+| R2 | PASS | steady continuous movement on 20x20 grid; pause (P/Esc) and resume by P, Esc, Enter, Space or click all continue the same run (not restarted) |
+| R3 | PASS | four directions, 180° ignored, quick double/triple presses honoured in order and no self-kill (manual and real time), arrows/Space don't scroll, arrow while paused does not turn |
+| R4 | PASS | exactly +1 length/+1 score per food; food never on snake/off board over 150 autopilot games |
+| R5 | PASS | all four walls end the game, no wrap |
+| R6 | PASS | U-loop, mid-body, tail-cell-while-eating = death; entering the vacating tail cell allowed (standard) |
+| R7 | PASS | title on load, names game and controls; only Enter/Space/button start; no double-start |
+| R8 | PASS | score visible and updating in every viewport tested |
+| R9 | PASS | Game Over + final score equal to run score; overlay now fits inside the board at all sizes |
+| R10 | PASS | button/Enter/Space restart with full reset, no reload, no stale turns, repeated runs |
+
+No new defects; no regressions found.

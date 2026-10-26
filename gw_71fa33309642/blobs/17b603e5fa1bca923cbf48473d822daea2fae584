@@ -1,0 +1,550 @@
+#!/usr/bin/env python3
+"""Write every graphics file the game loads, at the names and sizes fixed in
+`docs/assets.md` of world/game-developer (the art/build contract).
+
+Run:  python3 tools/gfx/export.py
+Writes assets/tiles/<theme>/*.png, assets/scenery/*.png, assets/sprites/*.png,
+assets/ui/*.png, and review images in tools/gfx/check/ (not delivered).
+"""
+import os
+import sys
+
+from PIL import Image
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+OUT = os.path.join(ROOT, "assets")
+CHECK = os.path.join(HERE, "check")
+
+from nes import rgb, check, render, hflip, transpose  # noqa: E402
+from scenery import bottom_align, puff_shape, hill_shape  # noqa: E402
+import art_mario as AM  # noqa: E402
+import art_world as AW  # noqa: E402
+import art_world1 as A1  # noqa: E402
+import art_world2 as A2  # noqa: E402
+import art_text as AT  # noqa: E402
+import bowser  # noqa: E402
+
+WRITTEN = []
+
+
+def save(im, rel):
+    path = os.path.join(OUT, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    im.save(path, optimize=True)
+    WRITTEN.append((rel, im.size))
+
+
+def strip(images):
+    w, h = images[0].size
+    for im in images:
+        assert im.size == (w, h), f"frame size {im.size} != {(w, h)}"
+    out = Image.new("RGBA", (w * len(images), h), (0, 0, 0, 0))
+    for i, im in enumerate(images):
+        out.paste(im, (i * w, 0))
+    return out
+
+
+def crop_cols(rows, x0, x1):
+    return [r[x0:x1] for r in rows]
+
+
+def overlay(base, art, x0, y0, only_empty=True):
+    rows = [list(r) for r in base]
+    for y, r in enumerate(art):
+        for x, ch in enumerate(r):
+            if ch == ".":
+                continue
+            Y, X = y0 + y, x0 + x
+            if 0 <= Y < len(rows) and 0 <= X < len(rows[0]):
+                if not only_empty or rows[Y][X] == ".":
+                    rows[Y][X] = ch
+    return ["".join(r) for r in rows]
+
+
+# ------------------------------------------------------------------ tiles
+def tiles():
+    themes = {
+        "overworld": AW.BLOCK_PAL,
+        "underground": AW.BLOCK_PAL_UNDER,
+        "castle": AW.BLOCK_PAL_CASTLE,
+    }
+    for theme, pal in themes.items():
+        d = f"tiles/{theme}/"
+        ground = AW.BRICK if theme == "castle" else AW.GROUND  # castle floor is grey brickwork
+        save(render(ground, pal), d + "ground.png")
+        save(render(AW.BRICK, pal), d + "brick.png")
+        save(render(AW.USED, pal if theme != "castle" else AW.BLOCK_PAL), d + "used.png")
+        save(render(AW.HARD, pal), d + "block.png")
+        coin_pals = AW.COIN_UNDER_PALS if theme == "underground" else AW.COIN_PALS
+        save(strip([render(AW.COIN, p) for p in coin_pals]), d + "coin.png")
+    d = "tiles/overworld/"
+    save(strip([render(AW.QBLOCK, p) for p in AW.QBLOCK_PALS]), d + "question.png")
+    pp = AW.PIPE_PAL
+    save(render(crop_cols(AW.PIPE_TOP, 0, 16), pp), d + "pipe_tl.png")
+    save(render(crop_cols(AW.PIPE_TOP, 16, 32), pp), d + "pipe_tr.png")
+    save(render(crop_cols(AW.PIPE_BODY, 0, 16), pp), d + "pipe_l.png")
+    save(render(crop_cols(AW.PIPE_BODY, 16, 32), pp), d + "pipe_r.png")
+    mouth = transpose(AW.PIPE_TOP)        # 16x32, opening faces left
+    body = transpose(AW.PIPE_BODY)        # 16x32
+    save(render(mouth[:16], pp), d + "pipe_side_mouth_t.png")
+    save(render(mouth[16:], pp), d + "pipe_side_mouth_b.png")
+    save(render(body[:16], pp), d + "pipe_side_body_t.png")
+    save(render(body[16:], pp), d + "pipe_side_body_b.png")
+    # junction: left half of the vertical pipe body, opened on the left where
+    # the side pipe enters (rows 2..29 of the 32-px-tall pair)
+    vert = crop_cols(AW.PIPE_BODY, 0, 16) * 2
+    join = []
+    for y in range(32):
+        if 2 <= y <= 29:
+            join.append(body[y][:3] + vert[y][3:])
+        else:
+            join.append(vert[y])
+    save(render(join[:16], pp), d + "pipe_side_join_t.png")
+    save(render(join[16:], pp), d + "pipe_side_join_b.png")
+    save(render(A1.TREETOP_L, A1.TREE_PAL), d + "treetop_l.png")
+    save(render(A1.TREETOP_M, A1.TREE_PAL), d + "treetop_m.png")
+    save(render(A1.TREETOP_R, A1.TREE_PAL), d + "treetop_r.png")
+    save(render(A1.TRUNK, A1.TREE_PAL), d + "trunk.png")
+    save(render(AW.POLE_BALL, AW.FLAG_PAL), d + "flag_ball.png")
+    save(render(AW.POLE, AW.FLAG_PAL), d + "flag_pole.png")
+    # castle-only tiles, also under overworld/ because the loader probes every name there first
+    for d in ("tiles/castle/", "tiles/overworld/"):
+        castle_only(d)
+
+
+def castle_only(d):
+    save(render(A1.BRIDGE, A1.BRIDGE_PAL), d + "bridge.png")
+    save(render(A1.CHAIN, A1.CHAIN_PAL), d + "chain.png")
+    save(strip([render(A1.AXE, p) for p in A1.AXE_PALS]), d + "axe.png")
+    save(render(A1.LAVA_TOP, A1.LAVA_PAL), d + "lava_top.png")
+    save(render(A1.LAVA, A1.LAVA_PAL), d + "lava.png")
+
+
+# ------------------------------------------------------------------ world 2
+def world2():
+    d = "tiles/water/"
+    save(render(AW.GROUND, A2.WATER_GROUND_PAL), d + "ground.png")
+    save(strip([render(AW.COIN, p) for p in A2.WATER_COIN_PALS]), d + "coin.png")
+    for name, art in (("coral_top", A2.CORAL_TOP), ("coral", A2.CORAL)):
+        check(name, art, 16, 16)
+        save(render(art, A2.CORAL_PAL), d + name + ".png")
+    check("water_top", A2.WATER_TOP, 16, 16)
+    save(render(A2.WATER_TOP, A2.WATER_TOP_SEA_PAL), d + "water_top.png")
+    d = "tiles/overworld/"
+    check("cloud_block", A2.CLOUD_BLOCK, 16, 16)
+    save(render(A2.CLOUD_BLOCK, A2.CLOUD_PAL), d + "cloud_block.png")
+    # 2-3: the rail on top of the bridges; overworld/bridge.png is the 2-3 deck
+    # (the 1-4 Bowser bridge stays in castle/bridge.png)
+    for name, art in (("rail", A2.BRIDGE_RAIL), ("bridge", A2.BRIDGE_DECK)):
+        check(name, art, 16, 16)
+        save(render(art, A2.BRIDGE2_PAL), d + name + ".png")
+    # scenery: trees and fences backdrop
+    small = A2.TREE_TOP_ROUND + A2.TRUNK_PIECE * 9
+    tall = A2.TREE_TOP_TALL + A2.TRUNK_PIECE * 13
+    check("tree_small", small, 16, 32)
+    check("tree_large", tall, 16, 48)
+    save(render(small, A2.TREE_PAL), "scenery/tree_small.png")
+    save(render(tall, A2.TREE_PAL), "scenery/tree_large.png")
+    check("fence", A2.FENCE, 16, 16)
+    save(render(A2.FENCE, A2.FENCE_PAL), "scenery/fence.png")
+    # sprites
+    for n, a in A2.CHEEP.items():
+        check("cheep " + n, a, 16, 16)
+    frames = [A2.CHEEP["swim1"], A2.CHEEP["swim2"]]
+    save(strip([render(a, A2.CHEEP_RED_PAL) for a in frames]), "sprites/cheep_red.png")
+    save(strip([render(a, A2.CHEEP_GREY_PAL) for a in frames]), "sprites/cheep_grey.png")
+    for n, a in A2.BLOOPER.items():
+        check("blooper " + n, a, 16, 24)
+    save(strip([render(A2.BLOOPER[n], A2.BLOOPER_PAL) for n in ("stretched", "squeezed")]), "sprites/blooper.png")
+    check("podoboo", A2.PODOBOO, 16, 16)
+    save(render(A2.PODOBOO, A2.PODOBOO_PAL), "sprites/podoboo.png")
+    spring = []
+    for coils in (5, 3, 1):
+        body = A2.SPRING_CAP + A2.SPRING_COIL * coils + A2.SPRING_CAP
+        spring.append(["." * 16] * (32 - len(body)) + body)
+        check(f"spring{coils}", spring[-1], 16, 32)
+    save(strip([render(a, A2.SPRING_PAL) for a in spring]), "sprites/jumpspring.png")
+    check("vine_top", A2.VINE_TOP, 16, 16)
+    check("vine", A2.VINE_STEM, 16, 16)
+    save(strip([render(a, A2.VINE_PAL) for a in (A2.VINE_TOP, A2.VINE_STEM)]), "sprites/vine.png")
+    check("lift_cloud", A2.CLOUD_LIFT, 8, 8)
+    save(render(A2.CLOUD_LIFT, A2.CLOUD_PAL), "sprites/lift_cloud.png")
+    check("bubble", A2.BUBBLE, 8, 8)
+    save(render(A2.BUBBLE, A2.BUBBLE_PAL), "sprites/bubble.png")
+
+
+# ------------------------------------------------------------------ scenery
+def scenery():
+    cloud_pal = {"K": 0x0F, "F": 0x30, "S": 0x21}
+    bush_pal = {"K": 0x0F, "F": 0x29, "S": 0x1A}
+    for n in (1, 2, 3):
+        rows, w = puff_shape(n, 24, flat_bottom=False)
+        save(render(rows, cloud_pal), f"scenery/cloud_{n}.png")
+        rows, w = puff_shape(n, 16, flat_bottom=True)
+        last = rows[-1]
+        rows[-1] = "".join("F" if c == "K" and 0 < i < w - 1 and last[i - 1] != "." and last[i + 1] != "." else c
+                           for i, c in enumerate(last))
+        save(render(rows, bush_pal), f"scenery/bush_{n}.png")
+    hill_pal = {"K": 0x0F, "F": 0x1A}
+    save(render(hill_shape(5, 35), hill_pal), "scenery/hill_large.png")
+    save(render(hill_shape(3, 19), hill_pal), "scenery/hill_small.png")
+    save(render(AW.FLAG, AW.FLAG_PAL), "scenery/flag.png")
+    save(render(AW.CASTLE_FLAG, AW.CASTLE_FLAG_PAL), "scenery/castle_flag.png")
+    # end-of-level castle, 5x5 tiles: 3-wide tower on a 5-wide base
+    castle = Image.new("RGBA", (80, 80), (0, 0, 0, 0))
+    bp = AW.BLOCK_PAL
+
+    def put(art, tx, ty):
+        castle.alpha_composite(render(art, bp), (tx * 16, ty * 16))
+    for tx in (1, 2, 3):
+        put(AW.CASTLE_TOP, tx, 0)
+    put(AW.CASTLE_WINDOW, 1, 1)
+    put(AW.CASTLE_WALL, 2, 1)
+    put(AW.CASTLE_WINDOW, 3, 1)
+    for tx in range(5):
+        put(AW.CASTLE_TOP_SOLID if tx in (1, 2, 3) else AW.CASTLE_TOP, tx, 2)
+        put(AW.CASTLE_WALL, tx, 3)
+        put(AW.CASTLE_WALL, tx, 4)
+    put(AW.CASTLE_ARCH, 2, 3)
+    put(AW.CASTLE_DOOR, 2, 4)
+    save(castle, "scenery/castle_small.png")
+    # large castle ending 1-3, 5x11 tiles: three tiers (tower, keep, gatehouse with a 2-tile doorway)
+    castle = Image.new("RGBA", (80, 176), (0, 0, 0, 0))
+    for tx in (1, 2, 3):
+        put(AW.CASTLE_TOP, tx, 0)
+    put(AW.CASTLE_WINDOW, 1, 1)
+    put(AW.CASTLE_WALL, 2, 1)
+    put(AW.CASTLE_WINDOW, 3, 1)
+    for tx in range(5):
+        put(AW.CASTLE_TOP_SOLID if tx in (1, 2, 3) else AW.CASTLE_TOP, tx, 2)
+        for ty in range(3, 11):
+            put(AW.CASTLE_WALL, tx, ty)
+        put(AW.CASTLE_TOP_SOLID, tx, 6)
+    for tx in (0, 2, 4):
+        put(AW.CASTLE_WINDOW, tx, 4)
+    for tx in (1, 3):
+        put(AW.CASTLE_WINDOW, tx, 8)
+    put(AW.CASTLE_ARCH, 2, 9)
+    put(AW.CASTLE_DOOR, 2, 10)
+    save(castle, "scenery/castle_big.png")
+
+
+# ------------------------------------------------------------------ sprites
+def mario_strips():
+    def big_frames(pal, real_throw):
+        b = {n: bottom_align(a) if not n.startswith("climb") else a for n, a in AM.BIG.items()}
+        for n, a in b.items():
+            check("big " + n, a, 16, 32)
+        throw = AM.BIG_HEAD + A1.MARIO_THROW_BODY + AM.BIG["stand"][22:]
+        check("throw", throw, 16, 32)
+        swim = [bottom_align(AM.BIG_HEAD + A2.BIG_SWIM_BODY[n]) for n in ("swim1", "swim2", "swim3")]
+        for i, a in enumerate(swim):
+            check(f"big swim{i}", a, 16, 32)
+        order = [b["stand"], b["walk1"], b["walk2"], b["walk3"], b["skid"], b["jump"], b["crouch"],
+                 b["climb1"], b["climb2"]] + swim + [throw if real_throw else b["stand"]]
+        return [render(a, pal) for a in order]
+
+    s = AM.SMALL
+    for n, a in s.items():
+        check("small " + n, a, 16, 16)
+    small = [s["stand"], s["walk1"], s["walk2"], s["walk3"], s["skid"], s["jump"], s["death"],
+             s["climb1"], s["climb2"]] + [A2.SMALL_SWIM[n] for n in ("swim1", "swim2", "swim3")] + [s["stand"]]
+    for n, a in A2.SMALL_SWIM.items():
+        check("small " + n, a, 16, 16)
+    save(strip([render(a, AM.NORMAL) for a in small]), "sprites/mario_small.png")
+    save(strip(big_frames(AM.NORMAL, False)), "sprites/mario_big.png")
+    save(strip(big_frames(AM.FIRE, True)), "sprites/mario_fire.png")
+
+
+def enemy_strips():
+    g = AW.GOOMBA
+    flat = ["." * 16] * 8 + AW.GOOMBA_FLAT
+    save(strip([render(a, AW.GOOMBA_PAL) for a in (g, hflip(g), flat)]), "sprites/goomba.png")
+    save(strip([render(a, AW.GOOMBA_PAL_UNDER) for a in (g, hflip(g), flat)]), "sprites/goomba_ug.png")
+    red = dict(AW.KOOPA_PAL, G=0x16)
+    for colour, pal in (("green", AW.KOOPA_PAL), ("red", red)):
+        walk = [AW.KOOPA["walk1"], AW.KOOPA["walk2"]]
+        save(strip([render(a, pal) for a in walk]), f"sprites/koopa_{colour}.png")
+        wings = [overlay(walk[0], A1.WING_UP, 1, 4), overlay(walk[1], A1.WING_DOWN, 1, 9)]
+        save(strip([render(a, pal) for a in wings]), f"sprites/parakoopa_{colour}.png")
+        save(strip([render(a, pal) for a in (AW.SHELL, AW.SHELL_WAKE)]), f"sprites/shell_{colour}.png")
+    for n, a in A1.PIRANHA.items():
+        check("piranha " + n, a, 16, 24)
+    save(strip([render(A1.PIRANHA[n], A1.PIRANHA_PAL) for n in ("open", "closed")]), "sprites/piranha.png")
+    for i, f in enumerate(bowser.FRAMES):
+        check(f"bowser{i}", f, 32, 32)
+    save(strip([render(f, bowser.PAL) for f in bowser.FRAMES]), "sprites/bowser.png")
+    for i, f in enumerate(A1.BOWSER_FIRE):
+        check(f"bowser_fire{i}", f, 24, 8)
+    # the flame only flies left and the game does not mirror it, so its head leads on the left
+    save(strip([render(hflip(f), A1.BOWSER_FIRE_PAL) for f in A1.BOWSER_FIRE]), "sprites/bowser_fire.png")
+    check("toad", A1.TOAD, 16, 24)
+    save(render(A1.TOAD, A1.TOAD_PAL), "sprites/toad.png")
+
+
+def item_strips():
+    save(render(AW.MUSHROOM, AW.MUSHROOM_PAL), "sprites/mushroom.png")
+    save(render(AW.MUSHROOM, AW.ONEUP_PAL), "sprites/mushroom_1up.png")
+    save(strip([render(AW.FLOWER, p) for p in AW.FLOWER_PALS]), "sprites/fire_flower.png")
+    save(strip([render(AW.STAR, p) for p in AW.STAR_PALS]), "sprites/star.png")
+    fb = AW.FIREBALL
+    rots = [fb, transpose(fb[::-1]), [r[::-1] for r in fb[::-1]], transpose(fb)[::-1]]
+    save(strip([render(a, AW.FIREBALL_PAL) for a in rots]), "sprites/fireball.png")
+    save(strip([render(a, AW.FIREBALL_PAL) for a in AW.BURST]), "sprites/fire_burst.png")
+    save(strip([render(crop_cols(a, 4, 12), AW.COIN_PALS[0]) for a in AW.SPIN]), "sprites/coin_pop.png")
+    save(render(AW.DEBRIS, AW.BLOCK_PAL), "sprites/brick_debris.png")
+    save(render(AW.DEBRIS, AW.BLOCK_PAL_UNDER), "sprites/brick_debris_ug.png")
+    save(render(A1.LIFT, A1.LIFT_PAL), "sprites/lift.png")
+
+
+# ------------------------------------------------------------------ ui
+FONT_ORDER = list("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x!") + ["(c)", "."]
+
+
+def ui():
+    glyphs = []
+    for ch in FONT_ORDER:
+        g = AT.GLYPHS[ch]
+        check("glyph " + ch, g, 7, 7)
+        glyphs.append(render([r + "." for r in g] + ["........"], {"#": 0x30}))
+    font = strip(glyphs)
+    assert font.size == (328, 8)
+    save(font, "ui/font.png")
+    save(strip([render(AT.HUD_COIN, p) for p in AW.COIN_PALS]), "ui/coin_icon.png")
+    cursor = ["..RRRR..", ".RWWRRR.", "RWWRRWWR", "RRRRRWWR", ".CCCCCC.", "..CKKC..", "..CCCC..", "........"]
+    save(render(cursor, {"R": 0x16, "W": 0x37, "C": 0x37, "K": 0x0F}), "ui/cursor.png")
+    save(title_logo(), "ui/title_logo.png")
+
+
+def title_logo():
+    """Logo plate: SUPER / MARIO BROS. in bold 2x type with drop shadow."""
+    W, H = 176, 88
+    plate = Image.new("RGBA", (W, H), rgb(0x17))
+    px = plate.load()
+    light, black = rgb(0x36), rgb(0x0F)
+    for x in range(W):
+        for y in range(H):
+            if x < 2 or y < 2:
+                px[x, y] = light
+            elif x >= W - 2 or y >= H - 2:
+                px[x, y] = black
+    for cx, cy in ((5, 5), (W - 7, 5), (5, H - 7), (W - 7, H - 7)):
+        for dx in range(2):
+            for dy in range(2):
+                px[cx + dx, cy + dy] = black
+
+    def text(s, y0, scale, fill, shadow):
+        adv = 7 * scale + 1
+        x0 = (W - (len(s) * adv - 1)) // 2
+        for off, col in (((shadow, shadow), black), ((0, 0), fill)):
+            if off == (0, 0) or shadow:
+                x = x0
+                for ch in s:
+                    for gy, row in enumerate(AT.GLYPHS[ch]):
+                        for gx, c in enumerate(row):
+                            if c == "#":
+                                for sx in range(scale):
+                                    for sy in range(scale):
+                                        X = x + gx * scale + sx + off[0]
+                                        Y = y0 + gy * scale + sy + off[1]
+                                        if 0 <= X < W and 0 <= Y < H:
+                                            px[X, Y] = col
+                    x += adv
+
+    text("SUPER", 10, 2, light, 2)
+    text("MARIO BROS.", 36, 2, light, 2)
+    text("A FAN REMAKE", 68, 1, rgb(0x30), 0)
+    return plate
+
+
+# ------------------------------------------------------------------ review
+def frame_of(rel, n=0, w=None):
+    im = Image.open(os.path.join(OUT, rel)).convert("RGBA")
+    if w is None:
+        return im
+    return im.crop((n * w, 0, n * w + w, im.size[1]))
+
+
+def mock_scenes():
+    os.makedirs(CHECK, exist_ok=True)
+    T = lambda theme, name: frame_of(f"tiles/{theme}/{name}.png") if os.path.exists(
+        os.path.join(OUT, f"tiles/{theme}/{name}.png")) else frame_of(f"tiles/overworld/{name}.png")
+    font = frame_of("ui/font.png")
+
+    def text(im, s, x, y):
+        for ch in s:
+            if ch != " ":
+                i = FONT_ORDER.index(ch)
+                im.alpha_composite(font.crop((i * 8, 0, i * 8 + 8, 8)), (x, y))
+            x += 8
+
+    def hud(im, world="1-1"):
+        text(im, "MARIO", 24, 16)
+        text(im, "WORLD", 144, 16)
+        text(im, "TIME", 200, 16)
+        text(im, "001200", 24, 24)
+        im.alpha_composite(frame_of("ui/coin_icon.png", 0, 8), (88, 24))
+        text(im, "x07", 96, 24)
+        text(im, world, 152, 24)
+        text(im, "354", 208, 24)
+
+    # 1-1 start
+    im = Image.new("RGBA", (256, 240), (92, 148, 252, 255))
+    a = im.alpha_composite
+    a(frame_of("scenery/hill_large.png"), (0, 208 - 35))
+    a(frame_of("scenery/hill_small.png"), (176, 208 - 19))
+    a(frame_of("scenery/bush_3.png"), (88, 192))
+    a(frame_of("scenery/cloud_1.png"), (64, 40))
+    a(frame_of("scenery/cloud_3.png"), (150, 56))
+    for x in range(0, 256, 16):
+        a(T("overworld", "ground"), (x, 208))
+        a(T("overworld", "ground"), (x, 224))
+    a(frame_of("tiles/overworld/question.png", 0, 16), (64, 144))
+    for i, (n, f) in enumerate([("brick", None), ("question", 1), ("brick", None), ("question", 2), ("used", None)]):
+        a(frame_of(f"tiles/overworld/{n}.png", f, 16) if f is not None else T("overworld", n), (96 + 16 * i, 144))
+    a(T("overworld", "pipe_tl"), (208, 176))
+    a(T("overworld", "pipe_tr"), (224, 176))
+    a(T("overworld", "pipe_l"), (208, 192))
+    a(T("overworld", "pipe_r"), (224, 192))
+    a(T("overworld", "block"), (176, 192))
+    a(frame_of("sprites/mario_small.png", 1, 16), (40, 192))
+    a(frame_of("sprites/mario_fire.png", 12, 16), (16, 176))
+    a(frame_of("sprites/fireball.png", 0, 8), (34, 186))
+    a(frame_of("sprites/goomba.png", 0, 16), (150, 192))
+    a(frame_of("sprites/koopa_green.png", 0, 16), (120, 184))
+    a(frame_of("sprites/mushroom.png"), (112, 128))
+    a(frame_of("sprites/coin_pop.png", 0, 8), (100, 120))
+    a(frame_of("sprites/fire_flower.png", 0, 16), (160, 128))
+    a(frame_of("sprites/star.png", 0, 16), (240, 120))
+    a(frame_of("sprites/parakoopa_red.png", 0, 16), (200, 110))
+    hud(im)
+    im.resize((768, 720), Image.NEAREST).save(os.path.join(CHECK, "scene_1-1_x3.png"))
+
+    # end of level
+    im = Image.new("RGBA", (256, 240), (92, 148, 252, 255))
+    a = im.alpha_composite
+    a(frame_of("scenery/cloud_2.png"), (40, 48))
+    for x in range(0, 256, 16):
+        a(T("overworld", "ground"), (x, 208))
+        a(T("overworld", "ground"), (x, 224))
+    for i in range(4):
+        for j in range(i + 1):
+            a(T("overworld", "block"), (16 * i, 192 - 16 * j))
+    a(T("overworld", "block"), (96, 192))
+    a(T("overworld", "flag_ball"), (96, 40))
+    for y in range(56, 192, 16):
+        a(T("overworld", "flag_pole"), (96, y))
+    a(frame_of("scenery/flag.png"), (88, 64))
+    a(frame_of("sprites/mario_big.png", 7, 16), (84, 120))
+    a(frame_of("scenery/castle_small.png"), (160, 128))
+    a(frame_of("scenery/castle_flag.png"), (192, 112))
+    hud(im)
+    im.resize((768, 720), Image.NEAREST).save(os.path.join(CHECK, "scene_end_x3.png"))
+
+    # underground (1-1 coin room / 1-2)
+    im = Image.new("RGBA", (256, 240), (0, 0, 0, 255))
+    a = im.alpha_composite
+    for x in range(0, 256, 16):
+        a(T("underground", "ground"), (x, 208))
+        a(T("underground", "ground"), (x, 224))
+    for y in range(48, 208, 16):
+        a(T("underground", "brick"), (0, y))
+    for x in range(48, 176, 16):
+        a(T("underground", "brick"), (x, 48))
+        for y in (160, 176, 192):
+            a(T("underground", "brick"), (x, y))
+        a(frame_of("tiles/underground/coin.png", 0, 16), (x, 112))
+        a(frame_of("tiles/underground/coin.png", 1, 16), (x, 144))
+    for name, x, y in (("pipe_side_mouth_t", 176, 176), ("pipe_side_mouth_b", 176, 192),
+                       ("pipe_side_body_t", 192, 176), ("pipe_side_body_b", 192, 192),
+                       ("pipe_side_join_t", 208, 176), ("pipe_side_join_b", 208, 192)):
+        a(T("overworld", name), (x, y))
+    a(T("overworld", "pipe_r"), (224, 176))
+    a(T("overworld", "pipe_r"), (224, 192))
+    for y in range(48, 176, 16):
+        a(T("overworld", "pipe_l"), (208, y))
+        a(T("overworld", "pipe_r"), (224, y))
+    a(frame_of("sprites/mario_big.png", 0, 16), (24, 176))
+    a(frame_of("sprites/goomba_ug.png", 0, 16), (60, 144))
+    a(frame_of("sprites/piranha.png", 0, 16), (120, 88))
+    a(frame_of("sprites/brick_debris_ug.png"), (40, 100))
+    a(frame_of("sprites/lift.png"), (180, 100))
+    a(frame_of("sprites/lift.png"), (188, 100))
+    a(frame_of("sprites/lift.png"), (196, 100))
+    hud(im, "1-2")
+    im.resize((768, 720), Image.NEAREST).save(os.path.join(CHECK, "scene_under_x3.png"))
+
+    # castle (1-4)
+    im = Image.new("RGBA", (256, 240), (0, 0, 0, 255))
+    a = im.alpha_composite
+    for x in range(0, 256, 16):
+        a(T("castle", "brick"), (x, 32))
+    for x in range(0, 64, 16):
+        for y in (176, 192, 208, 224):
+            a(T("castle", "ground"), (x, y))
+    for x in range(64, 208, 16):
+        a(T("castle", "bridge"), (x, 176))
+        a(T("castle", "lava_top"), (x, 208))
+        a(T("castle", "lava"), (x, 224))
+    a(T("castle", "chain"), (192, 160))
+    a(frame_of("tiles/castle/axe.png", 0, 16), (208, 160))
+    for x in range(208, 256, 16):
+        for y in (176, 192, 208, 224):
+            a(T("castle", "ground"), (x, y))
+    a(frame_of("sprites/bowser.png", 2, 32), (150, 144))
+    a(frame_of("sprites/bowser_fire.png", 0, 24), (110, 150))
+    a(frame_of("sprites/mario_fire.png", 5, 16), (40, 120))
+    a(frame_of("sprites/toad.png"), (232, 152))
+    a(T("castle", "block"), (96, 96))
+    a(T("castle", "used"), (112, 96))
+    hud(im, "1-4")
+    im.resize((768, 720), Image.NEAREST).save(os.path.join(CHECK, "scene_castle_x3.png"))
+
+    # 1-3 treetops
+    im = Image.new("RGBA", (256, 240), (92, 148, 252, 255))
+    a = im.alpha_composite
+    for x0, w, top in ((16, 5, 160), (128, 7, 112)):
+        a(T("overworld", "treetop_l"), (x0, top))
+        for i in range(1, w - 1):
+            a(T("overworld", "treetop_m"), (x0 + 16 * i, top))
+        a(T("overworld", "treetop_r"), (x0 + 16 * (w - 1), top))
+        for y in range(top + 16, 240, 16):
+            for i in range(1, w - 1):
+                a(T("overworld", "trunk"), (x0 + 16 * i, y))
+    a(frame_of("sprites/koopa_red.png", 1, 16), (160, 88))
+    a(frame_of("sprites/shell_green.png", 1, 16), (200, 96))
+    a(frame_of("sprites/mario_small.png", 5, 16), (60, 100))
+    hud(im, "1-3")
+    im.resize((768, 720), Image.NEAREST).save(os.path.join(CHECK, "scene_treetops_x3.png"))
+
+    # strips contact sheet
+    rels = sorted(r for r, _ in WRITTEN)
+    sheet = Image.new("RGBA", (420, 14 * len(rels) // 1 + 40), (40, 40, 40, 255))
+    y = 2
+    rows = []
+    for r in rels:
+        im = frame_of(r)
+        rows.append((r, im))
+    H = sum(im.size[1] + 3 for _, im in rows) + 4
+    sheet = Image.new("RGBA", (360, H), (92, 148, 252, 255))
+    y = 2
+    for r, im in rows:
+        sheet.alpha_composite(im, (2, y))
+        y += im.size[1] + 3
+    sheet.resize((sheet.size[0] * 2, sheet.size[1] * 2), Image.NEAREST).save(os.path.join(CHECK, "all_files_x2.png"))
+
+
+if __name__ == "__main__":
+    tiles()
+    world2()
+    scenery()
+    mario_strips()
+    enemy_strips()
+    item_strips()
+    ui()
+    mock_scenes()
+    for rel, size in sorted(WRITTEN):
+        print(f"{rel:45s} {size[0]}x{size[1]}")
+    print(len(WRITTEN), "files")

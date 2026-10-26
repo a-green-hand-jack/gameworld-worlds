@@ -1,0 +1,79 @@
+"""Headless check of a full Whack-a-Mole round and a replay.
+
+Usage: python3 tools/check_round.py <delivery-dir> [--file]
+Serves the directory over HTTP (or, with --file, opens index.html from file://), plays one round in Chromium (hitting every
+other mole, clicking empty holes too) and prints what it measured.
+"""
+import subprocess, sys, time
+from playwright.sync_api import sync_playwright
+
+import os
+root = sys.argv[1]
+use_file = '--file' in sys.argv[2:]
+port = '8765'
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', port, '-d', root],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(1)
+ok = True
+def check(cond, msg):
+    global ok
+    ok &= bool(cond)
+    print(('PASS ' if cond else 'FAIL ') + msg)
+try:
+    with sync_playwright() as p:
+        b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+        pg = b.new_page(viewport={'width': 600, 'height': 700})
+        logs = []
+        pg.on('console', lambda m: logs.append(m.text))
+        pg.on('pageerror', lambda e: logs.append(str(e)))
+        pg.goto('file://' + os.path.abspath(root) + '/index.html' if use_file else f'http://localhost:{port}/')
+        check(pg.is_visible('#title-screen') and pg.is_visible('#start-btn'), 'title screen with Start')
+        pg.click('#start-btn')
+        check(pg.locator('.hole').count() == 9, '9 holes in grid')
+        ups, last, start, t0, empty_clicks_scored = [], -1, None, time.time(), 0
+        while time.time() - t0 < 33:
+            s = pg.evaluate('({...window.__whack})')
+            if s['upHole'] != last:
+                now = time.time()
+                if last >= 0 and start:
+                    ups.append(now - start)
+                last = s['upHole']
+                start = now if last >= 0 else None
+                if last >= 0 and len(ups) % 2 == 0:
+                    empty = (last + 1) % 9
+                    before = pg.evaluate('window.__whack.score')
+                    pg.locator('.hole').nth(empty).dispatch_event('pointerdown')
+                    if pg.evaluate('window.__whack.score') != before:
+                        empty_clicks_scored += 1
+                    pg.wait_for_timeout(150)
+                    hole = pg.locator('.hole').nth(last)
+                    hole.dispatch_event('pointerdown')
+                    hole.dispatch_event('pointerdown')  # second click must not score again
+            if s['phase'] == 'ended':
+                break
+            pg.wait_for_timeout(20)
+        elapsed = time.time() - t0
+        pg.wait_for_timeout(300)  # let the last sound start
+        s = pg.evaluate('({...window.__whack})')
+        print('state', s)
+        print('mole appearances', len(ups), 'longest up (s, polled)', round(max(ups), 3))
+        check(29.5 < elapsed < 31, f'round lasted {elapsed:.2f} s')
+        check(max(ups) < 1.0, 'every mole up < 1 s')
+        check(empty_clicks_scored == 0, 'empty-hole clicks never scored')
+        check(s['score'] == s['hits'] == s['soundsPlayed'] > 0, 'one point and one sound per hit (no double scoring)')
+        dur = pg.evaluate('window.__whackSound && window.__whackSound.duration')
+        rate = pg.evaluate('window.__whackSound && window.__whackSound.sampleRate')
+        s = pg.evaluate('({...window.__whack})')
+        check(dur and 0.15 <= dur <= 0.3, f'decoded sound/hit.wav duration {dur}')
+        print('decoded sample rate (context rate)', rate)
+        check(pg.is_visible('#end-screen') and pg.text_content('#final-score') == str(s['score']), 'end screen shows final score')
+        pg.click('#again-btn')
+        pg.wait_for_timeout(300)
+        s2 = pg.evaluate('({...window.__whack})')
+        check(s2['phase'] == 'playing' and pg.text_content('#score') == '0' and pg.text_content('#time') == '30', 'play again starts fresh round')
+        check(not logs, f'console clean {logs}')
+        b.close()
+finally:
+    srv.terminate()
+print('ALL PASS' if ok else 'SOME FAILED')
+sys.exit(0 if ok else 1)

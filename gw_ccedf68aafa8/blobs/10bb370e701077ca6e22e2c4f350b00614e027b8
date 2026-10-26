@@ -1,0 +1,27 @@
+{
+ "cell_size": 32,
+ "images": {
+  "img/tile_a.png": "checker board tile A 32x32",
+  "img/tile_b.png": "checker board tile B 32x32 (alternate with A)",
+  "img/snake_body.png": "body segment 32x32",
+  "img/snake_head_up.png": "head 32x32",
+  "img/snake_head_down.png": "head 32x32",
+  "img/snake_head_left.png": "head 32x32",
+  "img/snake_head_right.png": "head 32x32",
+  "img/food.png": "apple 32x32",
+  "img/logo.png": "title logo 360x120",
+  "img/gameover_panel.png": "panel behind game-over text 320x160 (semi-transparent)"
+ },
+ "audio": {
+  "audio/eat.wav": "on food eaten",
+  "audio/gameover.wav": "on death",
+  "audio/start.wav": "on game start",
+  "audio/turn.wav": "optional, soft tick on turn"
+ },
+ "palette": {
+  "snake": "#2ecc71",
+  "snake_dark": "#145a32",
+  "food": "#e74c3c",
+  "board": "#16212d / #1a2735"
+ }
+}

@@ -1,0 +1,5 @@
+# QA reports
+
+One file per build: `reports/<build-tag>.md` (e.g. `reports/p0-1.md`), plus evidence under `reports/<build-tag>/` (logs, screenshots, test scripts' output).
+Each report states: build tag/revision and URL tested, method (headless Chromium via Playwright, static server), per-item PASS/FAIL against `checklist.md` and the producer brief (`world/producer` docs/brief.md items 1-8), links to defect issues, and open blockers.
+Defects are filed in the owner's repository (game-developer: code/levels/rules; artist: assets), one issue each, labelled with severity in the title: [blocker] crash/softlock/unbeatable/broken progression/wrong physics core; [major] clear deviation from the original; [minor].

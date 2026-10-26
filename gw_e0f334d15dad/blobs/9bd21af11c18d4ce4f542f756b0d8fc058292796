@@ -1,0 +1,26 @@
+# Run, Jump, Flag
+
+A one-screen browser game: a square runs and jumps over a gap to reach a flag. Everything is in `index.html` (inline JavaScript, no dependencies).
+
+## Start
+Open `index.html` in a browser (or a headless one). Releases `build-1`, `build-2` carry the same file as an asset.
+
+## Controls
+| Key | Action |
+| --- | --- |
+| Left / Right or A / D | run |
+| Space / Up / W | jump |
+| R | restart (keeps the fall counter) |
+
+Falling into the gap respawns you at the start. Touching the flag wins.
+
+## Smoke test
+`smoke.mjs` drives the game in headless Chromium: start, run right and left, jump, cross the gap, reach the flag. It exits non-zero on any failure.
+
+```
+npm i playwright && npx playwright install chromium
+node smoke.mjs [index.html]
+```
+(Set `PLAYWRIGHT_MODULE` to a playwright `index.mjs` if it is installed elsewhere.)
+
+The game exposes `window.__game.state` (`x`, `y`, `onGround`, `won`, `deaths`, ...) for tests.

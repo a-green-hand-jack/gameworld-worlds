@@ -1,0 +1,77 @@
+"""Compose a mock 256x240 screen from the manifest to check scale/consistency.
+
+python3 tools/gfx/scene.py THEME OUT.png   (THEME: overworld, underground, castle, underwater, snow)
+Working check only; the real check is the running game.
+"""
+import json
+import os
+import sys
+from PIL import Image
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+A = os.path.join(ROOT, "assets")
+M = json.load(open(os.path.join(A, "manifest.json")))
+theme = sys.argv[1]
+SKY = {"overworld": "sky_day", "snow": "sky_day", "night": "sky_night"}.get(theme, theme)
+img = Image.new("RGBA", (256, 240), M["palette"].get(SKY, "#000000"))
+cache = {}
+
+
+def sheet_img(name):
+    s = M["sheets"][name]
+    f = s.get("variants", {}).get(theme, s["file"])
+    if f not in cache:
+        cache[f] = Image.open(os.path.join(A, f)).convert("RGBA")
+    return cache[f], s["frames"]
+
+
+def put(sheet, frame, x, y, flip=False, anchor="bottom"):
+    """x,y = tile coords (16px) of the cell's bottom-left for sprites, top-left for tiles."""
+    im, fr = sheet_img(sheet)
+    if frame not in fr:
+        print("missing", sheet, frame)
+        return
+    fx, fy, w, h = fr[frame]
+    c = im.crop((fx, fy, fx + w, fy + h))
+    if flip:
+        c = c.transpose(Image.FLIP_LEFT_RIGHT)
+    px, py = int(x * 16), int(y * 16)
+    if anchor == "bottom":
+        py -= h
+    img.alpha_composite(c, (px, py))
+
+
+def T(frame, x, y):
+    put("tiles", frame, x, y, anchor="top")
+
+
+ground_row = 13
+for x in range(16):
+    T("ground", x, 13)
+    T("ground", x, 14)
+if "scenery" in M["sheets"] and theme in ("overworld", "snow"):
+    put("scenery", "hill_large", 0, 13)
+    put("scenery", "cloud1", 8.5, 4)
+    put("scenery", "cloud3", 1, 3)
+    put("scenery", "bush3", 11, 13)
+    put("scenery", "castle_small", 11, 9) if False else None
+for x, f in [(4, "block_q1"), (6, "brick"), (7, "block_q2"), (8, "brick"), (9, "block_q3"), (10, "block_used")]:
+    T(f, x, 9)
+T("block_hard", 15, 12)
+T("block_hard", 14, 12)
+T("block_hard", 15, 11)
+T("pipe_top_l", 12, 11)
+T("pipe_top_r", 13, 11)
+T("pipe_l", 12, 12)
+T("pipe_r", 13, 12)
+put("enemies", "goomba_walk1", 6, 13)
+put("enemies", "koopa_green_walk1", 9, 13)
+put("player", "small_idle", 2, 13)
+put("player", "big_walk1", 3.5, 13)
+put("player", "fire_jump", 5, 8)
+put("items", "mushroom", 7, 9)
+put("items", "coin1", 8, 7)
+put("items", "flower1", 9, 9 - 1 + 1)
+img = img.resize((768, 720), Image.NEAREST)
+img.convert("RGB").save(sys.argv[2])
+print(sys.argv[2])

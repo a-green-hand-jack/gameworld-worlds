@@ -1,0 +1,80 @@
+// Keyboard and gamepad input mapped to the NES pad.
+//   A = jump, B = run / fire, Start = start / pause.
+export const KEYS = {
+  left: ['ArrowLeft', 'KeyA'],
+  right: ['ArrowRight', 'KeyD'],
+  up: ['ArrowUp', 'KeyW'],
+  down: ['ArrowDown', 'KeyS'],
+  a: ['KeyX', 'Space', 'KeyK'],
+  b: ['KeyZ', 'ShiftLeft', 'ShiftRight', 'KeyJ'],
+  start: ['Enter'],
+  select: ['Tab'],
+};
+
+const BUTTONS = Object.keys(KEYS);
+
+export class Input {
+  constructor() {
+    this.keys = new Set();
+    this.injected = Object.fromEntries(BUTTONS.map((b) => [b, false]));
+    this.state = Object.fromEntries(BUTTONS.map((b) => [b, false]));
+    this.prev = { ...this.state };
+    this.pressed = { ...this.state };
+    this.codeToButton = new Map();
+    for (const [b, codes] of Object.entries(KEYS)) for (const c of codes) this.codeToButton.set(c, b);
+    this.onFirstGesture = null;
+  }
+
+  attach(target = window) {
+    const gesture = () => { if (this.onFirstGesture) this.onFirstGesture(); };
+    target.addEventListener('keydown', (e) => {
+      gesture();
+      if (this.codeToButton.has(e.code)) {
+        e.preventDefault();
+        this.keys.add(e.code);
+      }
+    });
+    target.addEventListener('keyup', (e) => {
+      if (this.codeToButton.has(e.code)) {
+        e.preventDefault();
+        this.keys.delete(e.code);
+      }
+    });
+    target.addEventListener('pointerdown', gesture);
+    target.addEventListener('blur', () => this.keys.clear());
+  }
+
+  // Samples devices once per logic frame.
+  update() {
+    const now = Object.fromEntries(BUTTONS.map((b) => [b, this.injected[b]]));
+    for (const code of this.keys) now[this.codeToButton.get(code)] = true;
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads || []) {
+      if (!p || !p.connected) continue;
+      const btn = (i) => !!p.buttons[i]?.pressed;
+      const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+      now.a ||= btn(0) || btn(1);
+      now.b ||= btn(2) || btn(3);
+      now.start ||= btn(9);
+      now.select ||= btn(8);
+      now.left ||= btn(14) || ax < -0.5;
+      now.right ||= btn(15) || ax > 0.5;
+      now.up ||= btn(12) || ay < -0.5;
+      now.down ||= btn(13) || ay > 0.5;
+    }
+    // The NES pad cannot hold opposite directions at once.
+    if (now.left && now.right) now.left = now.right = false;
+    this.prev = this.state;
+    this.state = now;
+    for (const b of BUTTONS) this.pressed[b] = now[b] && !this.prev[b];
+  }
+
+  // Test hook: set injected buttons (window.smb.input).
+  set(buttons) {
+    for (const b of BUTTONS) if (b in buttons) this.injected[b] = !!buttons[b];
+  }
+
+  clearInjected() {
+    for (const b of BUTTONS) this.injected[b] = false;
+  }
+}

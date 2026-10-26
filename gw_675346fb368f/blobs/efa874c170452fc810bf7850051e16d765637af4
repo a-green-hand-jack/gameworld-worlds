@@ -1,0 +1,23 @@
+loaded screen= title assets= {"loaded": ["img/logo.svg", "audio/paddle_hit.wav", "audio/score.wav", "audio/wall_hit.wav", "audio/concede.wav", "audio/start.wav", "audio/win.wav", "audio/lose.wav"], "missing": []}
+after Enter: play {'player': 0, 'cpu': 0}
+paddle y: start 252 after Up 113.99999999999972 after S 259.6666666666667
+match 1 (tracking player):
+  score {'player': 0, 'cpu': 0} t=0s
+  score {'player': 0, 'cpu': 1} t=7s
+  score {'player': 0, 'cpu': 2} t=16s
+  score {'player': 0, 'cpu': 3} t=30s
+  score {'player': 0, 'cpu': 4} t=48s
+  score {'player': 0, 'cpu': 5} t=59s
+match 1 end: over cpu {'player': 0, 'cpu': 5} rallies 41
+Enter 0.4 s after the end -> over
+play again: play {'player': 0, 'cpu': 0} None
+match 2 (idle player):
+  score {'player': 0, 'cpu': 0} t=0s
+  score {'player': 0, 'cpu': 1} t=2s
+  score {'player': 0, 'cpu': 2} t=4s
+  score {'player': 0, 'cpu': 3} t=9s
+  score {'player': 0, 'cpu': 4} t=15s
+  score {'player': 0, 'cpu': 5} t=17s
+match 2 end: over cpu {'player': 0, 'cpu': 5}
+Esc on end screen -> over
+console/page errors: []

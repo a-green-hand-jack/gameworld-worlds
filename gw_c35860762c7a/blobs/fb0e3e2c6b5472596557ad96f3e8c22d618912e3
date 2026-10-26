@@ -1,0 +1,35 @@
+// Draws whole areas as one image per area (out/map-<level>-<area>.png), for
+// comparing layouts with references.  LEVELS=1-2,1-3 picks the levels.
+//   node tools/smoke.mjs <site> <out> tools/mapshot.mjs
+export default async function ({ page, result }) {
+  const levels = (process.env.LEVELS || '1-1').split(',');
+  result.maps = [];
+  for (const level of levels) {
+    const areas = await page.evaluate((l) => { window.smb.start(l); return window.smb.game.level.areas.length; }, level);
+    for (let a = 0; a < areas; a++) {
+      const shot = await page.evaluate(([l, a]) => {
+        const g = window.smb.game;
+        window.smb.start(l);
+        const loc = g.level.locations.findIndex((x) => x.area === a);
+        if (loc > 0) g.enterLocation(loc); else if (loc < 0) return null;
+        const w = g.area.width;
+        const big = document.createElement('canvas');
+        big.width = w; big.height = 240;
+        const bctx = big.getContext('2d');
+        g.player.mode = 'hidden';
+        for (let x = 0; x < w; x += 256) {
+          g.camX = Math.min(x, Math.max(0, w - 256));
+          g.spawn();
+          g.draw();
+          bctx.drawImage(document.getElementById('screen'), 0, 0, 256, 240, g.camX, 0, 256, 240);
+        }
+        return { data: big.toDataURL('image/png'), width: w };
+      }, [level, a]);
+      if (!shot) continue;
+      const fs = await import('node:fs');
+      const file = `${process.env.OUT || '/tmp'}/map-${level}-${a}.png`;
+      fs.writeFileSync(file, Buffer.from(shot.data.split(',')[1], 'base64'));
+      result.maps.push({ level, area: a, width: shot.width, file });
+    }
+  }
+}

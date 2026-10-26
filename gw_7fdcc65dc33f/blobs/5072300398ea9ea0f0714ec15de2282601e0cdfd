@@ -1,0 +1,58 @@
+# Listening check of `sound/hit.wav` (R10)
+
+Build checked: assembled delivery game-developer `130237e4f3b0225bc25d661f98ee81d5fc6034b9` + artist `sound/hit.wav` at `18f595a7f7373b331dd08c47c094d05136df8ed8` (producer release `play-1`).
+Resource: `audio-understanding`, model `gemini-3.8-flash`, `POST /v1beta/interactions`. Script: `evidence/listen.py`; raw request bodies (audio replaced by a placeholder) and raw answers are in `evidence/run1.*.json`, `evidence/run2.*.json`.
+
+## Request 1 (the R10 question, neutral wording)
+
+Text sent, with `sound/hit.wav` (22 094 bytes, `audio/wav`) attached:
+
+> What do you hear in this audio clip, and how long does it last? Describe the sound (is it short, percussive, tonal, noisy?) and give the duration in seconds.
+
+Answer, as it came:
+
+```
+Here are the details of the audio clip:
+
+* **What you hear:** A single hit from a **bass drum (kick drum)** or a deep, low-frequency percussive thump.
+* **Duration:** Approximately **0.5 to 0.6 seconds**.
+* **Sound characteristics:** 
+  * **Short and percussive:** It has a sharp, punchy initial transient (attack) that quickly fades out.
+  * **Low-frequency / Tonal:** It features a deep sub-bass resonance/tone with very little high-frequency noise.
+```
+
+## Request 2 (leading follow-up, same file)
+
+> Is this a short percussive "bonk" sound (like a mallet hit / wooden or hollow knock)? Does it sound like a pleasant hit sound suitable for a whack-a-mole game? How long does it last, in seconds, to the nearest tenth?
+
+Answer, as it came:
+
+```
+* **Sound description:** **Yes**, this is a short, hollow, percussive "bonk" or "clack" sound, very similar to a wooden block strike or a toy mallet hit.
+* **Game suitability:** **Yes**, it is a clean, playful, and pleasant sound effect that would work very well as a hit confirmation in a whack-a-mole or similar arcade-style game.
+* **Duration:** The sound (including its short natural decay/tail) lasts approximately **0.9 seconds** (the main transient impact takes up the first ~0.1–0.2 seconds).
+```
+
+## Controls for the resource's duration estimate (known lengths)
+
+Same question asked of two synthetic sine tones (`ffmpeg -f lavfi -i sine=frequency=440:duration=D`, 44.1 kHz mono); raw answers in `evidence/ctl025.answer.json`, `evidence/ctl100.answer.json`:
+
+| file | true length | answered |
+|---|---|---|
+| 440 Hz tone | 0.25 s | "approximately 1.1 seconds" |
+| 440 Hz tone | 1.00 s | "approximately 1.37 seconds" |
+
+So the resource overestimates the length of sub-second clips (consistent with what the artist reported); its figure for `hit.wav` cannot be used to confirm the duration.
+
+## Independent measurement (ffprobe, numpy on the decoded samples, and the browser)
+
+- ffprobe: `pcm_s16le`, **44100 Hz**, 1 channel, **0.25 s** (11 025 frames).
+- Peak 0.90 of full scale (no clipping), DC offset 0.0017. Envelope decays 0.82 (5 ms) → 0.41 (50 ms) → 0.20 (100 ms) → 0.10 (150 ms) → 0.01 (240 ms); last sample above 1 % of full scale at 0.234 s. Dominant energy about 200 Hz in the first 20 ms falling to about 64 Hz overall: a low pitched, fast-decaying knock.
+- In the running game, Web Audio decoded the played buffer as `duration 0.25`, `sampleRate 44100`, and every hit started exactly one buffer source (49 hits → 49 starts in `evidence/qa_check.py` run).
+
+## Does it match the input ("short percussive bonk, 0.15–0.3 s, 44.1 kHz")?
+
+- Sound kind: **matches.** The resource heard a single short percussive hit with a sharp attack and fast decay (request 1: "kick drum / deep percussive thump"; request 2, asked about a bonk: "short, hollow, percussive bonk"). It describes it as a low thump rather than a bright wooden knock; that is a judgement call for the producer, not a defect against the input.
+- Sample rate 44.1 kHz: **matches** (measured; the resource does not report it).
+- Length 0.15–0.3 s: **matches by measurement (0.25 s).** The resource's own answers (0.5–0.6 s and 0.9 s) do **not** match the range literally; the controls above show it reads a 0.25 s clip as about 1.1 s, so I attribute the difference to the resource, not to the file, and record it as stated rather than hide it.
+- Not verified by me: that the generator for `hit.wav` is kept in the artist repository (R9); I cannot read that repository.

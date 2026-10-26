@@ -1,0 +1,42 @@
+{
+  "id": "v1_ChdaOFRXYXJDNkxhRHl2ZElQdXV2NC1BcxIXWjhUV2FyQzZMYUR5dmRJUHV1djQtQXM",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 282,
+    "total_input_tokens": 48,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 23
+      },
+      {
+        "modality": "audio",
+        "tokens": 25
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 48,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 186
+  },
+  "created": "2026-10-20T01:31:22Z",
+  "updated": "2026-10-20T01:31:22Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "Eo4GCosGAWkUfROKzYauHMNiinaqSPjP0PDu7JKo4Urf7x0vSS5EwdC1xh9g4Dd6Dtu84uGhrZEby+Y11HLFEjWuKtFO/OnvbOkJ3Tz1569bktyUOI1qB+ToYByu4JkKgORn9ttsC4+QdaVqF3iCmV2EPwTZK6RzpKU0vJoKGJWhWiUlXuo46hE0D7uEvvvywP/ja3Ur4dUROoTTjYpfhqzg/L/qOrLrIP5qqp9vBo9t2Tj0JbessLU76YJWZxH/JM3a0GPaq4/3mAmSVBAPkHOiBlBmeI6iPBCPbSDfEOpDq3NMO862enzW92hukuY9lIC/1mYp8YCbjICKgNZliWBrD2319gS6ZHBjXoVJ4nKsnMgXNqkFqiXNUaPnpHE7NJQosKKWlcb8Qn+irr0g7fmNegdx/78RyvHnAanKQJGW0JcJEsnOcbPKAFJwiwObO2/jyHfL9Z4c9s3UTVOQ1mWrY9yav6cVVYzL5ZRo9iWRGHfE/7K6DV1fj1/tQFw5jhvl84+cWpg+5x6UoasTMkC9BAKriZWnEhZeR/BOGwqoYQylCk1tqMmcsHshXcOUDPKS/LtDlfiRmgGauCYzNO1M3UQ/5u0TIe6pTxl8/O87FiV87a6sDfx3x2b3VSdPd7uLkIybLgwitAL6x0scGlGJS+HytgE407fo6WOQzq6sPVScaNAQKcLw25/r8/zOFngIDHDKXTV1rHqOOawZbPGRR0ZgohHYKQPlILfg9MDQwbM2xuMweYCcyMx/oMvi0Fn0UWTU9Nh1h2jeJWKk60msobBa1OnrIOJP5jIP1h33w/72EJvgFmeWEX8xCwlzmw9fUMh5TKBtIip0ux/Qy23QP/98E6v9JjGCFGpH9lKZ0FO990yUB3fSs1a9aLHUd6RwhM3UYJlvi6mLJt7W60TRK6+YbAcpBDSYxq4ZalYX0f0Voe2AJHLoWTr/HTzgqCr2ROnqsfTYcGA53zRh+iG3vrnyanwkbBgWOQWfefaiVVLyK7sJRxxgprR53Sfbgbi6BgLAgc61iNFXxnItzPA=",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "In this audio clip, you can hear a single, clear bell chime or notification \"ding\" sound with a gentle decay. \n\nThe audio clip lasts for approximately **1.37 seconds** (about 1.4 seconds).",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.8-flash"
+}

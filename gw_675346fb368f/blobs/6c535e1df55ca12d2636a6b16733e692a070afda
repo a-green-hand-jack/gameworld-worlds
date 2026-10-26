@@ -1,0 +1,21 @@
+# QA results: game-developer 44ae1c8ff08e (release build-2) + artist e3bead3
+
+Same method as `qa/results-015fd09-e3bead3.md` (delivery from `ht-role delivery`, headless Chromium, real keyboard/mouse). Evidence: `qa/runs/44ae1c8-e3bead3/` (results.json, screenshots). `full_checks.py` now waits for `pong.getState().endLocked === false` before play-again presses and allows the computer's faster aimed shots (max component speed seen 868 px/s).
+
+| Req | Result |
+|---|---|
+| R1 physics, walls, paddles, no tunnelling at score time, score +1 per point, no frozen ball beyond the serve delay | PASS |
+| R2 http and file://, 0 console errors/warnings/404s, all 8 assets loaded, canvas fits 4 viewports | PASS |
+| R3 computer opponent (wins 5-0 vs idle player; scores 1-3 points vs a skilled predicting bot) | PASS |
+| R4 Arrows and W/S move paddle, stop on release, clamp at edges | PASS |
+| R5 match ends exactly at 5 (matches seen: 0-5, 2-5, 3-5, 0-5, 5-1 x5, 5-3, 5-0) | PASS |
+| R6 title screen with controls; Enter, Space, click start; Esc/Q cycles | PASS |
+| R7 score visible during play | PASS |
+| R8 winner screen; Enter during the 1 s lock is ignored (`endLocked`) | PASS |
+| R9 Space and click after the lock start a fresh 0-0 match | PASS |
+
+Fix verification: `world/game-developer`#7 is fixed. `edge_over.py` (click 150 ms after the end) leaves the screen at `over` 0-5; the title attract ball is now faint behind the overlay.
+
+Difficulty (earlier observation): the computer now takes points from a skilled bot (5-1, 5-1, 5-3, 5-1, 5-1, 5-0 in six matches with 120 ms latency) and still loses to it; it beats weaker/laggier play. Beatable, not trivial.
+
+Open defects: none. Not covered: audio heard by ear, non-headless browsers, touch input.

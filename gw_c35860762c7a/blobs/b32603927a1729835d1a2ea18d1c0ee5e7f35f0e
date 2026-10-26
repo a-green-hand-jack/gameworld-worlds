@@ -1,0 +1,46 @@
+// All 32 levels, in play order (data format: docs/levels.md).
+import L1_1 from './1-1.js';
+import L1_2 from './1-2.js';
+import L1_3 from './1-3.js';
+import L1_4 from './1-4.js';
+import L2_1 from './2-1.js';
+import L2_2 from './2-2.js';
+import L2_3 from './2-3.js';
+import L2_4 from './2-4.js';
+import L3_1 from './3-1.js';
+import L3_2 from './3-2.js';
+import L3_3 from './3-3.js';
+import L3_4 from './3-4.js';
+import L4_1 from './4-1.js';
+import L4_2 from './4-2.js';
+import L4_3 from './4-3.js';
+import L4_4 from './4-4.js';
+import L5_1 from './5-1.js';
+import L5_2 from './5-2.js';
+import L5_3 from './5-3.js';
+import L5_4 from './5-4.js';
+import L6_1 from './6-1.js';
+import L6_2 from './6-2.js';
+import L6_3 from './6-3.js';
+import L6_4 from './6-4.js';
+import L7_1 from './7-1.js';
+import L7_2 from './7-2.js';
+import L7_3 from './7-3.js';
+import L7_4 from './7-4.js';
+import L8_1 from './8-1.js';
+import L8_2 from './8-2.js';
+import L8_3 from './8-3.js';
+import L8_4 from './8-4.js';
+
+export const LEVELS = {
+  '1-1': L1_1, '1-2': L1_2, '1-3': L1_3, '1-4': L1_4,
+  '2-1': L2_1, '2-2': L2_2, '2-3': L2_3, '2-4': L2_4,
+  '3-1': L3_1, '3-2': L3_2, '3-3': L3_3, '3-4': L3_4,
+  '4-1': L4_1, '4-2': L4_2, '4-3': L4_3, '4-4': L4_4,
+  '5-1': L5_1, '5-2': L5_2, '5-3': L5_3, '5-4': L5_4,
+  '6-1': L6_1, '6-2': L6_2, '6-3': L6_3, '6-4': L6_4,
+  '7-1': L7_1, '7-2': L7_2, '7-3': L7_3, '7-4': L7_4,
+  '8-1': L8_1, '8-2': L8_2, '8-3': L8_3, '8-4': L8_4,
+};
+
+export const ORDER = Object.keys(LEVELS);

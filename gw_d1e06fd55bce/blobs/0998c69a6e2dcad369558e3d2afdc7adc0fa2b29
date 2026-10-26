@@ -1,0 +1,85 @@
+{
+ "title_state": "title",
+ "after_enter": "play",
+ "paddle": {
+  "start": 210,
+  "after_up": 37.99999999999986,
+  "after_s": 210
+ },
+ "match1": {
+  "progression": [
+   [
+    0,
+    0
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    2,
+    0
+   ],
+   [
+    3,
+    0
+   ],
+   [
+    4,
+    0
+   ],
+   [
+    5,
+    0
+   ]
+  ],
+  "winner": "player",
+  "state": "gameover",
+  "secs": 91.9
+ },
+ "play_again": {
+  "state": "play",
+  "score": {
+   "player": 0,
+   "computer": 0
+  }
+ },
+ "match2": {
+  "progression": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    3
+   ],
+   [
+    0,
+    4
+   ],
+   [
+    0,
+    5
+   ]
+  ],
+  "winner": "computer",
+  "state": "gameover"
+ },
+ "click_play_again": {
+  "state": "play",
+  "score": {
+   "player": 0,
+   "computer": 0
+  }
+ },
+ "errors": []
+}

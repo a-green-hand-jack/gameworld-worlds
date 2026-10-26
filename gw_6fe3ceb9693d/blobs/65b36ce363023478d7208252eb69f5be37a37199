@@ -1,0 +1,32 @@
+# Gap Runner
+
+A one-screen browser game: a yellow square runs and jumps over two gaps to reach a red flag.
+
+## Start it
+
+Open `index.html` in a browser (double-click, or `file:///.../index.html` in a headless browser). The layout comes from `level.json` next to it. Chromium refuses to read `level.json` from a `file://` page, so in that case the page uses a built-in copy of the same layout (shown by `window.game.levelSource`); over http (`python3 -m http.server`) it loads `level.json` itself. If you edit `level.json`, update the `level-fallback` script block in `index.html` to match (`smoke.mjs` fails if they differ).
+
+## Controls
+
+| Key | Action |
+|---|---|
+| Left / A | move left |
+| Right / D | move right |
+| Up / W / Space | jump |
+| R | restart |
+
+Falling into a gap puts you back at the start. Touching the flag wins; it hangs two tiles above the ground at the right end, so you must jump to touch it.
+
+## Level format (`level.json`)
+
+`tile` (pixels), `map` (rows of `#` solid, `.` empty, `P` player start) and `flag` (`col`, `row` of the flag tile).
+
+## Smoke test
+
+```
+npm install              # once: installs playwright
+npx playwright install chromium   # once: headless browser
+node smoke.mjs
+```
+
+It opens the game headless (over http and from `file://`), then checks start, both directions, jump, falling into gap 1, crossing both gaps, reaching the flag and the real-time loop. Exit code 0 means all passed. Test hooks: `?manual` in the URL stops the real-time loop; `window.game.step(n)` advances n frames; `window.game.state` is `playing` or `won`.

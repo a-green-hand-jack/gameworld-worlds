@@ -1,0 +1,373 @@
+"""Minimal NES 2A03-style APU model used to synthesise all game audio.
+
+Channels
+--------
+* pulse1 / pulse2 : rectangular waves, duty 12.5 / 25 / 50 %, 4-bit volume,
+                    pitch quantised to the 11-bit NES timer (CPU / (16*(t+1))).
+* triangle        : 32-step 4-bit stepped triangle, no volume control,
+                    pitch quantised to CPU / (32*(t+1)).  Like the real chip the
+                    sequencer *freezes* when silenced instead of dropping to 0;
+                    we let it run on to a fixed phase (value 7) before freezing,
+                    so every note starts and stops without a click.
+* noise           : 15-bit LFSR, long mode (32767 steps, hiss) and short mode
+                    (93 steps, metallic), 16 NTSC clock periods, 4-bit volume.
+
+Every sound is a list of :class:`Event` objects.  An event is a sequence of
+per-frame parameters (frequency / volume / duty) starting at a sample
+position, exactly like a NES sound driver that writes registers once per video
+frame (60 Hz by default, faster rates are allowed for sweeps).  Channels are
+monophonic: a new event on a channel cuts the previous one.
+
+Oscillators are rendered by box-filter integration of the exact waveform over
+each output sample (the average of the waveform between two sample instants),
+which suppresses most of the aliasing a naive 44.1 kHz rendering would have.
+The channels are combined with the non-linear APU mixer formula and then sent
+through a gentle first-order high-pass (37 Hz, Famicom-like DC blocker) and a
+first-order low-pass (14 kHz) like the console's output stage.  No reverb.
+"""
+from __future__ import annotations
+
+import math
+import struct
+import wave
+from dataclasses import dataclass, field
+
+import numpy as np
+from scipy.signal import lfilter
+
+SR = 44100
+CPU = 1789773.0          # NTSC CPU clock
+NOISE_PERIODS = [4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068]
+TRI_HOLD_PHASE = 0.25    # triangle starts/stops here (step 8 -> value 7)
+
+# ----------------------------------------------------------------------------
+# pitch helpers
+# ----------------------------------------------------------------------------
+NOTE_OFFS = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+
+def note_to_midi(name: str) -> int:
+    """'C#5' / 'Bb3' / 'E4' -> midi number (C4 = 60)."""
+    letter = name[0].upper()
+    i = 1
+    acc = 0
+    while i < len(name) and name[i] in "#b":
+        acc += 1 if name[i] == "#" else -1
+        i += 1
+    octave = int(name[i:])
+    return 12 * (octave + 1) + NOTE_OFFS[letter] + acc
+
+
+def midi_to_hz(m: float) -> float:
+    return 440.0 * 2.0 ** ((m - 69) / 12.0)
+
+
+def quantize_pulse(f):
+    f = np.asarray(f, dtype=np.float64)
+    out = np.zeros_like(f)
+    on = f > 0
+    t = np.clip(np.round(CPU / (16.0 * f[on]) - 1.0), 8, 2047)
+    out[on] = CPU / (16.0 * (t + 1.0))
+    return out
+
+
+def quantize_tri(f):
+    f = np.asarray(f, dtype=np.float64)
+    out = np.zeros_like(f)
+    on = f > 0
+    t = np.clip(np.round(CPU / (32.0 * f[on]) - 1.0), 2, 2047)
+    out[on] = CPU / (32.0 * (t + 1.0))
+    return out
+
+
+def noise_rate(period_index):
+    """LFSR clock rate (steps/second) for a 0..15 period index (0 = highest)."""
+    idx = np.clip(np.asarray(period_index, dtype=int), 0, 15)
+    return CPU / np.asarray(NOISE_PERIODS, dtype=np.float64)[idx]
+
+
+# ----------------------------------------------------------------------------
+# waveform tables
+# ----------------------------------------------------------------------------
+TRI_TABLE = np.array(list(range(15, -1, -1)) + list(range(0, 16)), dtype=np.float64)
+TRI_CUM = np.concatenate([[0.0], np.cumsum(TRI_TABLE)])  # C[k] = sum T[:k]
+
+
+def _lfsr(short: bool) -> np.ndarray:
+    reg = 1
+    tap = 6 if short else 1
+    seen = {}
+    out = []
+    for i in range(40000):
+        if short and reg in seen:
+            start = seen[reg]
+            return np.array(out[start:], dtype=np.float64)
+        if short:
+            seen[reg] = i
+        out.append(0.0 if (reg & 1) else 1.0)   # channel outputs when bit0 == 0
+        fb = (reg & 1) ^ ((reg >> tap) & 1)
+        reg = (reg >> 1) | (fb << 14)
+        if not short and i + 1 == 32767:
+            break
+    return np.array(out, dtype=np.float64)
+
+
+NOISE_LONG = _lfsr(False)
+NOISE_SHORT = _lfsr(True)
+_NL_CUM = np.concatenate([[0.0], np.cumsum(NOISE_LONG)])
+_NS_CUM = np.concatenate([[0.0], np.cumsum(NOISE_SHORT)])
+
+
+# integrals of the waveforms over (unwrapped) phase -------------------------
+
+def _pulse_int(phi, duty):
+    # waveform = 1 on [1-duty, 1) of each cycle (starts low -> soft note-on)
+    fl = np.floor(phi)
+    fr = phi - fl
+    return fl * duty + np.maximum(0.0, fr - (1.0 - duty))
+
+
+def _pulse_val(phi, duty):
+    fr = phi - np.floor(phi)
+    return (fr >= 1.0 - duty).astype(np.float64)
+
+
+def _tri_int(phi):
+    fl = np.floor(phi)
+    x = (phi - fl) * 32.0
+    k = np.minimum(np.floor(x).astype(np.int64), 31)
+    return (fl * 240.0 + TRI_CUM[k] + TRI_TABLE[k] * (x - k)) / 32.0
+
+
+def _tri_val(phi):
+    x = (phi - np.floor(phi)) * 32.0
+    k = np.minimum(np.floor(x).astype(np.int64), 31)
+    return TRI_TABLE[k]
+
+
+def _noise_int(s, seq, cum):
+    n = len(seq)
+    fl = np.floor(s)
+    cyc = np.floor(fl / n)
+    k = (fl - cyc * n).astype(np.int64)
+    return cyc * cum[-1] + cum[k] + seq[k] * (s - fl)
+
+
+def _noise_val(s, seq):
+    n = len(seq)
+    k = (np.floor(s) % n).astype(np.int64)
+    return seq[k]
+
+
+# ----------------------------------------------------------------------------
+# events
+# ----------------------------------------------------------------------------
+@dataclass
+class Event:
+    """Per-frame register writes for one channel.
+
+    ch    : 'p1', 'p2', 'tri' or 'noise'
+    start : start sample
+    freq  : per-frame frequency in Hz (pulse / tri, quantised to NES timers
+            unless quantize=False) or LFSR clock rate (noise, see noise_rate)
+    vol   : per-frame volume 0..15 (triangle: >0 means sounding)
+    duty  : per-frame duty (pulse) or mode flag (noise: 1 = short/metallic)
+    rate  : frames per second for the parameter tables
+    """
+    ch: str
+    start: int
+    freq: np.ndarray
+    vol: np.ndarray
+    duty: np.ndarray | float = 0.5
+    rate: float = 60.0
+    phase0: float = 0.0
+    quantize: bool = True
+
+    def nframes(self):
+        return len(self.vol)
+
+    def length(self):
+        return int(math.ceil(self.nframes() * SR / self.rate))
+
+
+CHANNELS = ("p1", "p2", "tri", "noise")
+
+
+class APU:
+    def __init__(self, nsamples: int):
+        self.n = nsamples
+        self.events: dict[str, list[Event]] = {c: [] for c in CHANNELS}
+
+    def add(self, ev: Event):
+        if ev.start >= self.n:
+            return
+        self.events[ev.ch].append(ev)
+
+    def extend(self, evs):
+        for e in evs:
+            self.add(e)
+
+    # ------------------------------------------------------------------
+    def _channel(self, ch):
+        n = self.n
+        dphi = np.zeros(n)
+        vol = np.zeros(n)
+        duty = np.full(n, 0.5)
+        reset = np.zeros(n, dtype=bool)
+        ph0 = np.zeros(n)
+        evs = sorted(self.events[ch], key=lambda e: e.start)
+        is_tri = ch == "tri"
+        is_noise = ch == "noise"
+        for i, e in enumerate(evs):
+            s0 = e.start
+            limit = evs[i + 1].start if i + 1 < len(evs) else n
+            limit = min(limit, n)
+            if limit <= s0:
+                continue
+            m = e.nframes()
+            ln = min(e.length(), limit - s0)
+            idx = np.minimum((np.arange(ln) * e.rate / SR).astype(np.int64), m - 1)
+            f = np.asarray(e.freq, dtype=np.float64)
+            if f.ndim == 0:
+                f = np.full(m, float(f))
+            if e.quantize and not is_noise:
+                f = quantize_tri(f) if is_tri else quantize_pulse(f)
+            v = np.asarray(e.vol, dtype=np.float64)
+            d = np.asarray(e.duty, dtype=np.float64)
+            if d.ndim == 0:
+                d = np.full(m, float(d))
+            fs = f[idx]
+            vs = v[idx]
+            if is_tri:
+                on = (vs > 0) & (fs > 0)
+                inc = np.where(on, fs / SR, 0.0)
+                ph0_e = TRI_HOLD_PHASE
+                # run the sequencer on until it reaches the hold phase again,
+                # then freeze it there (avoids clicks; value 7 = baseline)
+                last_on = np.flatnonzero(on)
+                if len(last_on):
+                    lo = last_on[-1]
+                    phase_end = ph0_e + inc[: lo + 1].sum()
+                    target = math.floor(phase_end - TRI_HOLD_PHASE) + 1 + TRI_HOLD_PHASE
+                    step = inc[lo]
+                    extra = int(math.ceil((target - phase_end) / step - 1e-9))
+                    stop = min(lo + 1 + extra, limit - s0)
+                    if stop > ln:
+                        inc = np.concatenate([inc, np.zeros(stop - ln)])
+                        ln = stop
+                    inc[lo + 1: stop] = step
+                    inc[stop:] = 0.0
+                    # make the last increment land exactly on the hold phase
+                    if stop - 1 > lo and stop <= len(inc):
+                        acc = ph0_e + inc[: stop - 1].sum()
+                        inc[stop - 1] = max(0.0, target - acc + 1e-6)
+                # after the event (until the next one) the triangle stays frozen
+                ln2 = limit - s0
+                dphi[s0: s0 + ln2] = 0.0
+                dphi[s0: s0 + ln] = inc[:ln]
+                vol[s0: s0 + ln2] = 1.0
+                reset[s0] = True
+                ph0[s0] = ph0_e
+            else:
+                dphi[s0: s0 + ln] = fs / SR
+                vol[s0: s0 + ln] = vs
+                duty[s0: s0 + ln] = d[idx]
+                # everything after this event (up to the next) is silent
+                vol[s0 + ln: limit] = 0.0
+                dphi[s0 + ln: limit] = 0.0
+                if s0 + ln < limit:
+                    duty[s0 + ln: limit] = d[idx[-1]] if ln else 0.5
+                reset[s0] = True
+                ph0[s0] = e.phase0
+        return dphi, vol, duty, reset, ph0
+
+    def _phases(self, dphi, reset, ph0, init):
+        cs = np.cumsum(dphi)
+        cs_prev = cs - dphi
+        starts = np.flatnonzero(reset)
+        seg = np.cumsum(reset)            # 0 before the first event
+        base = np.concatenate([[0.0], cs_prev[starts]])
+        off = np.concatenate([[init], ph0[starts]])
+        phi_end = cs - base[seg] + off[seg]
+        phi_start = phi_end - dphi
+        return phi_start, phi_end
+
+    def render_channels(self):
+        out = {}
+        for ch in CHANNELS:
+            dphi, vol, duty, reset, ph0 = self._channel(ch)
+            init = TRI_HOLD_PHASE if ch == "tri" else 0.0
+            a, b = self._phases(dphi, reset, ph0, init)
+            moving = dphi > 1e-12
+            safe = np.where(moving, dphi, 1.0)
+            if ch == "tri":
+                avg = np.where(moving, (_tri_int(b) - _tri_int(a)) / safe, _tri_val(b))
+                out[ch] = avg
+            elif ch == "noise":
+                short = duty > 0.5
+                av_l = np.where(moving, (_noise_int(b, NOISE_LONG, _NL_CUM) -
+                                         _noise_int(a, NOISE_LONG, _NL_CUM)) / safe,
+                                _noise_val(b, NOISE_LONG))
+                av_s = np.where(moving, (_noise_int(b, NOISE_SHORT, _NS_CUM) -
+                                         _noise_int(a, NOISE_SHORT, _NS_CUM)) / safe,
+                                _noise_val(b, NOISE_SHORT))
+                out[ch] = vol * np.where(short, av_s, av_l)
+            else:
+                avg = np.where(moving, (_pulse_int(b, duty) - _pulse_int(a, duty)) / safe,
+                               _pulse_val(b, duty))
+                out[ch] = vol * avg
+        return out
+
+    def render(self):
+        c = self.render_channels()
+        return mix(c["p1"], c["p2"], c["tri"], c["noise"])
+
+
+# ----------------------------------------------------------------------------
+# mixer / output stage
+# ----------------------------------------------------------------------------
+
+def _mix_raw(p1, p2, t, nz):
+    ps = p1 + p2
+    pulse = np.where(ps > 1e-9, 95.88 / (8128.0 / np.maximum(ps, 1e-9) + 100.0), 0.0)
+    tnd_in = t / 8227.0 + nz / 12241.0
+    tnd = np.where(tnd_in > 1e-12, 159.79 / (1.0 / np.maximum(tnd_in, 1e-12) + 100.0), 0.0)
+    return pulse + tnd
+
+
+def mix(p1, p2, t, nz):
+    y = _mix_raw(p1, p2, t, nz)
+    base = _mix_raw(np.zeros(1), np.zeros(1), np.array([TRI_TABLE[8]]), np.zeros(1))[0]
+    y = y - base                        # silence (triangle parked at 7) == 0
+    return output_filter(y)
+
+
+def output_filter(x, hp_hz=37.0, lp_hz=14000.0):
+    dt = 1.0 / SR
+    rc = 1.0 / (2 * math.pi * hp_hz)
+    a = rc / (rc + dt)
+    x = lfilter([a, -a], [1.0, -a], x)                 # 1st-order high-pass
+    rc = 1.0 / (2 * math.pi * lp_hz)
+    b = dt / (rc + dt)
+    x = lfilter([b], [1.0, -(1.0 - b)], x)             # 1st-order low-pass
+    return x
+
+
+# ----------------------------------------------------------------------------
+# io
+# ----------------------------------------------------------------------------
+
+def write_wav(path, x):
+    pcm = np.clip(np.round(np.asarray(x) * 32767.0), -32768, 32767).astype("<i2")
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+
+
+def read_wav(path):
+    with wave.open(str(path), "rb") as w:
+        n = w.getnframes()
+        data = w.readframes(n)
+    return np.frombuffer(data, dtype="<i2").astype(np.float64) / 32768.0

@@ -1,0 +1,34 @@
+# QA checklist: Super Mario Bros. 1 web remake (objective: qa#1)
+
+Judged against: faithful recreation of the classic Super Mario Bros. 1, playable in a web browser.
+
+## Boot / flow
+- Page loads without console errors; title screen; start with key press; HUD shows score, coins, world, time, lives
+- Game over -> restart; death -> life lost -> respawn at level start/checkpoint; time-up death
+## Controls
+- Left/right walk, B-run (speed + jump height), A-jump (variable height by hold), duck when big, keyboard works; no stuck keys on blur
+## Physics
+- Acceleration/skid/momentum, gravity, jump arcs, no tunneling through blocks/floor at speed, camera scrolls right only
+## World 1-1 content
+- Ground, bricks, ? blocks (coin/mushroom/star), hidden 1-up block, pipes (enter bonus area), stairs, flagpole + castle, pits
+## Enemies / items
+- Goomba (walk, stomp, flatten), Koopa (shell, kick, bounce), mushroom grows, fire flower (if present), star invincibility, coin counting (100 coins = 1-up), stomp chain scores
+## Power states
+- Small -> big -> fire; hit while big shrinks with invulnerability flicker; small hit = death; brick break only when big
+## Rules
+- Timer countdown, time bonus at flag, flagpole height score, lives count, score values match original
+## Further levels
+- Levels beyond 1-1 (1-2, 1-3, 1-4 ... as far as the build goes), level transitions
+## Edge cases
+- Pause, window resize, key rollover, hitting two blocks at once, enemies at screen edge, falling off pits, repeated restart, audio start after user gesture
+## Presentation
+- Pixel-art consistent, sprite animation (walk/jump/death), sound effects/music present
+
+## Added from producer brief (docs/brief.md)
+- Static server load, headless + normal Chromium, zero console errors; 256x240 logical canvas, integer/crisp scaling, aspect kept; fixed 60 Hz logic independent of display refresh
+- Controls shown on title screen; A jump / B run+fireball; Enter start/pause
+- Top score kept for session; start 3 lives; 1-UP at 100 coins; checkpoints (mid-level restart) as original; WORLD x-y intermission
+- Level-by-level fidelity vs original: terrain, block/item contents, hidden blocks, enemy placement, pipe destinations, secrets, level time (1-1: 400)
+- Reference values (public knowledge, NES): stomp combo 100,200,400,500,800,1000,2000,4000,5000,8000,1UP; flagpole 100..5000 by height; coin 200; mushroom/flower 1000; time bonus 50/second-unit; 1-UP at 100 coins; hurry-up music at TIME 100
+- Asset rule: no ripped ROM sprites/audio; assets consistent in style; audio only after user gesture
+- Softlock hunt: every level completable; pits, pipes, stairs, vine/warp reachable

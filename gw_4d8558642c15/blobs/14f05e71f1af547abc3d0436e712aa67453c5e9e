@@ -1,0 +1,8 @@
+gap1-off-edge {'x': 300, 'y': 299.5, 'vy': 150, 'onGround': False, 'won': False}
+gap1-after-fall {'x': 66, 'y': 292, 'vy': 0, 'onGround': True, 'won': False}
+gap2-off-edge {'x': 576, 'y': 292.5, 'vy': 30, 'onGround': False, 'won': False}
+gap2-after-fall {'x': 66, 'y': 292, 'vy': 0, 'onGround': True, 'won': False}
+d-run {'x': 96, 'y': 292, 'vy': 0, 'onGround': True, 'won': False}
+a-run {'x': 66, 'y': 292, 'vy': 0, 'onGround': True, 'won': False}
+w-jump {'x': 66, 'y': 272.25000000000006, 'vy': -365, 'onGround': False, 'won': False}
+midair-rejump {'x': 66, 'y': 266.66666666666674, 'vy': -335, 'onGround': False, 'won': False} prior-vy -365

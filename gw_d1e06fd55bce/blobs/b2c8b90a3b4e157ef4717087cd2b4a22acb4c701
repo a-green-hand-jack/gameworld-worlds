@@ -1,0 +1,52 @@
+[
+ {
+  "check": "R2 ball stays within top/bottom walls while sampled",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "pause: state paused, ball and paddles frozen even with keys",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "pause: P resumes",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "window blur pauses play",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "match ends with ArrowUp held (paddle parked at top)",
+  "ok": true,
+  "detail": "{'player': 0, 'computer': 5}"
+ },
+ {
+  "check": "early Enter (<0.6s after end) ignored (info: guard against accidental skip)",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "check": "Esc on win screen returns to title",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "title after match: Enter starts fresh 0-0",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "Enter during play does nothing",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R1 no errors",
+  "ok": true,
+  "detail": "[]"
+ }
+]

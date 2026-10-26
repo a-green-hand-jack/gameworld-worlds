@@ -1,0 +1,207 @@
+"""Plays Pong end to end in headless Chromium, as a player would, through the keyboard.
+
+Checks every requirement of the objective on the running build and saves
+screenshots + a JSON log under tests/out/<label>/.
+
+    python3 tests/play_match.py [--root DIR] [--label NAME] [--file]
+
+--root   delivery root to serve (default: repository root)
+--file   also check that index.html starts from file:// (no server)
+"""
+import argparse, functools, http.server, json, os, sys, threading, time
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+HERE = Path(__file__).resolve().parent
+
+
+def serve(root):
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+    handler = functools.partial(Quiet, directory=str(root))
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, f"http://127.0.0.1:{httpd.server_address[1]}/"
+
+
+class Checker:
+    def __init__(self):
+        self.results = []
+
+    def check(self, name, ok, detail=""):
+        self.results.append({"check": name, "ok": bool(ok), "detail": detail})
+        print(("PASS " if ok else "FAIL ") + name + (f"  ({detail})" if detail else ""), flush=True)
+
+
+def state(page):
+    return page.evaluate("""() => { const g = window.pong.game; return {
+        state: g.state, score: g.score, winner: g.winner, ball: g.ball, player: g.player,
+        serveTimer: g.serveTimer, canRestart: g.canRestart() }; }""")
+
+
+def hold(page, key, down, held):
+    if down and key not in held:
+        page.keyboard.down(key); held.add(key)
+    elif not down and key in held:
+        page.keyboard.up(key); held.discard(key)
+
+
+def play_until_over(page, bot, timeout=240):
+    """bot=True: steer the paddle toward the ball with the arrow keys. bot=False: idle."""
+    held, scores_seen, t0 = set(), [], time.time()
+    while time.time() - t0 < timeout:
+        s = state(page)
+        sc = (s["score"]["player"], s["score"]["computer"])
+        if not scores_seen or scores_seen[-1] != sc:
+            scores_seen.append(sc)
+        if s["state"] == "gameover":
+            break
+        if bot:
+            target = s["ball"]["y"] + 6 if s["ball"]["vx"] < 0 else 250
+            centre = s["player"]["y"] + 40
+            hold(page, "ArrowUp", target < centre - 8, held)
+            hold(page, "ArrowDown", target > centre + 8, held)
+        page.wait_for_timeout(15)
+    for k in list(held):
+        page.keyboard.up(k)
+    return s, scores_seen
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--root", default=str(HERE.parent))
+    ap.add_argument("--label", default="local")
+    ap.add_argument("--file", action="store_true")
+    args = ap.parse_args()
+    root = Path(args.root).resolve()
+    out = HERE / "out" / args.label
+    out.mkdir(parents=True, exist_ok=True)
+    c = Checker()
+    httpd, url = serve(root)
+    console = []
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1000, "height": 640})
+        page.add_init_script("""(() => { window.__played = [];
+            const orig = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function () {
+                const r = orig.apply(this, arguments);
+                const src = this.currentSrc || this.src;
+                if (r && r.then) r.then(() => window.__played.push(src.split('/').pop()),
+                                        e => window.__played.push('FAILED ' + src.split('/').pop() + ' ' + e.name));
+                return r; }; })()""")
+        page.on("console", lambda m: console.append(f"{m.type}: {m.text}"))
+        page.on("pageerror", lambda e: console.append(f"pageerror: {e}"))
+        t_load = time.time()
+        page.goto(url + "?seed=7")
+        page.wait_for_function("window.pong && window.pong.ready", timeout=15000)
+        load_s = time.time() - t_load
+        assets = page.evaluate("window.pong.assets.status")
+        c.check("game loads and reaches title screen", state(page)["state"] == "title")
+        page.wait_for_timeout(300)
+        page.screenshot(path=str(out / "1-title.png"))
+
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(100)
+        c.check("Enter on title starts a match", state(page)["state"] == "play")
+
+        # Keyboard moves the player's paddle.
+        y0 = state(page)["player"]["y"]
+        page.keyboard.down("ArrowUp"); page.wait_for_timeout(300); page.keyboard.up("ArrowUp")
+        y1 = state(page)["player"]["y"]
+        page.keyboard.down("KeyS"); page.wait_for_timeout(500); page.keyboard.up("KeyS")
+        y2 = state(page)["player"]["y"]
+        c.check("Up/W moves paddle up, Down/S moves it down", y1 < y0 and y2 > y1, f"y {y0:.0f} -> {y1:.0f} -> {y2:.0f}")
+
+        # Computer paddle moves on its own.
+        cy = [page.evaluate("window.pong.game.computer.y")]
+        for _ in range(20):
+            page.wait_for_timeout(100)
+            cy.append(page.evaluate("window.pong.game.computer.y"))
+        c.check("computer paddle moves by itself", max(cy) - min(cy) > 5, f"range {min(cy):.0f}..{max(cy):.0f}")
+
+        # Match 1: the bot plays to win.
+        midshot = False
+        held, t0 = set(), time.time()
+        s, seen = None, []
+        while time.time() - t0 < 300:
+            s = state(page)
+            sc = (s["score"]["player"], s["score"]["computer"])
+            if not seen or seen[-1] != sc:
+                seen.append(sc)
+            if s["state"] == "gameover":
+                break
+            if not midshot and sum(sc) >= 2 and s["serveTimer"] <= 0:
+                page.screenshot(path=str(out / "2-play-score.png")); midshot = True
+            target = s["ball"]["y"] + 6 if s["ball"]["vx"] < 0 else 250
+            centre = s["player"]["y"] + 40
+            hold(page, "ArrowUp", target < centre - 8, held)
+            hold(page, "ArrowDown", target > centre + 8, held)
+            page.wait_for_timeout(15)
+        for k in list(held):
+            page.keyboard.up(k)
+        c.check("score changes one point at a time during play", all(
+            (b[0] - a[0], b[1] - a[1]) in ((1, 0), (0, 1)) for a, b in zip(seen, seen[1:])), str(seen))
+        c.check("match ends when a side reaches 5", s["state"] == "gameover" and max(s["score"].values()) == 5
+                and min(s["score"].values()) < 5, json.dumps(s["score"]))
+        c.check("player can beat the computer", s["winner"] == "player", f"winner={s['winner']}")
+        page.wait_for_timeout(800)
+        page.screenshot(path=str(out / "3-win-screen.png"))
+        replay = state(page)["canRestart"]
+        c.check("win screen offers play again", replay)
+
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(100)
+        s = state(page)
+        c.check("Enter on win screen starts a fresh match", s["state"] == "play" and s["score"] == {"player": 0, "computer": 0}, json.dumps(s["score"]))
+
+        # Match 2: idle, the computer wins.
+        s, seen2 = play_until_over(page, bot=False)
+        c.check("computer wins when the player does nothing", s["state"] == "gameover" and s["winner"] == "computer"
+                and s["score"]["computer"] == 5, json.dumps(s["score"]))
+        page.wait_for_timeout(800)
+        page.screenshot(path=str(out / "4-lose-screen.png"))
+        page.mouse.click(500, 320)
+        page.wait_for_timeout(100)
+        c.check("click on game-over screen plays again", state(page)["state"] == "play")
+
+        page.keyboard.press("KeyP"); page.wait_for_timeout(100)
+        paused = state(page)["state"] == "paused"
+        page.screenshot(path=str(out / "5-paused.png"))
+        page.keyboard.press("KeyP"); page.wait_for_timeout(100)
+        c.check("P pauses and resumes", paused and state(page)["state"] == "play")
+        played = page.evaluate("window.__played")
+        expected = {"paddle.wav", "wall.wav", "score.wav", "win.wav", "lose.wav"}
+        present = {Path(k).name for k, v in assets.items() if v == "loaded" and k.endswith(".wav")}
+        c.check("every loaded sound effect played without error", expected & present <= set(played)
+                and not any(x.startswith("FAILED") for x in played),
+                f"loaded={sorted(present)} played={sorted(set(played))}")
+        c.check("ready to play within 2 s of load", load_s < 2, f"{load_s:.2f}s")
+        errors = [l for l in console if l.startswith("pageerror") or (l.startswith("error") and "Failed to load resource" not in l)]
+        c.check("no page errors", not errors, "; ".join(errors))
+
+        if args.file:
+            fp = browser.new_page()
+            ferr = []
+            fp.on("pageerror", lambda e: ferr.append(str(e)))
+            fp.goto((root / "index.html").as_uri())
+            fp.wait_for_function("window.pong && window.pong.ready", timeout=15000)
+            fp.keyboard.press("Space"); fp.wait_for_timeout(100)
+            c.check("index.html starts from file:// (no server)", fp.evaluate("window.pong.game.state") == "play" and not ferr, "; ".join(ferr))
+            fp.screenshot(path=str(out / "6-file-url.png"))
+        browser.close()
+    httpd.shutdown()
+
+    report = {"root": str(root), "assets": assets, "results": c.results, "console": console,
+              "chromium": "playwright " + __import__("importlib.metadata").metadata.version("playwright")}
+    (out / "report.json").write_text(json.dumps(report, indent=2))
+    failed = [r for r in c.results if not r["ok"]]
+    print(f"{len(c.results) - len(failed)}/{len(c.results)} checks passed; assets: "
+          + ", ".join(f"{k}={v}" for k, v in sorted(assets.items())))
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

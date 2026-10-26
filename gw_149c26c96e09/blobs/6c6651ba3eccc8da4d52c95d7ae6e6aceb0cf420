@@ -1,0 +1,4 @@
+# artist
+
+Snake art. `assets/manifest.json` lists every asset (32px cells, PNG sprites in `assets/img/`, WAV sounds in `assets/audio/`).
+Regenerate everything with `python3 tools/make_assets.py` (Pillow + NumPy).

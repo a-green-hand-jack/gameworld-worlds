@@ -1,0 +1,122 @@
+[
+ {
+  "check": "[http] R6 title shown on load, no play yet",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[http] R6 non-start keys do not start the game",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[http] R6 Space starts play",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[http] R4 ArrowUp moves paddle up and clamps at top",
+  "ok": true,
+  "detail": "210->102->0"
+ },
+ {
+  "check": "[http] R4 ArrowDown moves paddle down and clamps at bottom (420)",
+  "ok": true,
+  "detail": "420"
+ },
+ {
+  "check": "[http] R4 W moves up",
+  "ok": true,
+  "detail": "420->291"
+ },
+ {
+  "check": "[http] R4 S moves down",
+  "ok": true,
+  "detail": "291->413"
+ },
+ {
+  "check": "[http] edge: Up+Down together -> paddle stays",
+  "ok": true,
+  "detail": "413->413"
+ },
+ {
+  "check": "[http] edge: paddle stops on key release",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[http] R1 no console/page errors, no failed/404 requests",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "check": "[file] R6 title shown on load, no play yet",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[file] R6 non-start keys do not start the game",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[file] R6 Space starts play",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[file] R4 ArrowUp moves paddle up and clamps at top",
+  "ok": true,
+  "detail": "210->102->0"
+ },
+ {
+  "check": "[file] R4 ArrowDown moves paddle down and clamps at bottom (420)",
+  "ok": true,
+  "detail": "420"
+ },
+ {
+  "check": "[file] R4 W moves up",
+  "ok": true,
+  "detail": "420->291"
+ },
+ {
+  "check": "[file] R4 S moves down",
+  "ok": true,
+  "detail": "291->413"
+ },
+ {
+  "check": "[file] edge: Up+Down together -> paddle stays",
+  "ok": true,
+  "detail": "413->413"
+ },
+ {
+  "check": "[file] edge: paddle stops on key release",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "[file] R1 no console/page errors, no failed/404 requests",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "check": "mouse click on canvas starts game (extra)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "layout 1920x1080: canvas fits viewport",
+  "ok": true,
+  "detail": "[1600, 1000, 160, 40]"
+ },
+ {
+  "check": "layout 640x400: canvas fits viewport",
+  "ok": true,
+  "detail": "[640, 400, 0, 0]"
+ },
+ {
+  "check": "layout 420x800: canvas fits viewport",
+  "ok": true,
+  "detail": "[420, 263, 0, 268.5]"
+ }
+]

@@ -1,0 +1,359 @@
+"""Original music for the project, written for a 2A03-style synth.
+
+All melodies, harmonies and arrangements below are original compositions made
+for this project.  They are written to fill the same *roles* as the music of
+the 1985 game (bright overworld calypso, sparse underground riff, underwater
+waltz, tense castle ostinato, frantic invincibility loop, jingles) but share
+no melodic material with it.
+
+Ticks are 16th notes.  Chord charts drive the bass, the harmony voice and the
+accompaniment patterns (see sequencer.py).
+"""
+from __future__ import annotations
+
+from sequencer import (Inst, Note, Part, Track, chord_chart, drum_line, harmonize,
+                       parse_bars, pattern_line, parse_chord)
+from nes_synth import note_to_midi
+
+
+def chart_from(spans):
+    """[('G7', 8), ('A7', 8)] -> chord chart with explicit lengths."""
+    out = []
+    t = 0
+    for name, ticks in spans:
+        pc, iv = parse_chord(name)
+        out.append((t, ticks, pc, iv))
+        t += ticks
+    return out
+
+
+TRI = Inst(gate=0.8, max_gate_gap=0.06)
+TRI_STACC = Inst(gate=0.55, max_gate_gap=0.5)
+TRI_LEGATO = Inst(gate=0.95, max_gate_gap=0.03)
+
+
+# ============================================================================
+# OVERWORLD - G major, 200 BPM, light calypso swing, 32 bars (A A' B A')
+# ============================================================================
+OW_A = [
+    "D5:3 G5:3 A5:2 B5:2 A5:2 G5:2 D5:2",
+    "E5:3 G5:3 C6:2 B5:2 A5:2 G5:4",
+    "F#5:3 A5:3 D6:2 C6:2 B5:2 A5:2 F#5:2",
+    "G5:4 r:2 B5:2 r:2 G5:2 D5:4",
+    "E5:3 G5:3 B5:2 E6:4 D6:2 B5:2",
+    "C6:3 B5:3 A5:2 G5:2 E5:2 G5:4",
+]
+OW_A_END1 = [
+    "A5:2 C#6:2 E6:2 G6:2 F#6:2 E6:2 C#6:2 A5:2",
+    "D6:4 r:2 A5:2 C6:2 B5:2 A5:2 F#5:2",
+]
+OW_A_END2 = [
+    "C6:2 B5:2 A5:2 E5:2 F#5:2 A5:2 C6:2 A5:2",
+    "G5:4 B5:2 D6:2 G6:4 r:4",
+]
+OW_B = [
+    "r:2 E6:2 r:2 E6:2 D6:2 C6:2 G5:4",
+    "r:2 Eb6:2 r:2 Eb6:2 D6:2 C6:2 G5:4",
+    "B5:3 A5:3 G5:2 A5:2 B5:2 D6:4",
+    "G#5:3 B5:3 D6:2 E6:4 D6:2 B5:2",
+    "C6:3 B5:3 A5:2 E5:2 A5:2 C6:4",
+    "D6:3 C6:3 A5:2 F#5:2 A5:2 C6:4",
+    "B5:2 D6:2 G6:4 F#6:2 E6:2 D6:4",
+    "C6:2 B5:2 A5:2 F#5:2 E5:2 F#5:2 A5:4",
+]
+OW_CH_A1 = ["G", "C", "D7", "G", "Em", "C", "A7", "D7"]
+OW_CH_A2 = ["G", "C", "D7", "G", "Em", "C", "Am7 D7", "G"]
+OW_CH_B = ["C", "Cm", "G", "E7", "Am", "D7", "G", "D7"]
+
+OW_LEAD = Inst(duty=0.25, vol=11, decay=5, sustain=7, release=2, gate=0.86,
+               vib_depth=0.12, vib_rate=6.0, vib_delay=14)
+OW_HARM = Inst(duty=0.5, vol=6, decay=6, sustain=4, release=1.5, gate=0.8)
+OW_STAB = Inst(duty=0.25, vol=6, decay=2, sustain=2, release=2, gate=0.5)
+
+
+def overworld():
+    bt = 16
+    lead_bars = OW_A + OW_A_END1 + OW_A + OW_A_END2 + OW_B + OW_A + OW_A_END2
+    charts = OW_CH_A1 + OW_CH_A2 + OW_CH_B + OW_CH_A2
+    lead = parse_bars(lead_bars, bt)
+    chart = chord_chart(charts, bt)
+    # harmony: parallel chord tones under the lead in the A sections,
+    # calypso off-beat stabs in the B section
+    harm = [n for n in harmonize(lead, chart) if not (16 * bt <= n.tick < 24 * bt)]
+    stab_chart = [c for c in chart if 16 * bt <= c[0] < 24 * bt]
+    stabs = pattern_line(stab_chart, [("r", 2), ("3", 2, "."), ("r", 2), ("5", 2, ".")], 62)
+    bass = pattern_line(chart, [("R", 3), ("5", 3), ("8", 2), ("R", 3), ("5", 3), ("3", 2)], 40)
+    groove = "K.hhS.h.K.hhS.h."
+    fill = "K.hhS.h.SsS.SSSS"
+    drums = drum_line(([groove] * 7 + [fill]) * 4, bt)
+    return Track("overworld", 200, bt, 32,
+                 [Part("p1", lead, OW_LEAD), Part("p2", harm + stabs, OW_HARM),
+                  Part("tri", bass, TRI)],
+                 drums=drums, drum_level=0.9, swing=0.6, key="G major", meter="4/4")
+
+
+# ============================================================================
+# UNDERGROUND - E minor, 120 BPM, staccato riff doubled by the triangle
+# ============================================================================
+UG_RIFF = [
+    "E4:1 r:1 G4:1 r:1 B4:1 r:1 A#4:1 r:1 B4:1 r:7",
+    "E4:1 r:1 G4:1 r:1 C5:1 r:1 B4:1 r:1 G4:1 r:7",
+    "E4:1 r:1 G4:1 r:1 B4:1 r:1 A#4:1 r:1 B4:1 r:3 D5:1 r:1 C5:1 r:1",
+    "B4:1 r:1 F#4:1 r:1 D#4:1 r:1 B3:1 r:9",
+    "A4:1 r:1 C5:1 r:1 E5:1 r:1 D#5:1 r:1 E5:1 r:7",
+    "C5:1 r:1 B4:1 r:1 A4:1 r:1 G4:1 r:1 F#4:1 r:7",
+    "G4:1 r:1 F#4:1 r:1 E4:1 r:1 D#4:1 r:1 E4:1 r:1 F#4:1 r:1 G4:1 r:1 A4:1 r:1",
+    "B4:1 r:1 B3:1 r:13",
+]
+UG_LEAD = Inst(duty=0.25, vol=10, decay=1.5, sustain=4, release=3, gate=0.6, max_gate_gap=1)
+UG_ECHO = Inst(duty=0.125, vol=4, decay=2, sustain=1, release=2, gate=0.6, max_gate_gap=1)
+UG_TRI = Inst(gate=0.6, max_gate_gap=1, transpose=-12)
+
+
+def underground():
+    bt = 16
+    riff = parse_bars(UG_RIFF, bt)
+    echo = [Note(n.tick, n.ticks, n.midi + 12, n.flags) for n in riff if n.tick >= 4 * bt]
+    return Track("underground", 120, bt, 8,
+                 [Part("p1", riff, UG_LEAD), Part("p2", echo, UG_ECHO),
+                  Part("tri", riff, UG_TRI)],
+                 key="E minor", meter="4/4")
+
+
+# ============================================================================
+# UNDERWATER - F major waltz, 3/4, 120 BPM, 16 bars
+# ============================================================================
+UW_MEL = [
+    "A5:6 G5:2 F5:4",
+    "C6:8 A5:2 F5:2",
+    "D6:6 C6:2 Bb5:4",
+    "Bb5:4 G5:4 E5:4",
+    "F5:6 G5:2 A5:4",
+    "F5:4 A5:4 D6:4",
+    "D6:6 C6:2 Bb5:2 A5:2",
+    "G5:8 A5:2 Bb5:2",
+    "D6:6 F6:2 D6:4",
+    "Db6:6 C6:2 Bb5:4",
+    "A5:8 F5:4",
+    "F#5:6 A5:2 C6:4",
+    "Bb5:6 A5:2 G5:2 F5:2",
+    "E5:4 G5:4 Bb5:4",
+    "A5:12",
+    "r:2 C5:2 E5:2 G5:2 Bb5:4",
+]
+UW_CH = ["F", "F", "Bb", "C7", "F", "Dm", "Gm", "C7",
+         "Bb", "Bbm", "F", "D7", "Gm7", "C7", "F", "C7"]
+UW_LEAD = Inst(duty=0.5, vol=9, decay=10, sustain=6, release=1, gate=0.95, max_gate_gap=0.04,
+               vib_depth=0.18, vib_rate=5.0, vib_delay=10, scoop=0.6, scoop_frames=3)
+UW_ACC = Inst(duty=0.25, vol=5, decay=4, sustain=2, release=1, gate=0.6, max_gate_gap=1)
+
+
+def underwater():
+    bt = 12
+    mel = parse_bars(UW_MEL, bt)
+    chart = chord_chart(UW_CH, bt)
+    acc = pattern_line(chart, [("r", 4), ("3", 4), ("5", 4)], 60)
+    bass = pattern_line(chart, [("R", 4), ("5", 4), ("8", 4)], 41)
+    return Track("underwater", 120, bt, 16,
+                 [Part("p1", mel, UW_LEAD), Part("p2", acc, UW_ACC), Part("tri", bass, TRI_LEGATO)],
+                 key="F major", meter="3/4")
+
+
+# ============================================================================
+# CASTLE - E minor / diminished, 160 BPM, 8 bars of neighbour-tone ostinato
+# ============================================================================
+CS_CH = ["Em", "F", "Em", "D#dim7", "Em", "C", "F#dim7", "B7"]
+CS_P1 = Inst(duty=0.25, vol=9, release=4, gate=1.0)
+CS_P2 = Inst(duty=0.5, vol=6, decay=3, sustain=3, release=3, gate=0.7, max_gate_gap=1)
+
+
+def castle():
+    bt = 16
+    chart = chord_chart(CS_CH, bt)
+    p1 = []
+    for st, ln, pc, iv in chart:
+        tones = sorted(m for m in range(68, 90) if (m - pc) % 12 in iv)
+        order = [0, 1, 0, 2]
+        for beat in range(4):
+            x = tones[order[beat]]
+            y = tones[order[beat] + 1]
+            cell = [x, x - 1, x, y]
+            if beat == 3 and st // bt == 7:
+                cell = [x, y, tones[order[beat] + 2], y]  # lift into the loop
+            for k, m in enumerate(cell):
+                p1.append(Note(st + beat * 4 + k, 1, m))
+    p2 = pattern_line(chart, [("R", 2), ("3", 2), ("5", 2), ("3", 2)], 57)
+    bass = pattern_line(chart, [("R", 2), ("8", 2)], 40)
+    return Track("castle", 160, bt, 8,
+                 [Part("p1", p1, CS_P1), Part("p2", p2, CS_P2), Part("tri", bass, TRI)],
+                 key="E minor (diminished)", meter="4/4")
+
+
+# ============================================================================
+# STAR - D mixolydian, 200 BPM, 4 bars of 16th-note arpeggio ostinato
+# ============================================================================
+ST_MEL = [
+    "D6:1 A5:1 F#5:1 A5:1 D6:1 A5:1 F#5:1 A5:1 E6:2 D6:2 C6:2 A5:2",
+    "C6:1 G5:1 E5:1 G5:1 C6:1 G5:1 E5:1 G5:1 D6:2 C6:2 Bb5:2 G5:2",
+    "D6:1 A5:1 F#5:1 A5:1 D6:1 A5:1 F#5:1 A5:1 E6:2 D6:2 C6:2 A5:2",
+    "C6:1 G5:1 E5:1 G5:1 C#6:1 A5:1 E5:1 A5:1 E6:2 G6:2 E6:2 C#6:2",
+]
+ST_CH = ["D", "C", "D", "C A7"]
+ST_LEAD = Inst(duty=0.5, vol=10, decay=3, sustain=7, release=3, gate=0.9)
+ST_STAB = Inst(duty=0.25, vol=6, decay=2, sustain=3, release=2, gate=0.5)
+
+
+def star():
+    bt = 16
+    mel = parse_bars(ST_MEL, bt)
+    chart = chord_chart(ST_CH, bt)
+    stabs = pattern_line(chart, [("r", 2), ("3", 2, "."), ("r", 2), ("5", 2, ".")], 62)
+    bass = pattern_line(chart, [("R", 2), ("8", 2)], 38)
+    drums = drum_line(["K.h.S.hhK.KhS.hh"] * 3 + ["K.h.S.hhK.KhSSSS"], bt)
+    return Track("star", 200, bt, 4,
+                 [Part("p1", mel, ST_LEAD), Part("p2", stabs, ST_STAB), Part("tri", bass, TRI_STACC)],
+                 drums=drums, drum_level=1.0, key="D mixolydian", meter="4/4")
+
+
+# ============================================================================
+# ENDING - C major, 96 BPM, 8 bars, gentle and loopable
+# ============================================================================
+EN_MEL = [
+    "E5:6 D5:2 C5:4 G5:4",
+    "A5:6 G5:2 E5:8",
+    "F5:4 A5:4 C6:6 B5:2",
+    "D6:8 C6:4 B5:4",
+    "C6:6 G5:2 E5:4 G5:4",
+    "A5:6 C6:2 F6:8",
+    "F6:4 E6:2 D6:2 D6:4 B5:4",
+    "C6:12 G5:4",
+]
+EN_CH = ["C", "Am", "F", "G", "C", "F", "Dm7 G7", "C"]
+EN_LEAD = Inst(duty=0.5, vol=10, decay=10, sustain=7, release=1, gate=0.92,
+               vib_depth=0.15, vib_rate=5.0, vib_delay=15)
+EN_ALB = Inst(duty=0.25, vol=5, decay=3, sustain=3, release=1.5, gate=0.75, max_gate_gap=1)
+
+
+def ending():
+    bt = 16
+    mel = parse_bars(EN_MEL, bt)
+    chart = chord_chart(EN_CH, bt)
+    alb = pattern_line(chart, [("R", 2), ("5", 2), ("3", 2), ("5", 2)], 55)
+    bass = pattern_line(chart, [("R", 8), ("5", 8)], 40)
+    drums = drum_line(["K...h...s...h..."] * 7 + ["K...h...s.s.s.s."], bt)
+    return Track("ending", 96, bt, 8,
+                 [Part("p1", mel, EN_LEAD), Part("p2", alb, EN_ALB), Part("tri", bass, TRI_LEGATO)],
+                 drums=drums, drum_level=0.6, key="C major", meter="4/4")
+
+
+# ============================================================================
+# JINGLES (non-looping)
+# ============================================================================
+FANFARE = Inst(duty=0.5, vol=11, decay=8, sustain=8, release=1, gate=0.92,
+               vib_depth=0.15, vib_rate=6.0, vib_delay=12)
+FANFARE2 = Inst(duty=0.25, vol=7, decay=8, sustain=5, release=1, gate=0.92)
+
+
+def _jingle(name, bpm, ticks, lead, harm_chart=None, p2=None, tri=None, drums=None,
+            lead_inst=FANFARE, p2_inst=FANFARE2, tri_inst=TRI, key="", meter="4/4", drum_level=1.0):
+    lead_n = parse_bars([lead], ticks)
+    parts = [Part("p1", lead_n, lead_inst)]
+    if harm_chart is not None:
+        parts.append(Part("p2", harmonize(lead_n, harm_chart), p2_inst))
+    elif p2 is not None:
+        parts.append(Part("p2", parse_bars([p2], ticks), p2_inst))
+    if tri is not None:
+        parts.append(Part("tri", parse_bars([tri], ticks), tri_inst))
+    dr = drum_line([drums], ticks) if drums else []
+    return Track(name, bpm, ticks, 1, parts, drums=dr, drum_level=drum_level,
+                 loop=False, key=key, meter=meter)
+
+
+def warning():
+    # three rising dominant-seventh bursts, a whole tone apart
+    return _jingle(
+        "warning", 160, 28,
+        "G4:1 B4:1 D5:1 F5:1 G5:4 A4:1 C#5:1 E5:1 G5:1 A5:4 B4:1 D#5:1 F#5:1 A5:1 B5:8_",
+        harm_chart=chart_from([("G7", 8), ("A7", 8), ("B7", 12)]),
+        tri="G2:4 r:4 A2:4 r:4 B2:8 r:4",
+        drums="S...s...S...s...C...........",
+        lead_inst=Inst(duty=0.25, vol=12, decay=10, sustain=9, release=1, gate=0.95),
+        key="rising whole tones (G7-A7-B7)")
+
+
+def stage_clear():
+    return _jingle(
+        "stage_clear", 136, 48,
+        "C5:1 F5:1 A5:1 C6:1 r:2 C6:2 A5:2 C6:6 "
+        "D5:1 G5:1 B5:1 D6:1 r:2 D6:2 B5:2 D6:6 "
+        "E5:1 G5:1 C6:1 E6:1 G6:12_",
+        harm_chart=chart_from([("F", 16), ("G", 16), ("C", 16)]),
+        tri="F2:2 r:2 F2:2 r:2 C3:2 r:2 F3:4 G2:2 r:2 G2:2 r:2 D3:2 r:2 G3:4 C3:4 G2:4 C2:8",
+        drums="S...s.s.S...s.s.S...s.s.S.s.SSSSC...............",
+        key="C major (IV-V-I)")
+
+
+def castle_clear():
+    return _jingle(
+        "castle_clear", 126, 48,
+        "G4:2 B4:1 D5:1 G5:4 F#5:2 G5:1 A5:1 B5:4 "
+        "C6:3 B5:1 A5:2 G5:2 A5:3 B5:1 C6:2 A5:2 "
+        "B5:2 G5:2 D6:4 G6:8_",
+        harm_chart=chart_from([("G", 16), ("C", 8), ("D", 8), ("G", 16)]),
+        tri="G2:4 D3:4 G2:4 D3:4 C3:4 G2:4 D3:4 A2:4 G2:4 D3:4 G2:8",
+        drums="S.ssS.s.S.ssS.s.S.ssS.s.S.ssSSSSC...S...S.......",
+        key="G major (march)")
+
+
+def death():
+    return _jingle(
+        "death", 160, 28,
+        "E6:1 D#6:1 D6:1 r:5 Bb5:3 G5:3 E5:2 C#5:3 Bb4:3 G4:2 C5:4",
+        p2="r:8 G5:3 E5:3 C#5:2 Bb4:3 G4:3 E4:2 C4:4",
+        tri="r:8 C3:8 C3:8 C2:4",
+        lead_inst=Inst(duty=0.5, vol=11, decay=6, sustain=6, release=1, gate=0.9),
+        p2_inst=Inst(duty=0.25, vol=6, decay=6, sustain=3, release=1, gate=0.9),
+        key="C diminished")
+
+
+def gameover():
+    return _jingle(
+        "gameover", 96, 24,
+        "E5:3 D5:1 C5:4 B4:3 A4:1 G#4:4 A4:8_",
+        p2="C5:3 B4:1 A4:4 G#4:3 F#4:1 E4:4 C4:8_",
+        tri="A2:7 r:1 E2:7 r:1 A2:8",
+        lead_inst=Inst(duty=0.5, vol=10, decay=12, sustain=5, release=0.5, gate=0.95,
+                       vib_depth=0.2, vib_rate=5.0, vib_delay=8),
+        p2_inst=Inst(duty=0.25, vol=6, decay=12, sustain=3, release=0.5, gate=0.95),
+        tri_inst=TRI_LEGATO, key="A minor")
+
+
+def pipe_intro():
+    return _jingle(
+        "pipe_intro", 192, 32,
+        "C5:2 E5:2 G5:2 E5:2 F5:2 A5:2 C6:4 B5:2 G5:2 D6:2 B5:2 C6:4 r:4",
+        harm_chart=chart_from([("C", 8), ("F", 8), ("G7", 8), ("C", 8)]),
+        tri="C3:2 r:2 G2:2 r:2 F2:2 r:2 A2:2 r:2 G2:2 r:2 D3:2 r:2 C3:4 r:4",
+        drums="h.h.s.h.h.h.s.h.h.h.s.h.S.......",
+        lead_inst=Inst(duty=0.25, vol=11, decay=4, sustain=6, release=2, gate=0.8),
+        key="C major", drum_level=0.8)
+
+
+LOOPS = {
+    "overworld": overworld,
+    "underground": underground,
+    "underwater": underwater,
+    "castle": castle,
+    "star": star,
+    "ending": ending,
+}
+HURRY = ["overworld", "underground", "underwater", "castle"]
+HURRY_SCALE = 1.5
+JINGLES = {
+    "warning": warning,
+    "stage_clear": stage_clear,
+    "castle_clear": castle_clear,
+    "death": death,
+    "gameover": gameover,
+    "pipe_intro": pipe_intro,
+}

@@ -1,0 +1,6 @@
+{
+ "url_path": "/v1beta/interactions",
+ "text": "Describe this audio: what do you hear and when (MM:SS or seconds)? Give the pitch (Hz) of any tone, whether it fades, and where there is silence. Estimate total duration.",
+ "file": "sound/beep.wav",
+ "model": "gemini-3.8-flash"
+}

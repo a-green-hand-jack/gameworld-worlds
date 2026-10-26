@@ -1,0 +1,134 @@
+// Headless smoke test: node smoke.mjs   (needs `npm install` once; see README.md)
+import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const dir = dirname(fileURLToPath(import.meta.url));
+const levelFile = JSON.parse(readFileSync(join(dir, 'level.json'), 'utf8'));
+let failures = 0;
+const check = (name, ok, detail = '') => {
+  if (!ok) failures++;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  (' + detail + ')' : ''}`);
+};
+
+const T = levelFile.tile, PW = 24;
+const gaps = [];
+{
+  const row = levelFile.map[levelFile.map.length - 1];
+  for (let c = 0; c < row.length; c++) if (row[c] !== '#' && (c === 0 || row[c - 1] === '#')) gaps.push(c * T);
+}
+
+const browser = await chromium.launch();
+
+async function open(url) {
+  const page = await browser.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'manual');
+  await page.waitForFunction(() => window.game && window.game.ready, null, { timeout: 5000 });
+  return { page, errors };
+}
+const st = page => page.evaluate(() => ({
+  x: window.game.player.x, y: window.game.player.y, vy: window.game.player.vy,
+  onGround: window.game.player.onGround, state: window.game.state, frame: window.game.frame,
+}));
+const step = (page, n) => page.evaluate(n => window.game.step(n), n);
+async function until(page, pred, max = 600) {   // pred is a source string over s = {x,y,...}
+  const f = new Function('s', 'return ' + pred);
+  for (let i = 0; i < max; i++) { const s = await st(page); if (f(s)) return s; await step(page, 1); }
+  throw new Error('timeout waiting for ' + pred);
+}
+async function jump(page) {
+  await page.keyboard.down('ArrowUp'); await step(page, 1); await page.keyboard.up('ArrowUp');
+}
+
+// ---- 1. loads from level.json over http, and from file:// (built-in copy) ----
+const server = createServer((req, res) => {
+  const p = req.url.split('?')[0] === '/' ? '/index.html' : req.url.split('?')[0];
+  try {
+    const body = readFileSync(join(dir, p));
+    res.writeHead(200, { 'content-type': p.endsWith('.json') ? 'application/json' : 'text/html' });
+    res.end(body);
+  } catch { res.writeHead(404); res.end(); }
+}).listen(0);
+const port = server.address().port;
+{
+  const h = await open(`http://localhost:${port}/index.html`);
+  const src = await h.page.evaluate(() => window.game.levelSource);
+  check('http: layout loaded from level.json', src === 'level.json', src);
+  await h.page.close();
+}
+const { page, errors } = await open(pathToFileURL(join(dir, 'index.html')).href);
+{
+  const lv = await page.evaluate(() => window.game.level);
+  check('file://: game starts and has a level', !!lv);
+  check('file://: level equals level.json', JSON.stringify(lv) === JSON.stringify(levelFile));
+}
+
+// ---- 2. start ----
+let s = await st(page);
+check('start: state is playing', s.state === 'playing');
+await step(page, 5);
+s = await st(page);
+const x0 = s.x;
+check('start: player rests on the ground', s.onGround);
+
+// ---- 3. both directions ----
+await page.keyboard.down('ArrowRight'); await step(page, 20); await page.keyboard.up('ArrowRight');
+s = await st(page); const xr = s.x;
+check('move right', xr > x0 + 40, `${x0} -> ${xr}`);
+await page.keyboard.down('ArrowLeft'); await step(page, 10); await page.keyboard.up('ArrowLeft');
+s = await st(page);
+check('move left', s.x < xr - 20, `${xr} -> ${s.x}`);
+
+// ---- 4. jump ----
+await step(page, 3);
+const yg = (await st(page)).y;
+await jump(page);
+let top = yg;
+for (let i = 0; i < 60; i++) { await step(page, 1); top = Math.min(top, (await st(page)).y); }
+check('jump leaves the ground and comes back', yg - top > 30 && (await st(page)).onGround, `rose ${yg - top}px`);
+
+// ---- 5. walking into a gap kills (respawns) ----
+await page.keyboard.down('ArrowRight');
+await until(page, `s.x > ${gaps[0]} - 4 && s.y > 0`, 300).catch(() => {});
+let respawned = false;
+for (let i = 0; i < 200 && !respawned; i++) { await step(page, 1); const t = await st(page); respawned = t.frame < 20 && t.x < gaps[0]; }
+await page.keyboard.up('ArrowRight');
+check('gap 1 is deadly if not jumped (player respawns at start)', respawned);
+
+// ---- 6. cross both gaps by jumping ----
+await page.keyboard.down('ArrowRight');
+for (let g = 0; g < gaps.length; g++) {
+  await until(page, `s.x + ${PW} >= ${gaps[g]} - 4`);
+  await jump(page);
+  const passed = gaps[g] + 2 * T;
+  s = await until(page, `s.x >= ${passed} && s.onGround`, 120);
+  check(`gap ${g + 1} crossed by jumping`, s.state === 'playing' && s.y < 352, `x=${s.x.toFixed(0)} y=${s.y.toFixed(0)}`);
+}
+
+// ---- 7. the flag ----
+const flag = await page.evaluate(() => window.game.flag);
+await until(page, `s.x >= ${flag.col * T} - 40`);
+await jump(page);
+for (let i = 0; i < 60; i++) { await step(page, 1); if ((await st(page)).state === 'won') break; }
+await page.keyboard.up('ArrowRight');
+s = await st(page);
+check(`flag (col ${flag.col}, row ${flag.row}) can be reached by jumping`, s.state === 'won');
+check('no page errors', errors.length === 0, errors.join('; '));
+
+// ---- 8. real-time (non-manual) mode runs ----
+{
+  const p2 = await browser.newPage();
+  await p2.goto(pathToFileURL(join(dir, 'index.html')).href);
+  await p2.waitForFunction(() => window.game && window.game.ready);
+  await p2.keyboard.down('ArrowRight'); await p2.waitForTimeout(500); await p2.keyboard.up('ArrowRight');
+  const x = await p2.evaluate(() => window.game.player.x);
+  check('real-time loop moves the player', x > 50, `x=${x.toFixed(0)}`);
+}
+
+await browser.close(); server.close();
+console.log(failures ? `\n${failures} check(s) FAILED` : '\nall checks passed');
+process.exit(failures ? 1 : 0);

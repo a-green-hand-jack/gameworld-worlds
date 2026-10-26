@@ -1,0 +1,7 @@
+# game-developer — Star Catcher (吃星星)
+
+Single-screen browser game: arrow keys move the ball, eat stars, 30 s countdown, best score saved in localStorage.
+
+**Play:** unzip the release `star-catcher.zip` and open `index.html` (double-click; no server or network needed). Space/Enter starts and restarts.
+
+Source: `index.html`, `style.css`, `game.js`; background `assets/bg.png` (from the artist). `tools/build.sh <png>` makes the zip; `tools/qa.py <dir> <shots>` is the headless-browser key-driven check (needs playwright).

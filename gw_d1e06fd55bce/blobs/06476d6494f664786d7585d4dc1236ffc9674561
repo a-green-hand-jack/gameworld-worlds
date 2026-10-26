@@ -1,0 +1,11 @@
+state at load title
+after Enter play
+win mid score {'player': 1, 'computer': 0}
+win ended gameover {'player': 5, 'computer': 0} winner player secs 77
+immediately (0.3s) pressing Enter on gameover
+ state gameover
+play again -> play {'player': 0, 'computer': 0}
+lose mid score {'player': 0, 'computer': 1}
+lose ended gameover {'player': 0, 'computer': 5} winner computer secs 19
+click play again -> play {'player': 0, 'computer': 0}
+console problems: []

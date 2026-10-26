@@ -1,0 +1,4 @@
+{"assignment_schema": 1,
+ "items": [
+  {"owner": "artist", "paths": ["assets/bg.png"], "work": "bitmap PNG background"}
+ ]}

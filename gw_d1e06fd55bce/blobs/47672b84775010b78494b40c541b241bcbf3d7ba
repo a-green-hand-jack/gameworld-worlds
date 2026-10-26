@@ -1,0 +1,11 @@
+PASS R2 ball stays within top/bottom walls while sampled
+PASS pause: state paused, ball and paddles frozen even with keys
+PASS pause: P resumes
+PASS window blur pauses play
+PASS match ends with ArrowUp held (paddle parked at top)  [{'player': 0, 'computer': 5}]
+PASS early Enter (<0.6s after end) ignored (info: guard against accidental skip)  [gameover]
+PASS Esc on win screen returns to title
+PASS title after match: Enter starts fresh 0-0
+PASS Enter during play does nothing
+PASS R1 no errors
+DONE edge fail= 0

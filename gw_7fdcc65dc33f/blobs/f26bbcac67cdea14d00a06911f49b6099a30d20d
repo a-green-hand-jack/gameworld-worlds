@@ -1,0 +1,18 @@
+# QA report — build 1 (game-developer 130237e + artist sound/hit.wav 18f595a, release `play-1`)
+
+Method: headless Chromium (Playwright 1.64) against the assembled delivery served over HTTP, real mouse/touch events; scripts in `evidence/qa_check.py`, `evidence/edge.py`; screenshots in `evidence/`.
+
+| Req | Result | Observed |
+|---|---|---|
+| R1 Browser game | pass | Plays from static files over HTTP, no console errors. Over `file://` the game runs but silently (see issue below; README documents serving over HTTP). |
+| R2 Grid | pass | 9 `.hole`s, 3 columns × 3 rows, all inside an 800 px-high viewport and a 375×667 mobile viewport. |
+| R3 Moles <1 s | pass | Unhit round: 0.55–0.9 s configured, max measured visible-class time 887 ms; all 9 holes used. (Visible time incl. 90 ms slide-out ≤ ~0.99 s worst case.) |
+| R4 Hit | pass | 49 real clicks on a raised mole = 49 points = 49 sounds started; a second click on the same mole scored 0 extra; clicking an empty hole scored 0; touch tap scores. |
+| R5 Round | pass | 30.02 s and 30.00 s wall time (two rounds); no mole up after end; score frozen after end. |
+| R6 Title | pass | Title with Start button first; Enter on focused Start works. |
+| R7 HUD | pass | `Score: n` and `Time: 30s…` shown; DOM text matched `__whack` state in all samples; time counts down 30→0. |
+| R8 End/replay | pass | End screen "Final score: n" matches the score, "Play again" gives phase playing, score 0, time 30, a full 30.00 s round, moles <1 s, final 0 with no clicks. |
+| R9 Hit sound asset | pass (generator unverified) | 0.25 s, 44100 Hz, mono s16, peak 0.90; the game decodes and plays exactly this buffer. Generator kept in artist repo: I cannot read that repository. |
+| R10 Listening | recorded — see `listening.md` | Resource heard a short percussive hit; its duration estimate (0.5–0.9 s) is an overestimate shown by controls; independent measurement 0.25 s matches. |
+
+Defects: no blocker against R1–R10. One minor issue opened in game-developer (silent on `file://`). Cosmetic observations (not defects): holes render as tall arches rather than round holes; the hit mole sinks visibly for 150 ms after a hit.

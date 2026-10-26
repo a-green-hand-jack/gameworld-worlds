@@ -1,0 +1,172 @@
+"""Independent QA checks for the Snake delivery. Usage: check.py DELIVERY_DIR OUT_DIR
+Runs against file:// (R1) and drives the game with real keyboard events."""
+import sys, json, time, pathlib
+from playwright.sync_api import sync_playwright
+
+root = pathlib.Path(sys.argv[1]).resolve(); out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)
+results = []
+def check(name, ok, detail=""):
+    results.append({"check": name, "ok": bool(ok), "detail": str(detail)})
+    print(("PASS " if ok else "FAIL ") + name, detail, flush=True)
+
+S = lambda p, js: p.evaluate("() => window.__snake." + js)
+def snap(p): return p.evaluate("() => ({s:__snake.screen,score:__snake.score,snake:__snake.snake,food:__snake.food,dir:__snake.direction,over:__snake.over,cause:__snake.cause})")
+def wait_step(p, n=1):
+    h = S(p, "snake")[0]
+    for _ in range(400):
+        p.wait_for_timeout(10)
+        if S(p, "snake")[0] != h or S(p, "over"): return
+def load(b, q="", w=1366, h=768):
+    ctx = b.new_context(viewport={"width": w, "height": h}); p = ctx.new_page()
+    errs = []; p.on("pageerror", lambda e: errs.append(str(e))); p.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
+    reqs = []; p.on("request", lambda r: reqs.append(r.url) if not r.url.startswith("file:") else None)
+    p.goto((root / "index.html").as_uri() + q); p.wait_for_function("window.__snake && __snake.ready"); p.errs = errs; p.reqs = reqs
+    return p
+def start(p): p.keyboard.press("Enter"); p.wait_for_function("__snake.screen==='playing'")
+
+with sync_playwright() as pw:
+    b = pw.chromium.launch()
+    # R1/R6 title
+    p = load(b, "?seed=1&tick=120")
+    check("R1 loads from file:// with no console errors / network", not p.errs and not p.reqs, (p.errs, p.reqs))
+    check("R6 title screen on load", S(p, "screen") == "title" and p.is_visible("#title-screen"))
+    t = p.inner_text("#title-screen"); check("R6 title shows name and how to play", "SNAKE" in t.upper() and "arrow" in t.lower() and "Enter" in t, t)
+    p.screenshot(path=str(out / "title.png"))
+    snake0 = S(p, "snake"); p.wait_for_timeout(500); check("title: snake does not move before start", S(p, "snake") == snake0)
+    p.keyboard.press("ArrowLeft"); p.wait_for_timeout(300)
+    check("title: arrow key does not start game (informational)", S(p, "screen") == "title", S(p, "screen"))
+    # R7 HUD visible
+    start(p)
+    check("R7 score visible during play", p.is_visible("#score") and p.inner_text("#score") == "0")
+    check("R9 page fits 1366x768 without scrolling", p.evaluate("document.documentElement.scrollHeight<=innerHeight && document.documentElement.scrollWidth<=innerWidth"))
+    # R2 pace
+    heads = []; t0 = time.time()
+    s0 = S(p, "snake")[0]; wait_step(p); s1 = S(p, "snake")[0]
+    check("R2 moves one cell per step in current direction", s1["x"] == s0["x"] + 1 and s1["y"] == s0["y"], (s0, s1))
+    # pace sample via in-page log
+    p.evaluate("""() => {window.__log=[];let last=null;(function f(t){const h=__snake.snake[0];const k=h.x+','+h.y;if(k!==last){__log.push([t,h.x,h.y]);last=k}requestAnimationFrame(f)})(0)}""")
+    p.wait_for_timeout(900); lg = p.evaluate("__log"); dts = [lg[i+1][0]-lg[i][0] for i in range(1, len(lg)-1)]
+    check("R2 steady pace (~120ms)", dts and all(90 <= d <= 160 for d in dts), dts)
+    p.screenshot(path=str(out / "playing.png"))
+    p.close()
+
+    # R3 reversal: heading right, press Left -> ignored
+    p = load(b, "?seed=1&tick=200"); start(p)
+    p.keyboard.press("ArrowLeft"); p.wait_for_timeout(450)
+    check("R3 direct reverse ignored", not S(p, "over") and S(p, "direction") == "right", snap(p))
+    # two quick presses within a step: Up then Left -> up then left
+    p.close(); p = load(b, "?seed=1&tick=400"); start(p)
+    wait_step(p); p.keyboard.press("ArrowUp"); p.keyboard.press("ArrowLeft")
+    p.wait_for_timeout(1100); sn = snap(p)
+    check("R3 two quick turns (Up,Left) both applied, no self-reversal", not sn["over"] and sn["dir"] == "left", sn)
+    # Up then Down quickly (reverse of queued) -> down ignored
+    p.close(); p = load(b, "?seed=1&tick=400"); start(p)
+    wait_step(p); p.keyboard.press("ArrowUp"); p.keyboard.press("ArrowDown"); p.wait_for_timeout(1000); sn = snap(p)
+    check("R3 Up+Down in one step does not kill", not sn["over"] and sn["dir"] == "up", sn)
+    # scroll
+    p.set_viewport_size({"width": 600, "height": 300}); p.wait_for_timeout(100)
+    y0 = p.evaluate("scrollY")
+    for k in ["ArrowDown","ArrowDown","ArrowUp"]: p.keyboard.press(k)
+    check("R3 arrows do not scroll page", p.evaluate("scrollY") == y0)
+    p.close()
+
+    # R5 wall: heading right from x=10 on 20 cols
+    p = load(b, "?seed=1&tick=60"); start(p)
+    p.wait_for_function("__snake.over", timeout=5000); sn = snap(p)
+    check("R5 wall ends game", sn["cause"] == "wall" and sn["s"] == "gameover" and p.is_visible("#gameover-screen"), sn)
+    check("R5 head not drawn/moved outside grid", 0 <= sn["snake"][0]["x"] < 20, sn["snake"][0])
+    check("R8 game over shows final score and play again", p.inner_text("#final-score") == "0" and p.is_visible("#restart-button"), p.inner_text("#gameover-screen"))
+    p.screenshot(path=str(out / "gameover.png"))
+    # play again via click, and via Space; repeat 3 times
+    for i, how in enumerate(["click", "Space", "Enter"]):
+        p.click("#restart-button") if how == "click" else p.keyboard.press(how if how != "Space" else " ")
+        p.wait_for_function("__snake.screen==='playing'"); sn = snap(p)
+        check(f"R8 play again via {how}: fresh state", sn["score"] == 0 and len(sn["snake"]) == 3 and sn["snake"][0] == {"x": 10, "y": 10} and sn["dir"] == "right" and sn["food"] and not sn["over"], sn)
+        p.wait_for_function("__snake.over", timeout=5000)
+    p.close()
+
+    # R5 self collision: right, up, left, down with len 3 grows? needs len>=5; use bot below. Tail-cell rule: 2x2 loop with len 4
+    # R4/R7 eating + long-game bot using real key presses
+    p = load(b, "?seed=7&tick=50"); start(p)
+    p.evaluate("""() => {
+      window.__bad=[]; window.__eats=0; let prev=null;
+      const D={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}, K={up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight'}, O={up:'down',down:'up',left:'right',right:'left'};
+      function bfs(sn,f,cols,rows){const occ=new Set(sn.slice(0,-1).map(c=>c.x+','+c.y));const h=sn[0];const q=[[h.x,h.y,null]];const seen=new Set([h.x+','+h.y]);
+        while(q.length){const [x,y,first]=q.shift();if(x==f.x&&y==f.y)return first;for(const d in D){const nx=x+D[d][0],ny=y+D[d][1],k=nx+','+ny;if(nx<0||ny<0||nx>=cols||ny>=rows||seen.has(k)||occ.has(k))continue;seen.add(k);q.push([nx,ny,first||d])}}
+        return null}
+      function safe(sn,d,cols,rows){const h=sn[0];const nx=h.x+D[d][0],ny=h.y+D[d][1];return nx>=0&&ny>=0&&nx<cols&&ny<rows&&!sn.slice(0,-1).some(c=>c.x==nx&&c.y==ny)}
+      let lastKey=null;
+      (function f(){const S=__snake;const sn=S.snake,fd=S.food;
+        if(prev){ // invariants
+          const bl=sn.length; if(bl!==3+S.score)__bad.push('len!=3+score '+bl+' '+S.score);
+          if(fd&&sn.some(c=>c.x==fd.x&&c.y==fd.y))__bad.push('food on snake');
+          for(let i=1;i<sn.length;i++)if(Math.abs(sn[i].x-sn[i-1].x)+Math.abs(sn[i].y-sn[i-1].y)!==1)__bad.push('gap');
+          if(new Set(sn.map(c=>c.x+','+c.y)).size!==sn.length)__bad.push('overlap');
+          if(document.getElementById('score').textContent!==String(S.score))__bad.push('hud mismatch');
+          if(S.score>prev.score+1)__bad.push('score jump');
+        }
+        prev={score:S.score};
+        if(S.screen==='playing'&&fd){let d=bfs(sn,fd,S.cols,S.rows);if(!d){for(const k in D)if(k!==O[S.direction]&&safe(sn,k,S.cols,S.rows)){d=k;break}}
+          if(d&&d!==S.direction&&d!==lastKey){lastKey=d;document.dispatchEvent(new KeyboardEvent('keydown',{key:K[d],bubbles:true,cancelable:true}))}}
+        requestAnimationFrame(f)})();}""")
+    t0 = time.time()
+    while time.time() - t0 < 100 and S(p, "score") < 60 and not S(p, "over"): p.wait_for_timeout(500)
+    sn = snap(p); bad = p.evaluate("__bad")
+    check("R4 long game: invariants (len=3+score, food off snake, contiguity, HUD==score)", not bad, bad[:5])
+    check("R4 reached score >= 30 by eating", sn["score"] >= 30, (sn["score"], sn["s"], sn["cause"]))
+    p.screenshot(path=str(out / "long-game.png"))
+    p.close()
+    # R5 self-collision: use bot-less scripted loop. Grow via bot until len>=6 not needed: build a self-collision with len 3? impossible. Use bot to length>=5 then spiral.
+    p = load(b, "?seed=7&tick=50"); start(p)
+    # force growth via DOM-free: let bot-like eat: reuse simple loop with python
+    def goto_food(p):
+        D = {"up": (0,-1), "down": (0,1), "left": (-1,0), "right": (1,0)}
+        for _ in range(400):
+            sn = snap(p)
+            if sn["over"] or len(sn["snake"]) >= 6: return sn
+            h, f = sn["snake"][0], sn["food"]
+            want = ("Right" if f["x"] > h["x"] else "Left") if f["x"] != h["x"] and sn["dir"] in ("up","down") else ("Down" if f["y"] > h["y"] else "Up") if f["y"] != h["y"] and sn["dir"] in ("left","right") else None
+            if want and not (want.lower() == {"up":"down","down":"up","left":"right","right":"left"}[sn["dir"]]): p.keyboard.press("Arrow" + want)
+            p.wait_for_timeout(25)
+        return snap(p)
+    sn = goto_food(p)
+    if not sn["over"] and len(sn["snake"]) >= 5:
+        # tight 2x2 loop: perpendicular, back, opposite-perpendicular (needs room on one side)
+        V = {"right": (1,0), "left": (-1,0), "up": (0,-1), "down": (0,1)}; N = {v: k for k, v in V.items()}
+        h = sn["snake"][0]; d = sn["dir"]; dx, dy = V[d]
+        for px, py in ((-dy, dx), (dy, -dx)):
+            if 0 <= h["x"] + px < 20 and 0 <= h["y"] + py < 20 and 0 <= h["x"] - dx < 20 and 0 <= h["y"] - dy < 20: break
+        seq = [N[(px, py)], N[(-dx, -dy)], N[(-px, -py)]]
+        for k in seq:
+            p.keyboard.press("Arrow" + k.capitalize()); wait_step(p)
+        p.wait_for_function("__snake.over", timeout=5000); sn = snap(p)
+        check("R5 self-collision ends game", sn["cause"] == "self", sn)
+        if sn["cause"] == "self":
+            check("R5 self game-over screen", p.is_visible("#gameover-screen") and p.inner_text("#final-score") == str(sn["score"]))
+    else:
+        check("R5 self-collision setup", False, sn)
+    p.close()
+    # rules-level edge cases directly on SnakeGame
+    p = load(b); r = p.evaluate("""() => {
+      const out = {}; const mk = (snake, dir, food) => { const g = new SnakeGame({cols:6, rows:6, random: () => 0}); g.snake = snake; g.direction = dir; g.food = food; g.turnQueue = []; return g; };
+      // 2x2 loop len 4: head (1,0) moving left into (0,0)? tail cell rule: snake head(1,0),(1,1),(0,1),(0,0) tail=(0,0); head moves left -> (0,0) = tail leaving => not a collision
+      let g = mk([{x:1,y:0},{x:1,y:1},{x:0,y:1},{x:0,y:0}], 'left', {x:5,y:5}); out.tail = g.step();
+      // same but eating food at tail cell: tail not leaving -> collision
+      g = mk([{x:1,y:0},{x:1,y:1},{x:0,y:1},{x:0,y:0}], 'left', {x:0,y:0}); out.tailEat = g.step();
+      // body collision
+      g = mk([{x:1,y:0},{x:1,y:1},{x:0,y:1},{x:0,y:0},{x:0,y:-0}].slice(0,4), 'down', {x:5,y:5}); out.body = g.step();
+      // food spawn: 100 random games never place on snake
+      let bad = 0; for (let i = 0; i < 300; i++) { const g2 = new SnakeGame({cols:8, rows:8, random: SnakeGame.makeRng(i)}); g2.snake = []; for (let k = 0; k < 40; k++) g2.snake.push({x:k%8, y:Math.floor(k/8)}); const f = g2.spawnFood(); if (!f || g2.occupies(f.x, f.y)) bad++; }
+      out.badFood = bad;
+      // fill-board win
+      g = new SnakeGame({cols:3, rows:1, startLength:2, random: () => 0}); out.winFood = g.food; out.winStep = g.step(); out.winWon = g.won;
+      return out; }""")
+    check("R5 tail-cell leaving is not a collision", r["tail"] == "move", r)
+    check("R4/R5 eating onto tail cell is a collision (tail does not leave)", r["tailEat"] == "self", r)
+    check("R5 body collision", r["body"] == "self", r)
+    check("R4 food never spawns on snake (300 trials)", r["badFood"] == 0, r)
+    p.close()
+    b.close()
+
+json.dump(results, open(out / "report.json", "w"), indent=1)
+print(sum(r["ok"] for r in results), "/", len(results))

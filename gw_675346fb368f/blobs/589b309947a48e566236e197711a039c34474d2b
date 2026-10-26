@@ -1,0 +1,41 @@
+# Playtest report — Pong, release `build-015fd09` (world/producer)
+
+Build played: producer release `build-015fd09` = game-developer 015fd093e2bc960aa6c7b81496d7795ef394fcd7 + artist assets e3bead3114349f338d97e4400c58f23ed17d2f4b.
+Gameplay sessions were run on the earlier `build-a7bc95f`; `src/game.js` is byte-identical in both zips and only `assets/img/logo.svg` differs (checked with `diff -rq`). The title/pause/resize checks below were run on `build-015fd09` itself.
+
+## How I played
+Headless Chromium 156 (Playwright), page opened from `index.html` (file://), 1024x768 viewport. **Keyboard input only** (ArrowUp/ArrowDown held down/up, Enter/Space/Esc/P/Q presses); the state hook `window.pong.getState()` was only *read* by my scripted players to decide where to move, as a stand-in for eyes. A bot is not a human, so "feel" statements below are inferences from what bots with human-like delays experienced, not a hands-on judgement. Scripts: `playtest/play.py` (profiles), `playtest/newbuild.py` (title/pause/resize on the new build). Evidence: `playtest/shots/` (screenshots, `*-log.json`).
+
+Profiles: **idle** (never presses), **casual** (steers toward the ball's *current* height, 200 ms reaction delay, 25 px dead zone, ±20 px noise — a sloppy player), **good** (anticipates where the ball will arrive, 100 ms delay, ±14 px noise — an attentive player).
+
+## What I saw (observed)
+| Check | Result |
+|---|---|
+| Title screen (R6) | Appears first: logo "PONG", "You vs the computer · first to 5 points wins", controls "W / S or ↑ / ↓", "P or Esc: pause   M: sound", blinking "Press Enter or Space to start". New logo renders fine (`shots/new-title-blink0.png`; the prompt blinks at 2 Hz, so a screenshot in the off phase, e.g. `new-title-1024x768.png`, lacks it — normal). An attract-mode rally with dimmed paddles runs behind the title. |
+| Start (R6) | Enter and Space both start a match at 0–0 (used alternately across matches). |
+| Score during play (R7) | "YOU n / CPU n" top centre, large, colour-matched to the paddles; updated at every point (`shots/*-score-*.png`). |
+| Keyboard control (R4) | Paddle moves while the key is held, stops on release, no visible lag in play; both arrows and W/S work. |
+| Rules (R1) | Ball bounces off walls and paddles, angle depends on where it hits the paddle, speeds up per hit; a ball passing a paddle scores for the other side. A ~1 s pause with the ball centred follows every point. Across all matches the ball was never stuck (no 2.5 s with zero velocity outside a serve) and never passed through a paddle. |
+| First to 5 (R5) | Every match ended exactly on 5 (scores 5–0, 1–5, 0–5, 2–5 …); never 6, never early. |
+| End screen (R8) | "YOU WIN!" (cyan) or "THE COMPUTER WINS" (pink), "Final score You 5 – 0 Computer" (`shots/good-over-1.png`, `idle-over-1.png`). |
+| Play again (R9) | Enter/Space on the end screen starts a new match at 0–0 (done between every match). Esc on the end screen returns to the title (done after the last casual match; see `casual-back-to-title.png` when present). |
+| Pause | P pauses (ball frozen — verified), "PAUSED / P / Esc to resume · Q to quit to title"; P resumes; Q quits to title (`shots/new-paused.png`). |
+| Window sizes | Canvas scales with the window and stays 4:3 at 1280x720 and 600x400; text still readable at 600x400 (`new-*-600x400.png`, `new-*-1280x720.png`). |
+| Errors | Zero console errors/warnings, page errors or failed requests in all sessions. |
+
+Results of the scripted players (more matches may be appended in `playtest/shots/*-log.json`; "hits" = total paddle hits in the match, not one rally):
+- idle: lost 0–5 in 24 s.
+- casual: lost 1–5 (50 s, 18 hits), 0–5 (37 s, 13 hits), 2–5 (58 s, 21 hits); 0–5 (62 s, 28 hits). Final casual log: 4 matches, 4 computer wins, Esc on the end screen → title confirmed, no errors (`shots/casual-log.json`).
+- good: won all 4 matches 5–0 (138 s, 145 s, 140 s, 81 s); no errors (`shots/good-log.json`).
+
+## How it plays (judgement, with the caveat above)
+- **Difficulty:** the computer is not trivial — a sloppy follower loses every match, and even a bot with a modest 2/5 of the points never won. An attentive anticipating player beat it 5–0 without the computer scoring once, so a skilled human will probably win clearly; the computer's only weakness is that it sometimes aims off-centre and misses on long rallies (first point of that match fell at 4 s, the others 11–40 s apart). The brief wants "the computer also wins points": it does against sloppy play, but against a good player it won no points in 4 of 4 matches. Not a defect; a note for tuning if the producer wants closer matches.
+- **Clarity:** title tells the controls and the goal; end screen names the winner and how to play again; score always visible. The serve pause is long enough to follow. First point of the first rally arrives within ~2–4 s of "Get ready!".
+- **Minor:** (1) on the title screen the attract-mode ball can sit over the subtitle text, and the "Press Enter or Space" prompt is absent half of every second — cosmetic. (2) The pause screen advertises Q but the end screen advertises Esc for title; different keys for the same "go to title" idea (cosmetic). (3) The window losing focus pauses a running match (intended, but a player who alt-tabs back sees PAUSED with no hint beyond the on-screen text).
+- Sound: could not be heard in headless mode; I only confirm `M` toggles the "sound on/off" label and that the audio files load with no errors.
+
+## Verdict
+**Playable and complete: R1–R9 all observed working on the delivered files, with no crash, stuck ball or console error.** I found no blocking defect. Open cosmetic and tuning notes are above.
+
+## Not covered
+Real hands-on play by a human, audio, browsers other than Chromium, touch/mouse (click on title/end screen starts a match per code; not tested by me), very long sessions.

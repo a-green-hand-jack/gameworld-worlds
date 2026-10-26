@@ -1,0 +1,131 @@
+// Snake rules: pure game state, no DOM. Loaded as a classic script so the
+// game also runs when index.html is opened straight from disk (file://).
+(function (global) {
+  'use strict';
+
+  var DIRS = {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+  var OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+  var MAX_QUEUED_TURNS = 3;
+
+  // Small deterministic PRNG (mulberry32) so a seed can reproduce a game.
+  function makeRng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function SnakeGame(opts) {
+    opts = opts || {};
+    this.cols = opts.cols || 20;
+    this.rows = opts.rows || 20;
+    this.startLength = opts.startLength || 3;
+    this.random = opts.random || Math.random;
+    this.reset();
+  }
+
+  SnakeGame.prototype.reset = function () {
+    var cy = Math.floor(this.rows / 2);
+    var cx = Math.floor(this.cols / 2);
+    this.snake = [];
+    for (var i = 0; i < this.startLength; i++) {
+      this.snake.push({ x: cx - i, y: cy }); // head first, extending left
+    }
+    this.direction = 'right';
+    this.turnQueue = [];
+    this.score = 0;
+    this.over = false;
+    this.won = false;
+    this.deathCause = null;
+    this.ateLastStep = false;
+    this.food = this.spawnFood();
+  };
+
+  SnakeGame.prototype.occupies = function (x, y) {
+    for (var i = 0; i < this.snake.length; i++) {
+      if (this.snake[i].x === x && this.snake[i].y === y) return true;
+    }
+    return false;
+  };
+
+  // Picks uniformly among free cells, so food never lands on the snake.
+  SnakeGame.prototype.spawnFood = function () {
+    var free = [];
+    for (var y = 0; y < this.rows; y++) {
+      for (var x = 0; x < this.cols; x++) {
+        if (!this.occupies(x, y)) free.push({ x: x, y: y });
+      }
+    }
+    if (free.length === 0) return null;
+    return free[Math.floor(this.random() * free.length)];
+  };
+
+  // Queues a turn; a turn straight back into the snake's neck, or a repeat
+  // of the current heading, is ignored. Returns whether it was accepted.
+  SnakeGame.prototype.turn = function (dir) {
+    if (!DIRS[dir] || this.over) return false;
+    var last = this.turnQueue.length
+      ? this.turnQueue[this.turnQueue.length - 1]
+      : this.direction;
+    if (dir === last || dir === OPPOSITE[last]) return false;
+    if (this.turnQueue.length >= MAX_QUEUED_TURNS) return false;
+    this.turnQueue.push(dir);
+    return true;
+  };
+
+  // Advances one grid cell. Returns 'move', 'eat', 'wall', 'self' or 'win'.
+  SnakeGame.prototype.step = function () {
+    if (this.over) return null;
+    if (this.turnQueue.length) this.direction = this.turnQueue.shift();
+    var d = DIRS[this.direction];
+    var head = this.snake[0];
+    var next = { x: head.x + d.x, y: head.y + d.y };
+    this.ateLastStep = false;
+
+    if (next.x < 0 || next.y < 0 || next.x >= this.cols || next.y >= this.rows) {
+      return this.end('wall');
+    }
+    var eating = this.food && next.x === this.food.x && next.y === this.food.y;
+    // The tail cell is vacated this step unless the snake grows.
+    var bodyLen = eating ? this.snake.length : this.snake.length - 1;
+    for (var i = 0; i < bodyLen; i++) {
+      if (this.snake[i].x === next.x && this.snake[i].y === next.y) {
+        return this.end('self');
+      }
+    }
+
+    this.snake.unshift(next);
+    if (eating) {
+      this.score += 1;
+      this.ateLastStep = true;
+      this.food = this.spawnFood();
+      if (!this.food) {
+        this.won = true;
+        this.end('win');
+        return 'win';
+      }
+      return 'eat';
+    }
+    this.snake.pop();
+    return 'move';
+  };
+
+  SnakeGame.prototype.end = function (cause) {
+    this.over = true;
+    this.deathCause = cause;
+    return cause;
+  };
+
+  global.SnakeGame = SnakeGame;
+  global.SnakeGame.DIRS = DIRS;
+  global.SnakeGame.makeRng = makeRng;
+})(typeof window !== 'undefined' ? window : globalThis);

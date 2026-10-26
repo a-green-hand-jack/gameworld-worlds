@@ -1,0 +1,48 @@
+# QA check plan, round 1 (against producer `brief.md`)
+
+Each candidate gets a report `qa/reports/<build>.md`: every ID below as PASS / FAIL / BLOCKED / NOT-BUILT, with the method (A = automated headless Chromium via `qa/smoke.py` or ad-hoc Playwright scripts with key input + screenshots; M = manual frame-by-frame inspection of screenshots/state). Defects go as issues to the owner (`game-developer` behaviour/code, `artist` assets), with build tag, steps, expected vs actual, evidence.
+
+## G. General (brief "Standard")
+- G1 Opens from static `index.html` (file:// and static server), no console errors, no network requests off-origin (runs offline).
+- G2 Canvas is 256x240 logical, integer-scaled, pixel-crisp (no smoothing), 16x16 tiles.
+- G3 Logic at 60 fps, speed independent of display refresh; no softlocks, no falling through floors, no stuck in walls.
+- G4 Controls: arrows, Down crouch/pipe, Z/J = B, X/K/Space = A, Enter start/pause; documented on title or README; no stuck keys after blur.
+- G5 Assets original recreations (no ripped ROM/Nintendo audio): check asset provenance notes.
+## P1. World 1-1
+- L1 Layout vs original: ground gaps, ?/brick placement, pipes (heights 2,3,4,4), stairs, flagpole, castle; level length ~212 tiles.
+- L2 Hidden 1-up block, multi-coin brick, Starman brick, enterable pipe to underground coin room and exit pipe back.
+- M1 Walk/run with acceleration and skid; M2 variable jump height (hold time, run speed); M3 air control; M4 camera scrolls forward only, left screen edge blocks Mario.
+- E1 Goomba walks, turns at walls, stomp flatten +100, bounce; E2 Koopa: stomp -> shell, kick, shell kills enemies and hurts Mario; E3 enemies fall into pits; E4 touch hurts Mario; E5 enemies activate on approach.
+- P1 Super Mushroom (small->big, appears from first ?, moves, falls); P2 big breaks bricks, small bumps; P3 Fire Flower + fireballs bounce and kill; P4 Starman invincibility; P5 1-up mushroom; P6 damage: big->small with invulnerability blink, small dies.
+- C1 Coins from blocks and floating coins, +score; C2 100 coins = 1-up.
+- H1 HUD: MARIO score, coins, WORLD 1-1, TIME 400 countdown; H2 time-out kills; H3 hurry-up at 100.
+- D1 Lives start 3; D2 death animation, respawn; D3 pit death; D4 game over screen -> title/restart; D5 title screen with start.
+- F1 Flagpole: height-based score, slide, walk to castle, time converted to score, course clear; F2 completable start-to-flag by script.
+- S1 SFX: jump, coin, stomp, bump, break, power-up appear/get, 1-up, pipe, fireball, death, flagpole, course clear, game over; S2 music overworld, underground, hurry-up; S3 audio starts after first input (autoplay policy), no errors.
+## P2. Rest of World 1 (only if built)
+- 1-2 underground + warp zone, Piranha Plants; 1-3 treetops + lifts; 1-4 firebars, lava, Bowser, axe, Toad; transitions between levels.
+## Edge cases to hit on every build
+Pause during death/flag; hold both directions; jump at ceiling gap; stomp two enemies in a row (combo score); shell kicked into Mario; pipe entry with partial overlap; resize window; tab blur/focus; restart after game over without reload.
+
+## Round 2 (objective qa#5): add World 2 of SMB1 on top of the round 1 game
+Judged against the objective ("add Super Mario Bros. 1 World 2 to the previous round's game") and the producer's round 2 brief once published. Every round 1 suite (G, P1, P2 above, `qa/check_build.py`, `qa/check_p2.py`, `qa/lift_trials.py`) is rerun on each build as a regression gate; World 2 adds:
+- W2-0 Progression: clearing 1-4 (axe, Toad) goes to a WORLD 2-1 intro card, HUD shows WORLD 2-1; score, coins, lives and power state carry over; 2-1 -> 2-2 -> 2-3 -> 2-4 follow in order; `#2-1`..`#2-4` (or the documented equivalent) start each level directly; clearing 2-4 leads somewhere sane (3-1 card or documented end/title) with no softlock; game over in World 2 -> title and restart works; all four levels have TIME 400 and hurry-up.
+- W2-1 (overworld, day): layout start to flagpole and castle; Goombas, Koopa Troopas, green Koopa Paratroopas (hopping/flying), Piranha Plants in pipes (not rising when Mario stands next to the pipe), ? blocks/bricks give the right items, hidden blocks/1-up if built, pipes, stairs; theme overworld music.
+- W2-2 (underwater): swim physics (A = stroke, slow sink, float up, no ground-run momentum while in water, ground portions at start/end walk normally), Bloopers, Cheep-cheeps (swimming), seaweed/coral scenery, fire flower works underwater, stomp rules per original (Mario is hurt by touch, fireballs kill), swimming sound, underwater music, exit via horizontal pipe at the end (Right into pipe), flag or pipe end handled; never stuck in walls, cannot leave the water upward out of the level, drowning does not exist (only pits/time/enemies kill).
+- W2-3 (bridge/treetop over water): jumping Cheep-cheeps arcing out of the water, Koopa Paratroopas, moving platforms if present, gaps, flagpole, castle; Cheep-cheeps do not respawn endlessly into softlock and do not hit through floors.
+- W2-4 (castle): rotating firebars (both directions, lengths), Podoboos jumping from lava, lava pits kill, lava/bridge, fake Bowser (World 2: a Koopa Troopa carrying Bowser's fire/hammer? per original: Koopa Troopa form breathing fire) on the bridge, axe cuts the bridge and drops it, Toad with the "our princess is in another castle" message, castle music, castle walls/ceiling tiles, no stuck on firebar blocks.
+- W2-A Assets: World 2 tiles/sprites (underwater tileset, Blooper, Cheep-cheep red/green, Podoboo, Paratroopa, castle in 2-x, fake-Bowser sprite) match the existing art palette; no placeholder boxes; console missing-asset list empty; underwater and any new music/SFX exist, loop and do not clip; all new assets original.
+- W2-R Regression: World 1 untouched (1-1 83/83, P2 43/43, lift trials), no new console errors/failed requests, file:// still works, release zip self-contained.
+
+### Round 2 amendments after the producer's round 2 brief (c117a6b)
+Brief overrides the W2-* wording above where they differ (2-4 fake Bowser is revealed as a Koopa Troopa when killed by fire; 2-2 has a pipe intro scene and an exit pipe to a short overworld section with stairs and flagpole; 2-4 has lifts; after 2-4 Toad the game shows a clear / "not in this version" screen then the title). Added checks:
+- W2-P0 World 1 regression every build: `check_build.py` (1-1 83), `check_p2.py` (43), `lift_trials.py`, `smoke.py`, bot clear of 1-1; the 1-4 Toad now continues to 2-1 instead of ending.
+- W2-V 2-1 vine: hidden block sprouts a vine, Up climbs, reaches coin heaven (cloud platform, coins, collectable count/score), drop back to the level at the right place, no softlock at vine top or in heaven, music/timer behaviour; vine sprout SFX.
+- W2-S Springboard: compresses, normal vs boosted (A at the right moment) bounce heights, rider not clipped into ceiling/floor, enemies unaffected, never stuck.
+- W2-Para Green Paratroopa: bounces, stomp removes wings then behaves as Koopa; Piranha Plants.
+- W2-U 2-2 water: intro pipe scene, stroke/sink/drag numbers (A strokes up, slow sink, can't stomp, fireballs work), swim frames for small/big/fire, ceiling surface limit, Blooper pulse chase, red and grey/green Cheep Cheeps, exit pipe -> overworld section -> stairs -> flag; underwater music.
+- W2-B 2-3 flying Cheep Cheeps throughout, bridge gaps.
+- W2-C 2-4 firebars, Podoboos, lifts, fake Bowser/fire/axe/bridge collapse/Toad text.
+- W2-Map Layout against the original World 2 maps (object/enemy list per level compared with the original map tables: blocks, hidden blocks, pipes, enemies, lifts, firebars); mismatches reported with tile coordinates.
+- W2-N Progression: 1-4 Toad -> 2-1 (score, coins, lives, power carried); 1-2 warp pipe "2" -> 2-1; pipes 3/4 show the "not in this version" screen; HUD WORLD 2-x; `#level=2-1..2-4` (and `#level=` format in README); game over in World 2 -> title; 2-4 end -> screen -> title.
+- W2-A Asset manifest (docs/assets.md of game-developer): every listed World 2 file exists, has the stated size/frames, console missing-asset list empty, audio decodes non-silent; no ripped content.

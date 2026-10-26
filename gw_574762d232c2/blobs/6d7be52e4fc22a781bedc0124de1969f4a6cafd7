@@ -1,0 +1,12 @@
+initial_not_started True
+space_starts_and_jumps True
+lands True
+collision_ends_game True
+score_after_death 23
+best_after_death 23
+best_updated True
+restart_works True
+best_kept_after_restart True
+sim {'survived_s': 300.0000000000558, 'died': False, 'score': 5051, 'speed': 700}
+errors []
+external_requests []

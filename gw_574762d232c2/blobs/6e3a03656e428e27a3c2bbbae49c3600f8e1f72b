@@ -1,0 +1,9 @@
+# 方块跳跃 Cube Jump
+
+Open `index.html` (or unzip `cube-jump.zip` from the release; `index.html` is at the zip root) in Chrome/Firefox. No server or network needed.
+
+- Space: start / jump (also click/tap on the canvas). After Game Over, Space restarts.
+- Score (分数) and high score (最高分) are shown top-right; high score persists in localStorage when available, otherwise in-session.
+
+## Own checks
+`python3 tests/check.py index.html` (playwright + chromium, loads over file://). Results on the release zip content: `tests/results.txt` — Space starts and jumps, collision ends game, score/best updated, restart works, best kept, a simple timing bot survives 300 s at max speed (fairness), no console errors, no external requests.

@@ -1,0 +1,111 @@
+# Rules and physics values
+
+All values are in `src/consts.js` (`PHYS`, `RULES`, `HALFWAY`); the movement
+code is `src/player.js` (Mario) and the scroll rule `Game.updateCamera` in
+`src/game.js`. 60 frames per second.
+
+## Sources
+
+- The public annotated disassembly of the NES game's logic (doppelganger's
+  "SMBDIS", as kept in the threecreepio/smb-disassembly repository,
+  `src/smb.asm`). Mario's movement is reproduced from its routines as
+  integer arithmetic, not as a fitted curve: `PlayerCtrlRoutine`,
+  `PlayerMovementSubs`, `ProcJumping`, `X_Physics`, `GetPlayerAnimSpeed`,
+  `ImposeFriction`, `MoveObjectHorizontally`, `JumpSwimSub`, `ImposeGravity`,
+  `PlayerBGCollision`, `ScrollHandler`, the stomp code (`EnemyStomped`, `SBnce`)
+  and the tables `JumpMForceData`, `FallMForceData`, `PlayerYSpdData`,
+  `MaxRightXSpdData`, `FrictionData`, `FlagpoleScoreMods`/`FlagpoleYPosData`.
+  Timers, scoring tables, star/invulnerability timers and the fireball limit
+  come from the same source.
+- Super Mario Wiki pages on Super Mario Bros. scoring and items.
+
+No code or data of the game itself is used: the numbers are re-entered by hand.
+
+## Mario's movement
+
+Horizontal speed is a signed byte in 1/16 px per frame. Friction (the
+acceleration and deceleration adder) is added to a sub-pixel byte that also
+carries the position's fraction; its carry changes the speed by one.
+
+| value | NES | px/frame |
+|---|---|---|
+| max running speed (B held, or 10 frames after releasing B) | 0x28 | 2.5 |
+| max walking speed; in the air below 0x19 | 0x18 | 1.5 |
+| max speed on the ground under water | 0x10 | 1.0 |
+| walking into a level by himself | 0x0c | 0.75 |
+| friction running | 0xe4 | 0.056 /frame² |
+| friction walking | 0x98 | 0.037 /frame² |
+| friction after a fast run (speed ≥ 0x1c on the ground or ≥ 0x21) | 0xd0 | 0.051 /frame² |
+| friction while facing against the motion | ×2 | |
+| skid turnaround below | 0x0b | 0.69 |
+| max fall speed | 4 px | 4 |
+
+- On the ground with nothing pressed Mario slows by the friction; in the air
+  speed only changes while left or right is pressed, and his facing does not
+  change (except swimming).
+- Down with left or right on the ground counts as neither.
+- Speed above the current maximum snaps down to it.
+
+Jump take-off by horizontal speed (vertical speed in px/frame, forces in
+1/256 px/frame²):
+
+| speed | tier | vy | force while A held and rising | force otherwise |
+|---|---|---|---|---|
+| below 0x09 | 0 | −4 | 0x20 | 0x70 |
+| below 0x10 | 1 | −4 | 0x20 | 0x70 |
+| below 0x19 | 2 | −4 | 0x1e | 0x60 |
+| below 0x1c | 3 | −5 | 0x28 | 0x90 |
+| faster | 4 | −5 | 0x28 | 0x90 |
+| swim stroke | 5 | −2 (+0x80) | 0x0d | 0x0a |
+| stroke in a whirlpool | 6 | −1 | 0x04 | 0x09 |
+
+- Once A is released or Mario starts falling the "otherwise" force stays
+  until the next jump; walking off a ledge also falls with it. Before the
+  first jump of an area it is 0x28.
+- Head bump: vertical speed becomes 1. Landing: speed and force reset.
+- Stomp bounce −4 px/frame (−3 for Hammer Bro, Lakitu, Bloober, Cheep and
+  Bullet Bill); holding A does not change it. Death jump −4 with force 0x28.
+- Swim strokes are cut off at the surface (Mario's top above y 36, NES y 0x14).
+- Measured in the build (tools/check11.mjs): standing full jump 66 px,
+  running full jump 83 px, a 2-frame tap 26 px.
+
+## Scrolling
+
+The screen scrolls only by Mario's rightward movement this frame (lifts
+included): not at all while he is left of 80 px on the screen, one pixel
+less than he moved (if he moved 2 or more) between 80 and 111, and all of it
+from 112. It never scrolls back.
+
+## Rules
+
+- 3 lives at start; 100 coins = 1UP; coin 200 points.
+- Timer: one unit per 24 frames; hurry music at 100; time up = death.
+- Stomp chain (without landing): 100, 200, 400, 500, 800, 1000, 2000, 4000,
+  5000, 8000, then 1UP. Kicked-shell chain: 500, 800, 1000, 2000, 4000, 5000,
+  8000, then 1UP. Kicking a shell 400.
+- Fireball scores: Goomba 100, Koopa / Beetle / Piranha / Spiny / Blooper /
+  Cheep / Bullet / Lakitu 200, Hammer Bro 1000, Bowser 5000.
+- Brick broken 50; power-up collected 1000.
+- A brick with coins gives a coin on every hit until 231 frames (11 ticks of
+  the interval timer) after its first hit; the hit after that gives the last
+  coin and leaves a used block (`BrickWithCoins`, `BrickCoinTimer`).
+- Hidden 1-UP blocks (1-1 col 64 and the x-1 levels) are there only while the
+  game's 1-UP flag is set: at the start of a game, after a warp zone, or after
+  collecting at least 21, 35, 22, 27, 23, 24, 35, 99 coins (worlds 1–8) in
+  one go through x-3. The flag is used up when the block comes into view, so
+  after a death the block is not there again (`Hidden1UpFlag`,
+  `Hidden1UpCoinAmts`).
+- Flagpole by the height of Mario's top when he grabs (NES y): above 34 5000,
+  from 34 2000, from 80 800, from 104 400, from 144 100 (in this game's
+  coordinates, 16 more: 50, 96, 120, 160).
+- Time tally: 50 points per remaining unit.
+- Fireworks if the timer's last digit is 1, 3 or 6 when the flag is reached:
+  that many shells, 500 points each.
+- Star 735 frames (35 ticks of the 21-frame interval timer), the area music
+  returns with 84 frames left and the palette flashes slower in the last 168;
+  invulnerability after damage 168 frames (8 ticks); at most 2 fireballs on
+  screen.
+- Halfway points (page of 256 px after which a death restarts there): 1-1 p5,
+  1-2 p6, 1-3 p4, 2-1 p6, 2-2 p5, 2-3 p7, 3-1 p6, 3-2 p6, 3-3 p4, 4-1 p6,
+  4-2 p6, 4-3 p4, 5-1 p6, 5-2 p6, 5-3 p6, 6-1 p6, 6-2 p5, 6-3 p7; castles
+  and x-4 levels have none.

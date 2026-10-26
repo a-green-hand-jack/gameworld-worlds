@@ -1,0 +1,23 @@
+# QA report — Snake build 1
+
+Build tested: assembled delivery (`ht-role delivery`) = game-developer `6a0a8539da44` (includes the build-1 commit `cb21dad854d2` plus "joined elbows / all assets required" follow-up) + artist `bcf60b1e443a`. Headless Chromium (Playwright 1.64) over a static HTTP server, plus one `file://` run. Script: `tests/qa_check.py DELIVERY_DIR OUT_DIR`; raw results in `evidence/build-1/results.json`, screenshots in `evidence/build-1/`.
+
+Result: 72/75 checks pass; all 3 failures are one defect (viewport fit, see below). Pass on R2–R10 as played; R1 passes except for small viewports.
+
+| Req | Verdict | Evidence |
+|---|---|---|
+| R1 browser game, no errors, offline | PASS with defect D1 | no console errors/warnings, no >=400 responses, no external requests, all 5 images/3 sounds/logo/font load; also opens and starts from `file://`. **D1**: does not fit viewports shorter than ~675 px (see below) |
+| R2 grid movement | PASS | 20x20 grid of 32 px cells; continuous, steady real-time advance (~8 cells/s); pause (P) and resume work |
+| R3 arrow-key turning | PASS | Up/Down/Left/Right each turn on next step; immediate 180° ignored; Up,Down within one step no self-kill; Up,Left within one step both applied in order (also in real time); 3 quick presses Up,Left,Down on a 3-long snake survive; arrows/Space do not scroll the page (500x300 viewport) |
+| R4 food +1 length +1 score | PASS | exactly +1/+1 per food (single and 5 consecutive); HUD matches; new food never on the snake nor off board in a 150-game autopilot run (4414 foods eaten) |
+| R5 wall ends game | PASS | all four walls (right/up/down/left) end the game, head stays on board (no wrap), game-over screen shown |
+| R6 self collision ends game | PASS | U-loop into body at length 6 (manual and real time); grown-by-eating snake loop; head into mid-body; entering the tail's cell while eating = death; entering the cell the tail is vacating without eating = allowed (standard Snake; brief says "body cell" — noted, not a defect) |
+| R7 title screen | PASS | shown on load, names SNAKE, says arrows steer + Start button/Enter/Space; arrows/other keys do not start; Enter, Space and button each start; Enter,Enter,Space or Enter/Space during play do not restart/double-start |
+| R8 score during play | PASS | HUD visible while playing, 0 at start, updates per food (1, 3 ...) ; hidden on title |
+| R9 game-over with final score | PASS | "Game Over" + "Final score N" equal to the run's score after wall and self deaths (N=0 and 3) |
+| R10 play again | PASS | button, Enter and Space restart without reload: score 0 (game and HUD), length 3, dir right, empty turn queue, new food off snake, game-over screen hidden; no stale queued turns; 5 consecutive runs correct; arrows on game-over do not restart |
+
+## Defect D1 (owner: game-developer) — game is cropped in browser viewports shorter than ~675 px
+`#game` is 640 px wide with a fixed-aspect board plus HUD (~674 px total) and `body` is a centered flex box with `height:100%`, so in a shorter viewport the content overflows both ends; the top overflow is unreachable by scrolling. Measured (`results.json`, `07-*` screenshots): 1366x650 viewport → HUD top at -12 px (Score row half cut) and board bottom cut at 662 px; 1024x600 / 800x600 → top at -37 px (Score/Best hidden entirely) and bottom at 637 px. Typical laptops (1366x768 screen) have ~650 px of viewport height, so the score (R8) and the bottom row of the board (R2) are cut there. Fits at 1366x768, 1280x720, 1440x700.
+
+Not defects / notes: pause on window blur and P pause are extras and work; best score persists in localStorage.

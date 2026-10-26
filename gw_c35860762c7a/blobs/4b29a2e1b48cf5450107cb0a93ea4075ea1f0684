@@ -1,0 +1,100 @@
+// Boots the game: loads the artist's assets, runs the fixed 60 Hz loop and
+// exposes the test hooks (README.md: window.smb, ?level=, ?debug=1).
+import { Assets } from './assets.js';
+import { Audio } from './audio.js';
+import { Font } from './text.js';
+import { Input } from './input.js';
+import { Game } from './game.js';
+import { LEVELS } from './levels/index.js';
+
+const STEP = 1000 / 60;
+
+async function boot() {
+  const canvas = document.getElementById('screen');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const params = new URLSearchParams(location.search);
+  const debug = params.has('debug') && params.get('debug') !== '0';
+
+  const assets = new Assets();
+  await assets.load();
+  const audio = new Audio(assets);
+  const font = new Font(assets);
+  const input = new Input();
+  input.onFirstGesture = () => audio.unlock();
+  input.attach(window);
+  if (params.has('mute')) audio.muted = true;
+
+  const game = new Game({ ctx, assets, audio, font, input });
+
+  // ?level=W-L starts that level (from its intermission); &area=N enters location N
+  const lv = params.get('level');
+  if (lv && LEVELS[lv]) {
+    game.resetSession();
+    game.toIntermission(lv);
+    const loc = Number(params.get('area'));
+    if (loc) {
+      game.beginLevel();
+      game.enterLocation(loc);
+    }
+  }
+
+  // scale the 256x240 screen by whole pixels to fit the window
+  const fit = () => {
+    const s = Math.max(1, Math.floor(Math.min(window.innerWidth / 256, window.innerHeight / 240)));
+    canvas.style.width = 256 * s + 'px';
+    canvas.style.height = 240 * s + 'px';
+  };
+  window.addEventListener('resize', fit);
+  fit();
+
+  const overlay = document.getElementById('debug');
+  const drawDebug = () => {
+    if (!debug) return;
+    const s = game.snapshot();
+    const p = s.player || {};
+    overlay.hidden = false;
+    overlay.textContent = [
+      `state ${s.state}${s.seq ? ' / ' + s.seq : ''}  level ${s.level} area ${s.area}  frame ${s.frame}`,
+      `mario x ${p.x?.toFixed(2)} y ${p.y?.toFixed(2)} vx ${p.vx?.toFixed(3)} vy ${p.vy?.toFixed(3)} ${p.form} ${p.onGround ? 'ground' : 'air'}  cam ${s.camX}`,
+      `missing assets (${assets.missing.size}):`,
+      ...[...assets.missing].map((m) => '  ' + m),
+    ].join('\n');
+  };
+
+  // fixed-step loop: logic runs at 60 Hz whatever the display refresh rate
+  let manual = false;
+  let last = performance.now();
+  let acc = 0;
+  const frame = (now) => {
+    if (!manual) {
+      acc += Math.min(250, now - last);
+      last = now;
+      let n = 0;
+      while (acc >= STEP && n < 8) { game.step(); acc -= STEP; n++; }
+      if (n) { game.draw(); if (game.frame % 15 < n) drawDebug(); }
+    }
+    requestAnimationFrame(frame);
+  };
+  game.draw();
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+
+  window.smb = {
+    game,
+    version: document.querySelector('meta[name="build"]')?.content || 'dev',
+    state: () => game.snapshot(),
+    // input.set({right: true, b: true}) holds buttons until changed; input.clear() releases all
+    input: { set: (b) => input.set(b), clear: () => input.clearInjected() },
+    // manual(true) stops real-time stepping so a test can step(n) frames exactly
+    manual: (on = true) => { manual = on; last = performance.now(); acc = 0; },
+    step: (n = 1) => { for (let i = 0; i < n; i++) game.step(); game.draw(); drawDebug(); return game.snapshot(); },
+    start: (level = '1-1', loc = 0) => { game.resetSession(); game.toIntermission(level); game.beginLevel(); if (loc) game.enterLocation(loc); return game.snapshot(); },
+    missing: () => [...assets.missing],
+    unlockAudio: () => audio.unlock(),
+  };
+  document.body.dataset.ready = '1';
+}
+
+boot().catch((e) => {
+  console.error(e);
+  document.body.dataset.ready = 'error';
+});

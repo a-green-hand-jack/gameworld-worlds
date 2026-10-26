@@ -1,0 +1,23 @@
+# Playtest report — build `playtest-4` (release candidate)
+
+**Build played:** release `playtest-4` in world/producer, `snake-playtest-4.zip` (game-developer f84f9d3 + artist 766d875), served from `snake-pt4/` on port 8004. Diff against playtest-3: only the 500 ms Game Over hold (`OVER_GUARD_MS`, disabled Play again button) plus README/test text — I diffed the two unzipped trees to confirm.
+**How played:** headless Chromium (Playwright 1.64), real keyboard/mouse events in real time. Scripts: `scripts/g4.py`, `scripts/bot4.py`; evidence in `evidence/pt4/` (screenshots, `guard.log`, `run2.log`, `guard-run.webm`, `bot-run.webm`). Report for playtest-3 (`report-playtest-3.md`) stays valid for everything the diff did not touch.
+
+## Verdict
+**The Game Over hold works as intended; nothing else changed; no console errors or failed requests.**
+
+## The one change: Game Over hold
+Test: start a run, then mash Enter (or Space, or click the button) every ~30 ms through the moment of death.
+| Input while dying | Result |
+|---|---|
+| Enter mashed | Game Over screen stayed up; restart happened 0.56 s after death |
+| Space mashed | stayed up; restart 0.58 s after death |
+| Mouse click on button, repeated | stayed up; restart 0.54 s after death |
+- At +0.2 s after death the screen was showing "Game Over / Final score / Play again" with the button greyed out (disabled, `02-gameover-held-*.png`), so the player can see the score and that the button is not yet live. (Measured times include my ~30 ms polling, so the hold is the specified ~0.5 s.)
+- After waiting 700 ms: button enabled and focused; one Space press starts a **fresh** game (score 0, length 3, HUD 0, `04-fresh-play.png`).
+- With a real score: bot run died at score 15; Game Over showed "Final score: 15 / New best score!"; next run started at score 0, length 3 (`run2.log`, `07-gameover-run1-wall.png`).
+- Full cycle title → play → game over → play again done in each run above; wall death observed; self-collision unchanged from playtest-3 (not re-triggered in this round).
+- Console errors / warnings / failed or 4xx requests across all runs: **none**. Sounds: `start.ogg`, `music.ogg`, `gameover.ogg` fire as before on each cycle.
+
+## Remaining minor items (unchanged from playtest-3)
+Corner segments show a small seam; 3rd key within one tick dropped; sound not verified by ear (audio resource rate-limited; files checked numerically only).

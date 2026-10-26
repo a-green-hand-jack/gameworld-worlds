@@ -1,0 +1,12 @@
+# Meteor Dodge 陨石躲避
+
+Single-screen browser game. **Open `index.html` in a browser** (double-click; no server or build).
+
+- Arrow keys (or WASD): move the ship. Enter/Space: start / restart.
+- Dodge falling meteors; score = survival time x10; difficulty ramps over ~60 s.
+- Best score is stored in `localStorage` (key `meteorDodge.highScore`) and shown on screen.
+- Art: loads optional `assets/ship.svg`, `assets/meteor-1.svg`..`meteor-3.svg`, `assets/background.svg` (artist-owned, relative <img> URLs, work on file://); canvas-drawn fallbacks are used for any that fail to load. Canvas is 800x600, scaled to fit the window. P pauses.
+
+## Checks
+`python3 tests/smoke.py` (playwright + chromium, file:// load): title -> start -> ship moves -> forced collision ends game -> high score persists across reload. Last run: OK on the assembled delivery (game-developer e2e4149 + artist 0ba1b5a), release `v0.3`; also loaded with all five SVGs and no console errors.
+Text: Chinese+English labels are shown when the system has a CJK font (detected at runtime); otherwise English-only labels, so no missing-glyph boxes. Verified both ways in headless Chromium (with and without Noto Sans SC installed).

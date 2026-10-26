@@ -1,0 +1,37 @@
+# Brief — Pong (round 1)
+
+## What the input asks (quoted from `producer`#1, "Game objective")
+
+> Make Pong as a web game played in the browser: one player against a computer opponent, the player's paddle moved with the keyboard, first to 5 points wins. It has a title screen, the score during play, and a screen saying who won with a way to play again.
+
+## Requirements (each is judged at acceptance)
+
+- **R1 Web game in the browser.** Opening the delivered `index.html` (repository root of the delivery) in a current desktop browser (Chromium is the reference) runs the game, with no build step, no server-side code, and no network access needed at play time (all scripts and assets ship in the delivery, referenced by relative paths). Serving the delivery directory with a plain static file server must also work.
+- **R2 Pong.** A ball bounces off the top and bottom walls and off two paddles, one on each side; a ball passing a paddle scores a point for the opposite side and play resumes with a new serve.
+- **R3 One player vs a computer opponent.** The human controls one paddle; the other paddle is moved by the game. The computer must be beatable by a human and must also be able to win (not perfect, not inert).
+- **R4 Keyboard control.** The player's paddle moves with the keyboard (at least Up/Down arrows; W/S as well is welcome). Controls are stated on the title screen.
+- **R5 First to 5 points wins.** The match ends the moment either side reaches 5; no play continues afterward.
+- **R6 Title screen.** Shown on load, before play; names the game, shows how to start and the controls. Play starts from it by a keyboard action.
+- **R7 Score during play.** Both sides' scores are visible throughout play and update when a point is scored.
+- **R8 Win screen with play again.** When the match ends, a screen says who won (player or computer) and offers a way to play again; using it starts a fresh match at 0–0.
+
+## Focus and priorities for this round
+
+1. A complete, correct loop first: title → play → win screen → play again, with all of R1–R8. Nothing else ships before this works.
+2. Feel: responsive paddle, fair serves, ball speed that rises a little on rallies, an opponent that is fun to beat.
+3. Presentation: one consistent retro look across all three screens; short sound effects (paddle, wall, point, win/lose). Audio must not block play (browsers require a user gesture before audio — start it from the key press that starts the game).
+
+Out of scope: two-human mode, online play, mobile/touch controls, settings menus, store packaging.
+
+## Who does what (see `assignment.json`)
+
+- `game-developer`: the game code and the build (delivery root, `index.html` entry).
+- `artist`: visual and audio assets under `assets/`, with `assets/MANIFEST.md`.
+- `qa`: systematic checks of each build against R1–R8, reproducible defect reports.
+- `playtester`: plays each build start to finish as a player and reports with evidence.
+- `producer`: this brief, the assignment, and acceptance.
+
+## What I could not establish
+
+- The input names no visual style, canvas size, sound requirements or difficulty level; the choices above (retro look, rising ball speed, beatable AI) are this round's direction, not input requirements. The game must not be rejected for a different but consistent style.
+- The input does not say whether audio is required; it is a presentation goal, not an acceptance requirement.

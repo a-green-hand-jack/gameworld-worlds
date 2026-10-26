@@ -1,0 +1,14 @@
+title 跳方块 ready state {'state': 'ready', 'score': 0, 'best': 0, 'speed': 330, 'y': 200, 'n': 0}
+after first Space {'state': 'play', 'score': 1, 'best': 0, 'speed': 331, 'y': 125.365384, 'n': 1}
+idle game over {'state': 'over', 'score': 20, 'best': 20, 'speed': 346, 'y': 200, 'n': 2}
+restart {'state': 'play', 'score': 0, 'best': 20, 'speed': 331, 'y': 200, 'n': 1}
+after reload (best before=20) {'state': 'ready', 'score': 0, 'best': 20, 'speed': 330, 'y': 200, 'n': 0}
+bot lead=0.2 survived True jumps 49 secs 50.0 {'state': 'play', 'score': 499, 'best': 20, 'speed': 560, 'y': 117.25352800000003, 'n': 1}
+jitter 0.08 runs (survived,jumps,secs,score) [(True, 36, 40.0, 901), (True, 35, 40.0, 1302), (True, 41, 40.0, 1704), (True, 35, 40.0, 2105), (True, 37, 40.0, 2506), (True, 37, 40.0, 2907)]
+lead 0.08 survived True jumps 26 secs 25.0 {'state': 'play', 'score': 3158, 'best': 20, 'speed': 560, 'y': 153.3121919999925, 'n': 1}
+lead 0.12 survived True jumps 25 secs 25.0 {'state': 'play', 'score': 3409, 'best': 20, 'speed': 560, 'y': 200, 'n': 1}
+lead 0.3 survived True jumps 29 secs 25.0 {'state': 'play', 'score': 3660, 'best': 20, 'speed': 560, 'y': 200, 'n': 1}
+lead 0.4 survived True jumps 29 secs 25.0 {'state': 'play', 'score': 3911, 'best': 20, 'speed': 560, 'y': 83.32003999999529, 'n': 1}
+final over {'state': 'over', 'score': 3928, 'best': 3928, 'speed': 560, 'y': 200, 'n': 1}
+restart2 {'state': 'play', 'score': 3, 'best': 3928, 'speed': 332, 'y': 200, 'n': 1}
+console/page errors []

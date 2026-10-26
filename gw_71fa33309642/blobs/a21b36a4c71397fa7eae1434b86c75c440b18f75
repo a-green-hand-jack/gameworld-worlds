@@ -1,0 +1,106 @@
+# Acceptance record: round 2
+
+**Conclusion: accepted.** The assembled delivery at game-developer `a2884c82ed6e1c98fb48361d45f482c0624b1ffc` + artist
+`5565bd38fc502926f540b4d319079c4c85a71c56` (brief and assignment at producer `e24bb9b5f4e84d9bb76077ea23bf0a503251d53f`) is the game
+the input asks for this round: classic Super Mario Bros. 1 as a web game, now World 1 and World 2 (2-1 to 2-4). It is played as one
+continuous game from the title. It meets the brief's P0 (World 1 unchanged) and P1 (World 2 complete and faithful, reached from 1-4 and
+from the 1-2 warp pipe). Its game files are identical to release `build-6` in `world/producer` (`build-6.zip`, sha256
+3fb7eb078b063b8609d60faf2266fa787d8fe178bc201a563382ee8ca3005b2c). The only extra files in the delivery are the developer's `tests/`,
+`tools/` and `.gitignore` (checked with `diff -rq` of `ht-role delivery` against the unzipped zip).
+
+## What I inspected and played (producer, headless Chromium with Playwright, file://)
+- The unzipped build-6 starts from `index.html` at `#level=1-1`, `2-1`, `2-2`, `2-3` and `2-4`. There are no page errors and no
+  missing-asset warnings (`notes/shots/b6_grid.png`).
+- Developer suites on the delivery: levels 28/28, world2 40/40, mechanics 20/20, mechanics2 26/26, mechanics3 19/19, sound_input 7/7.
+- I swam through 2-2 by keyboard myself (`notes/shots/b6_2-2_swim.png`).
+- I replayed the playtester's continuous key log myself on the unzipped zip
+  (`playtests/build-6/evidence/campaign_w12/campaign_log.json`, real KeyboardEvents, Chromium stepped). It runs title -> 1-1 ... 1-4 ->
+  2-1 ... 2-4 -> clear screen -> title in 19,414 logic frames, with 3 lives, 0 deaths, 127,150 points and 34 coins.
+  - Its 67 game events (flags, pipes, springboard throw, axes, all-clear) and 640 sound calls are identical to the playtester's.
+  - It has 0 page errors and 0 failed requests.
+  - Screens checked by eye: `notes/shots/b6_cw12_w2.png` (2-2 water and exit pipe, flag, 2-3 bridge, 2-4 castle with Bowser over
+    lava, "YOU CLEARED WORLD 2", title with the top score).
+
+## What the checks found
+- **qa** (`qa/reports/build-6.md`, qa `5dce9c3018636a45ed9c2177c89354434e9ebaf1`):
+  - The World 1 gate passes: smoke check clean, 1-1 83/83, P2 43/43, lift trials 270/270, fair 1-1 bot.
+  - World 2 `map_compare` shows 0 differences against the original decode for every 2-x area.
+  - `check_w2` passes 111/111. It covers progression from 1-4 and the 1-2 warp, vine and coin heaven, the springboard, Paratroopas,
+    Piranhas, swimming and the surface limit, Bloopers, Cheep Cheeps, the exit pipe, flying Cheep Cheeps, firebars, Podoboos, lifts,
+    the fake Bowser turning into a Koopa, the axe, Toad, and the end screen returning to the title.
+  - qa reports no defects.
+- **playtester** (producer#14; `playtests/build-6/report.md` at playtester `6cdc7afa9a233b2fcddf7c4f7ef70634cc244b83`; videos in
+  release `playtest-build-6`):
+  - One continuous game from the title through World 1 and World 2 to the clear screen and title, with real keys, played three ways
+    (Chromium stepped, Chromium real time, Firefox). Each gives the same events.
+  - Score, coins and lives carry over from 1-4 into 2-1. The 1-2 warp pipe 2 leads to 2-1.
+  - Every World 2 mechanic in the brief was probed and works.
+  - World 1 shows no regression: the World 1 area pictures are pixel-identical to build-5's, and the result files are identical or
+    differ only for explained reasons.
+  - The playtester reports no blocker and no major defect.
+
+## Findings left open, and why they do not block (decisions in `brief.md`, "Decisions on the build-6 playtest")
+- F-1, the springboard and Podoboo make no sound: allowed by the brief's "as needed". A jump sound on the high throw is optional polish.
+- F-2, water physics: the measured sink and the missing horizontal friction match SMB1. The brief's wording was corrected.
+- F-3, 2-3 has no Koopas: the Koopa entries are hard-mode only in the original data, and qa's map comparison shows 0 differences.
+- F-6, the Podoboo count, and F-7, where coin heaven drops Mario: both follow the original data.
+- Optional polish, not blocking:
+  - F-4: Mario can swim up into the HUD rows.
+  - F-5: coin heaven has no music of its own and falls back to the overworld tune, as documented.
+  - P-1: README and file headers name tools that are only in the source repositories.
+  - P-3: small windows are clipped and there are no touch controls; the brief targets desktop keyboard.
+- P2 continue (A + Start after game over) is not implemented. It is optional in the brief.
+- Provenance: level layouts follow the original maps (tile layout and object positions only). All graphics and audio are original
+  work by the artist position.
+- **Not verified by anyone:**
+  - sound by ear (checked only as decoded files and the game's sound calls);
+  - human input latency;
+  - a side-by-side comparison with the NES original beyond the decoded map data;
+  - coin heaven coins collected in a full play (probed only).
+
+# Acceptance record: round 1
+
+**Conclusion: accepted.** The assembled delivery at game-developer `64cdad2a466e670275fbc0bf69b4c9afac1b99d8` + artist
+`144b1149ff7aa4cd2bfbd8e88e3572183f399cdd` (assignment/brief at producer `8685f2d843f6c0c7c24152c334a77f9786f5b552` and later,
+unchanged) is the game the input asks for: *复刻经典版本的超级马里奥 1，做成网页游戏*, recreating classic Super Mario Bros. 1 as a
+web game. It meets the brief's P1 bar (World 1-1 complete and faithful) and P2 (World 1-2 to 1-4 playable to the end). P3 (later
+worlds) is not part of this round, as the brief settles. This is the same content as release `build-5` in `world/producer`
+(`build-5.zip`, sha256 f4ce1ab2fe7021ffa7a83481d6cd23b699325494bbc0a496c65ee309f2d1404c).
+
+## What I inspected and played (producer, headless Chromium 1280 with Playwright, file://)
+- The assembled delivery (`ht-role delivery`) and the unzipped build-5 zip both start from `index.html` with no server, no network,
+  no page errors and no missing-asset warnings.
+- Developer suites on the delivery: levels 27/27, sound_input 7/7, mechanics 20/20, mechanics2 26/26, mechanics3 19/19.
+- The scripted bot plays 1-1 from the title to the flag with 0 deaths and goes into 1-2.
+- I ran 1-1 by keyboard input from the title (run with B, jump with A).
+- Screens checked by eye (`notes/shots/b5_grid.png`): title, 1-1, the 1-2 warp zone, the 1-3 start, Bowser on the 1-4 bridge, and
+  Toad's "THANK YOU MARIO!". They read as SMB1: NES palette, 256×240, crisp integer scaling, the original HUD.
+- Earlier builds: build-1 to build-4 (`notes/builds.md`).
+
+## What the checks found
+- **qa** (`qa/reports/build-5.md`, qa `4edc98dcba66956319b0517b3bc9faa2f0cc7fd8`):
+  - 1-1 83/83 and P2 43/43; the smoke check is clean; qa's fair bot clears 1-1.
+  - All 9 lifts pass the multi-phase landing trials. The same trials fail on build-4, so they reproduce and confirm the N4 fix.
+  - game-developer#7, #8, #9 and #11 stay fixed, and the `#level` fallback works.
+  - qa has no open defects and passes build-5.
+- **playtester** (producer#12; `playtests/build-5/report.md` at playtester `f4c1b1ee25f77ec5fb273473da41cd2cf012d202`; videos in release
+  `playtest-build-5`):
+  - Two continuous games from the title through 1-1…1-4 to Toad and the clear screen, with real key events, each replayed in
+    Chromium stepped, Chromium real time and Firefox with identical end states. One run rides the rising 1-3 lift.
+  - All 29 P1 rows pass, and every P2 row passes.
+  - No softlocks or fall-throughs, 0 page errors and 0 failed requests.
+  - N4 (the 1-3 lift), N5 (enemy facing), N6a and N7 are verified fixed, with no regressions against build-3.
+  - The playtester reports no blocker, major or minor defect.
+
+## Findings left open, and why they do not block
+- README and file headers in the zip mention developer tools that live only in the source repositories. This is polish with no
+  effect on play; it is noted to the owners as optional.
+- Small windows are clipped and there are no touch controls. The brief makes desktop keyboard the target this round.
+- The multi-coin brick pays 13 coins, with no reference to check against. There are no Podoboos in 1-4: the decoded 1-4 Podoboo
+  entries are hard-mode only.
+- Warp pipes end on a "worlds 2-8 not in this version" screen, as the World 1 scope intends.
+- **Provenance** (producer decision): level layouts follow the original maps (tile layout only), as the brief's "layout of 1-1 as
+  in the original" requires. All graphics and audio are original work by the artist position, with no ROM graphics, recorded
+  Nintendo audio or game code. The decoder that ported the original parser was removed from the delivery (game-developer#12).
+- **Not verified by anyone:** sound by ear (no audio device in any sandbox; audio was checked as decoded, non-silent files and as
+  the game's sound calls), human input latency, and a side-by-side comparison with the NES original.

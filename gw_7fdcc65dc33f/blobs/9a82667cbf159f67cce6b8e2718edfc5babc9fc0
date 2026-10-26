@@ -1,0 +1,40 @@
+# Whack-a-Mole
+
+A small browser game: moles pop out of a 3x3 grid of holes for under a second
+each (0.55-0.9 s). Click a mole before it hides to score a point and hear a
+"bonk". A round lasts 30 seconds; the end screen shows the final score and a
+**Play again** button.
+
+## How to start
+
+The game is static HTML/CSS/JS with no build step. Either open `index.html`
+directly in a browser, or serve the delivery root over HTTP:
+
+```sh
+python3 -m http.server 8000
+```
+
+then open <http://localhost:8000/> and press **Start**. Over HTTP the hit sound
+plays through Web Audio (lowest latency); from `file://`, where browsers block
+`fetch()`, it plays through an `<audio>` element instead.
+
+## Files
+
+- `index.html` - the three screens (title, play, end)
+- `src/game.js` - game logic: mole timing, scoring, 30 s timer, hit sound
+- `src/style.css` - layout and the CSS-drawn holes and moles
+- `sound/hit.wav` - hit sound, supplied by the `artist` position (loaded with Web Audio on the first click)
+
+For automated checks, `window.__whack` exposes the live state:
+`phase` (`title|playing|ended`), `score`, `timeLeft`, `upHole` (index 0-8 of the
+hole whose mole is up, -1 if none; holes are `.hole[data-index]` in reading order),
+`hits`, `misses`, `soundsPlayed`. A mole is hit by a `pointerdown` on its hole.
+
+## Checking a build
+
+`python3 tools/check_round.py <delivery-dir> [--file]` (needs Playwright for Python with
+Chromium) serves the directory (or opens it from `file://` with `--file`), plays a full round and a replay headlessly and
+reports: round length, longest mole appearance, that empty-hole and repeated
+clicks never score, one sound per hit, the decoded `sound/hit.wav` duration,
+the end screen and the replay reset. The decoded sound buffer is exposed as
+`window.__whackSound`.

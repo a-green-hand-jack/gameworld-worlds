@@ -1,0 +1,260 @@
+"""Headless checks of the Snake build against the objective.
+
+Usage: python3 tests/check.py [DELIVERY_DIR] [--out DIR]
+Serves DELIVERY_DIR (default: repo root) over HTTP, drives the game in
+Chromium with Playwright, saves screenshots and prints a JSON report.
+Exit code is non-zero if any check fails.
+"""
+import functools
+import http.server
+import json
+import os
+import sys
+import threading
+import time
+
+from playwright.sync_api import sync_playwright
+
+args = sys.argv[1:]
+out = 'tests/out'
+if '--out' in args:
+    i = args.index('--out')
+    out = args[i + 1]
+    del args[i:i + 2]
+root = os.path.abspath(args[0] if args else os.path.join(os.path.dirname(__file__), '..'))
+os.makedirs(out, exist_ok=True)
+
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+
+handler = functools.partial(Quiet, directory=root)
+server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
+threading.Thread(target=server.serve_forever, daemon=True).start()
+base = 'http://127.0.0.1:%d/index.html' % server.server_address[1]
+
+results = []
+console = []
+failed_requests = []
+
+
+def check(name, ok, detail=''):
+    results.append({'check': name, 'ok': bool(ok), 'detail': detail})
+
+
+def visible(page, sel):
+    return page.is_visible(sel)
+
+
+def g(page):
+    return page.evaluate('() => JSON.parse(JSON.stringify({state: __snake.state, game: __snake.game}))')
+
+
+KEY = {'up': 'ArrowUp', 'down': 'ArrowDown', 'left': 'ArrowLeft', 'right': 'ArrowRight'}
+OPP = {'up': 'down', 'down': 'up', 'left': 'right', 'right': 'left'}
+
+
+def steer_to_food(page, limit=200):
+    """Turn with the arrow keys and tick until one food is eaten."""
+    s = g(page)
+    start = s['game']['score']
+    for _ in range(limit):
+        gm = s['game']
+        h, f, d = gm['snake'][0], gm['food'], gm['dir']
+        want = None
+        if f['x'] > h['x']: want = 'right'
+        elif f['x'] < h['x']: want = 'left'
+        elif f['y'] > h['y']: want = 'down'
+        elif f['y'] < h['y']: want = 'up'
+        if want == OPP[d]:
+            want = 'up' if h['y'] > 0 else 'down'
+        if want and want != d:
+            page.keyboard.press(KEY[want])
+        page.evaluate('__snake.tick()')
+        s = g(page)
+        if s['state'] != 'playing' or s['game']['score'] > start:
+            return s
+    return s
+
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page(viewport={'width': 800, 'height': 760})
+    page.on('console', lambda m: console.append({'type': m.type, 'text': m.text}))
+    page.on('pageerror', lambda e: console.append({'type': 'pageerror', 'text': str(e)}))
+    page.on('requestfailed', lambda r: failed_requests.append(r.url))
+    page.on('response', lambda r: failed_requests.append(r.url) if r.status >= 400 else None)
+
+    page.goto(base + '?manual=1&seed=7')
+    page.wait_for_timeout(500)
+    s = g(page)
+    check('title screen shown on load', s['state'] == 'title' and visible(page, '#title-screen'))
+    check('title screen names the controls', 'arrow keys' in page.inner_text('#title-screen'))
+    page.screenshot(path=os.path.join(out, '1-title.png'))
+
+    page.keyboard.press('Enter')
+    s = g(page)
+    check('Enter starts a game', s['state'] == 'playing' and not visible(page, '#title-screen'))
+    check('new game: length 3, score 0',
+          len(s['game']['snake']) == 3 and s['game']['score'] == 0 and page.inner_text('#score') == '0')
+    check('score HUD visible during play', visible(page, '#hud'))
+
+    h0 = s['game']['snake'][0]
+    page.evaluate('__snake.tick()')
+    s = g(page)
+    h1 = s['game']['snake'][0]
+    check('snake moves one cell per tick', (h1['x'] - h0['x'], h1['y'] - h0['y']) == (1, 0), '%s -> %s' % (h0, h1))
+
+    page.keyboard.press('ArrowLeft')
+    page.evaluate('__snake.tick()')
+    s = g(page)
+    check('reversing into itself is ignored', s['game']['dir'] == 'right')
+
+    page.keyboard.press('ArrowDown')
+    page.evaluate('__snake.tick()')
+    s = g(page)
+    h2 = s['game']['snake'][0]
+    check('arrow key turns the snake', s['game']['dir'] == 'down' and h2['y'] == h1['y'] + 1, str(h2))
+
+    before = g(page)['game']
+    s = steer_to_food(page)
+    gm = s['game']
+    check('eating food grows the snake by one cell',
+          s['state'] == 'playing' and len(gm['snake']) == len(before['snake']) + 1,
+          '%d -> %d' % (len(before['snake']), len(gm['snake'])))
+    check('eating food adds one point', gm['score'] == before['score'] + 1 and page.inner_text('#score') == '1')
+    f = gm['food']
+    check('new food is not on the snake', f is not None and all((c['x'], c['y']) != (f['x'], f['y']) for c in gm['snake']))
+    s = steer_to_food(page)
+    check('second food: length 5, score 2', len(s['game']['snake']) == 5 and s['game']['score'] == 2)
+    page.screenshot(path=os.path.join(out, '2-playing.png'))
+
+    # Pause / resume.
+    page.keyboard.press('p')
+    paused = g(page)
+    page.evaluate('__snake.tick()')
+    check('P pauses (no movement while paused)',
+          paused['state'] == 'paused' and g(page)['game']['snake'] == paused['game']['snake'])
+    page.keyboard.press('p')
+    check('P resumes', g(page)['state'] == 'playing')
+    page.keyboard.press('p')
+    page.keyboard.press('Enter')
+    check('Enter resumes from pause', g(page)['state'] == 'playing')
+    page.keyboard.press('Escape')
+    page.click('#pause-screen')
+    check('click resumes from pause', g(page)['state'] == 'playing')
+    check('pause and resume do not move the snake', g(page)['game']['snake'] == paused['game']['snake'])
+
+    # Run into a wall.
+    gm = g(page)['game']
+    d = gm['dir']
+    for _ in range(25):
+        page.evaluate('__snake.tick()')
+        if g(page)['state'] != 'playing':
+            break
+    s = g(page)
+    check('hitting a wall ends the game', s['state'] == 'gameover' and s['game']['reason'] == 'wall', s['game']['reason'])
+    check('game-over screen shows final score',
+          visible(page, '#gameover-screen') and page.inner_text('#final-score') == str(s['game']['score']) == '2')
+    check('game-over screen offers play again', visible(page, '#play-again-button'))
+    page.screenshot(path=os.path.join(out, '3-gameover-wall.png'))
+
+    page.click('#play-again-button')
+    s = g(page)
+    check('Play again (click) restarts with score 0, length 3',
+          s['state'] == 'playing' and s['game']['score'] == 0 and len(s['game']['snake']) == 3
+          and page.inner_text('#score') == '0')
+
+    # Self collision: grow to 5, then up, left, down.
+    steer_to_food(page)
+    s = steer_to_food(page)
+    ok_len = len(s['game']['snake']) == 5
+    gm = s['game']
+    seq = {'right': ['up', 'left', 'down'], 'left': ['down', 'right', 'up'],
+           'up': ['left', 'down', 'right'], 'down': ['right', 'up', 'left']}[gm['dir']]
+    for k in seq:
+        page.keyboard.press(KEY[k])
+        page.evaluate('__snake.tick()')
+    s = g(page)
+    check('running into itself ends the game', ok_len and s['state'] == 'gameover' and s['game']['reason'] == 'self',
+          '%s %s' % (s['state'], s['game']['reason']))
+    page.screenshot(path=os.path.join(out, '4-gameover-self.png'))
+    page.keyboard.press('Enter')
+    check('Enter on game-over plays again', g(page)['state'] == 'playing' and g(page)['game']['score'] == 0)
+
+    # Real-time play (no manual ticking).
+    page2 = browser.new_page(viewport={'width': 800, 'height': 760})
+    page2.on('pageerror', lambda e: console.append({'type': 'pageerror', 'text': str(e)}))
+    page2.goto(base)
+    page2.wait_for_timeout(300)
+    page2.click('#start-button')
+    h0 = g(page2)['game']['snake'][0]
+    page2.wait_for_timeout(610)
+    h1 = g(page2)['game']['snake'][0]
+    moved = h1['x'] - h0['x']
+    check('real time: snake advances on its own (~8 cells/s)', 3 <= moved <= 7, 'moved %d cells in 0.61 s' % moved)
+    page2.keyboard.press('ArrowUp')
+    page2.wait_for_timeout(400)
+    h2 = g(page2)['game']['snake'][0]
+    check('real time: arrow key turns', h2['y'] < h1['y'], '%s -> %s' % (h1, h2))
+    page2.wait_for_timeout(3000)
+    check('real time: wall ends game on its own', g(page2)['state'] == 'gameover')
+    page2.screenshot(path=os.path.join(out, '5-realtime-gameover.png'))
+
+    page.wait_for_timeout(300)
+    assets = page.evaluate('__snake.assets()')
+
+    # Layout: everything that matters fits the window without scrolling.
+    INSIDE = '''sels => {
+      const vw = innerWidth, vh = innerHeight, bad = [];
+      for (const s of sels) {
+        const r = document.querySelector(s).getBoundingClientRect();
+        if (r.top < 0 || r.left < 0 || r.bottom > vh + 0.5 || r.right > vw + 0.5 || r.width === 0)
+          bad.push(s + ' ' + [r.left, r.top, r.right, r.bottom].map(Math.round).join(','));
+      }
+      for (const sc of document.querySelectorAll('.screen')) {
+        if (getComputedStyle(sc).display !== 'none' && sc.scrollHeight > sc.clientHeight + 1)
+          bad.push(sc.id + ' overflows ' + sc.scrollHeight + '>' + sc.clientHeight);
+      }
+      if (scrollY !== 0 || document.documentElement.scrollHeight > vh + 1) bad.push('page scrolls');
+      return bad;
+    }'''
+    for vw, vh in [(800, 500), (1024, 600), (1280, 720), (1366, 768), (1920, 1080), (500, 800)]:
+        lp = browser.new_page(viewport={'width': vw, 'height': vh})
+        lp.goto(base + '?manual=1&seed=5')
+        lp.wait_for_timeout(400)
+        bad = lp.evaluate(INSIDE, ['#board', '#title-logo', '#start-button', '#title-screen .hint'])
+        lp.screenshot(path=os.path.join(out, 'vp-%dx%d-title.png' % (vw, vh)))
+        lp.keyboard.press('Enter')
+        lp.evaluate('__snake.tick()')
+        bad += lp.evaluate(INSIDE, ['#hud', '#score', '#best', '#board'])
+        lp.screenshot(path=os.path.join(out, 'vp-%dx%d-playing.png' % (vw, vh)))
+        for _ in range(25):
+            lp.evaluate('__snake.tick()')
+        bad += lp.evaluate(INSIDE, ['#board', '#final-score', '#play-again-button', '#gameover-screen .hint:last-child'])
+        lp.screenshot(path=os.path.join(out, 'vp-%dx%d-gameover.png' % (vw, vh)))
+        check('layout %dx%d: board, score, screens and buttons fully visible, no scroll' % (vw, vh), not bad, '; '.join(bad))
+        lp.close()
+    browser.close()
+
+server.shutdown()
+errors = [c for c in console if c['type'] in ('error', 'pageerror')]
+check('no console errors (R1)', not errors, json.dumps(errors)[:500])
+check('all images and sounds in docs/assets.md loaded',
+      sorted(assets['images']) == ['food', 'snake_body', 'snake_head', 'snake_tail', 'tile']
+      and sorted(assets['sounds']) == ['eat', 'game_over', 'start'] and assets['logo'] and assets['font'],
+      json.dumps(assets))
+report = {
+    'root': root,
+    'passed': sum(r['ok'] for r in results),
+    'failed': sum(not r['ok'] for r in results),
+    'results': results,
+    'assets_loaded': assets,
+    'failed_requests': sorted(set(u.split('/', 3)[-1] for u in failed_requests)),
+    'console_errors': errors,
+}
+with open(os.path.join(out, 'report.json'), 'w') as fh:
+    json.dump(report, fh, indent=2)
+print(json.dumps(report, indent=2))
+sys.exit(1 if report['failed'] else 0)

@@ -1,0 +1,60 @@
+# Playtest of jump game v1.2 (game-developer 74ba904c973d). Real keyboard Space via Playwright; file:// URL.
+import sys,os,json,random,time
+from playwright.sync_api import sync_playwright
+d=os.path.abspath(sys.argv[1]); ev=os.path.abspath(sys.argv[2]); os.makedirs(ev,exist_ok=True)
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+def st(pg): return pg.evaluate("({state,score:Math.floor(score),best,speed:Math.round(speed),y:p.y,n:obs.length})")
+def bot(pg,seconds,lead,jitter=0.0,stop_on_over=True):
+    # presses real Space when next obstacle's time-to-contact < lead (+random jitter in s)
+    t0=time.time(); jumps=0; thr=lead
+    while time.time()-t0<seconds:
+        r=pg.evaluate("""()=>{if(state!=='play')return {over:true};const o=obs.find(o=>o.x+o.w>p.x+0);
+          return {over:false,ttc:o?(o.x-(p.x+p.w))/speed:99,grounded:p.y>=260-40-0.5-20,y:p.y}}""")
+        if r['over']: return False,jumps,time.time()-t0
+        if r['ttc']<thr and r['ttc']>-0.3 and r['y']>=199.5:
+            pg.keyboard.press('Space'); jumps+=1; thr=lead+random.uniform(-jitter,jitter)
+        pg.wait_for_timeout(8)
+    return True,jumps,time.time()-t0
+with sync_playwright() as p:
+    b=p.chromium.launch(); ctx=b.new_context(viewport={'width':1000,'height':500}); pg=ctx.new_page()
+    errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('console',lambda m: errs.append('console:'+m.text) if m.type=='error' else None)
+    pg.goto('file://'+d+'/index.html'); pg.wait_for_timeout(300)
+    L('title',pg.title(),'ready state',st(pg)); pg.screenshot(path=ev+'/01-start.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(120); L('after first Space',st(pg)); pg.screenshot(path=ev+'/02-first-jump.png')
+    pg.wait_for_timeout(900)
+    # idle until game over
+    for _ in range(100):
+        if st(pg)['state']=='over': break
+        pg.wait_for_timeout(100)
+    L('idle game over',st(pg)); pg.screenshot(path=ev+'/03-gameover-idle.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(100); L('restart',st(pg))
+    # reload persistence
+    best_before=st(pg)['best']; pg.reload(); pg.wait_for_timeout(300); L('after reload (best before=%s)'%best_before,st(pg)); pg.screenshot(path=ev+'/04-after-reload-start.png')
+    # bot with real keys, 50 s, to reach capped speed
+    pg.keyboard.press('Space')
+    ok,j,t=bot(pg,50,0.2); L('bot lead=0.2 survived',ok,'jumps',j,'secs',round(t,1),st(pg)); pg.screenshot(path=ev+'/05-capped-speed-midplay.png')
+    # human-like sloppiness: lead 0.2 +-0.08s; see survival of several runs
+    res=[]
+    for i in range(6):
+        if st(pg)['state']=='over': pg.keyboard.press('Space')
+        pg.wait_for_timeout(100)
+        ok,j,t=bot(pg,40,0.2,jitter=0.08); res.append((ok,j,round(t,1),st(pg)['score']))
+    L('jitter 0.08 runs (survived,jumps,secs,score)',res)
+    # early-timing windows at capped speed
+    for lead in (0.08,0.12,0.3,0.4):
+        if st(pg)['state']=='over': pg.keyboard.press('Space')
+        pg.wait_for_timeout(100)
+        ok,j,t=bot(pg,25,lead); L('lead',lead,'survived',ok,'jumps',j,'secs',round(t,1),st(pg))
+    # make sure game over screenshot with score/best
+    if st(pg)['state']!='over':
+        for _ in range(150):
+            if st(pg)['state']=='over': break
+            pg.wait_for_timeout(100)
+    L('final over',st(pg)); pg.screenshot(path=ev+'/06-gameover-with-best.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(300); L('restart2',st(pg)); pg.screenshot(path=ev+'/07-restart.png')
+    L('console/page errors',errs)
+    # rapid-mash: Space immediately after death
+    b.close()
+open(ev+'/play-log.txt','w').write('\n'.join(log))

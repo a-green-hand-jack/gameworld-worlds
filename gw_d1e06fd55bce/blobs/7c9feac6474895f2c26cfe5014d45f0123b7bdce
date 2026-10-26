@@ -1,0 +1,37 @@
+[
+ {
+  "check": "replay 0: match ends computer 5",
+  "ok": true,
+  "detail": "[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]"
+ },
+ {
+  "check": "R8 Space on win screen starts fresh 0-0 match",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "replay 1: match ends computer 5",
+  "ok": true,
+  "detail": "[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]"
+ },
+ {
+  "check": "R8 Enter on win screen starts fresh 0-0 match",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "replay 2: match ends computer 5",
+  "ok": true,
+  "detail": "[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]"
+ },
+ {
+  "check": "R8 Space on win screen starts fresh 0-0 match",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "check": "R1 no errors",
+  "ok": true,
+  "detail": "[]"
+ }
+]

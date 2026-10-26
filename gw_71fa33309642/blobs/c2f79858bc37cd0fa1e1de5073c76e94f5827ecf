@@ -1,0 +1,11 @@
+{"viewport":[768,720],"steps":[
+{"wait":1500},{"shot":"01_title"},
+{"eval":"JSON.stringify({smb: typeof SMB, loaded: window.SMB&&SMB.loaded, state: window.SMB&&SMB.game&&SMB.game.state})","as":"boot"},
+{"press":"Enter"},{"wait":300},{"shot":"02_after_enter_300ms"},
+{"wait":2500},{"shot":"03_after_enter_2800ms"},
+{"wait":1500},{"shot":"04_gameplay_start"},
+{"down":"ArrowRight"},{"wait":1500},{"shot":"05_walk_1500ms"},
+{"down":"KeyZ"},{"wait":2500},{"shot":"06_run_2500ms"},
+{"eval":"JSON.stringify(SMB.game.player&&{x:SMB.game.player.x,y:SMB.game.player.y,vx:SMB.game.player.vx})","as":"player_after_run"},
+{"up":"KeyZ"},{"up":"ArrowRight"}
+]}

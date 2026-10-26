@@ -1,0 +1,21 @@
+# Usage: python3 checks/smoke.py <dir containing index.html>
+import sys,os
+from playwright.sync_api import sync_playwright
+d=os.path.abspath(sys.argv[1])
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(); errs=[]
+    pg.on('pageerror',lambda e:errs.append(str(e)))
+    pg.goto('file://'+d+'/index.html'); pg.wait_for_timeout(300)
+    pg.screenshot(path='/tmp/ready.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(200)
+    y=pg.evaluate('p.y'); assert y<200, y; print('jumped, y=',y)
+    pg.wait_for_timeout(800); assert pg.evaluate('state')=='play'
+    for _ in range(100):
+        if pg.evaluate('state')=='over': break
+        pg.wait_for_timeout(200)
+    assert pg.evaluate('state')=='over'; print('game over, best=',pg.evaluate('best'))
+    pg.screenshot(path='/tmp/over.png')
+    pg.keyboard.press('Space'); pg.wait_for_timeout(100)
+    assert pg.evaluate('state')=='play' and pg.evaluate('score')<2; print('restart ok')
+    assert not errs, errs; print('no page errors')
+    b.close()

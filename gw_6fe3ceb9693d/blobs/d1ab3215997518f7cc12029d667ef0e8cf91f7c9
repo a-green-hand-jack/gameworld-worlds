@@ -1,0 +1,115 @@
+# usage: python3 qa_test.py <dir-with-index.html> ; runs headless Chromium checks, prints PASS/FAIL lines
+import sys, json, subprocess, time, threading, http.server, functools, os
+from playwright.sync_api import sync_playwright
+root = os.path.abspath(sys.argv[1])
+res = []
+def chk(name, ok, info=''):
+    res.append(ok); print(('PASS' if ok else 'FAIL'), name, info)
+
+def serve():
+    h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=root)
+    h.log_message = lambda *a, **k: None
+    s = http.server.ThreadingHTTPServer(('127.0.0.1', 0), h)
+    threading.Thread(target=s.serve_forever, daemon=True).start()
+    return s
+srv = serve()
+urls = {'file': 'file://' + root + '/index.html?manual', 'http': f'http://127.0.0.1:{srv.server_port}/index.html?manual'}
+
+def P(page): return page.evaluate('({x:game.player.x,y:game.player.y,g:game.player.onGround,s:game.state,f:game.frame})')
+def hold(page, key, n):
+    page.keyboard.down(key); page.evaluate(f'game.step({n})'); page.keyboard.up(key)
+def run_until_x(page, key, x, maxn=400):
+    page.keyboard.down(key)
+    for _ in range(maxn):
+        page.evaluate('game.step(1)')
+        if P(page)['x'] >= x: break
+    # key stays down
+
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    for mode, url in urls.items():
+        print('==', mode)
+        pg = b.new_page(); errs = []
+        pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
+        pg.goto(url); pg.wait_for_function('window.game && game.ready')
+        chk(mode+': levelSource', True, pg.evaluate('game.levelSource'))
+        s = P(pg); chk(mode+': start playing on ground', s['s']=='playing', str(s))
+        lvl = pg.evaluate('game.level'); print('   level', json.dumps(lvl['flag']), lvl['map'][-3:])
+        # idle stays put
+        pg.evaluate('game.step(30)'); s2 = P(pg); chk(mode+': idle stable', abs(s2['x']-s['x'])<.01 and abs(s2['y']-s['y'])<1 and s2['g'], str(s2))
+        # left at wall
+        hold(pg, 'ArrowLeft', 40); s3 = P(pg); chk(mode+': left blocked at wall / moved left', s3['x']>=0 and s3['x']<s['x'], str(s3))
+        hold(pg, 'a', 10)
+        hold(pg, 'ArrowRight', 20); s4 = P(pg); chk(mode+': right moves', s4['x']>s3['x'], str(s4))
+        hold(pg, 'd', 10); s5=P(pg)
+        hold(pg, 'ArrowLeft', 15); s6=P(pg); chk(mode+': left moves back', s6['x']<s5['x'], str(s6))
+        # jump in place & height
+        pg.evaluate('game.restart(); game.step(5)'); y0 = P(pg)['y']; pg.keyboard.down('Space'); ymin = y0
+        for i in range(60):
+            pg.evaluate('game.step(1)'); ymin = min(ymin, P(pg)['y'])
+            if i==0: air = (P(pg)['y']<y0)
+        pg.keyboard.up('Space'); sj = P(pg)
+        chk(mode+': jump leaves ground', air); chk(mode+': jump lands back', sj['g'] and abs(sj['y']-y0)<.01, str(sj))
+        print('   jump apex height px', y0-ymin, 'tiles', (y0-ymin)/32)
+        for k in ['ArrowUp','w']:
+            pg.evaluate('game.restart(); game.step(5)'); y0=P(pg)['y']; pg.keyboard.down(k); pg.evaluate('game.step(5)'); chk(mode+': jump key '+k, P(pg)['y']<y0); pg.keyboard.up(k); pg.evaluate('game.step(60)')
+        # no double jump
+        pg.evaluate('game.restart(); game.step(5)'); pg.keyboard.down('Space'); pg.evaluate('game.step(20)'); pg.keyboard.up('Space'); pg.keyboard.down('Space'); y1=P(pg)['y']; pg.evaluate('game.step(3)'); y2=P(pg)['y']; pg.keyboard.up('Space'); pg.evaluate('game.step(60)')
+        chk(mode+': no mid-air double jump', y2>=y1-0.01, f'{y1}->{y2}')
+        # fall into gap 1 -> restart
+        pg.evaluate('game.restart()'); hold(pg,'ArrowRight',80); sf=P(pg); 
+        pg.keyboard.down('ArrowRight'); fell=False
+        for i in range(200):
+            pg.evaluate('game.step(1)'); q=P(pg)
+            if q['x']<60 and q['f']<5: fell=True; break
+        pg.keyboard.up('ArrowRight'); chk(mode+': falling in gap 1 respawns at start', fell, str(P(pg)))
+        # full run with jumps
+        pg.evaluate('game.restart()'); pg.keyboard.down('ArrowRight')
+        def jump_at(x):
+            for _ in range(300):
+                pg.evaluate('game.step(1)')
+                if P(pg)['x']>=x: break
+            pg.keyboard.down('Space'); pg.evaluate('game.step(1)'); pg.keyboard.up('Space')
+            for _ in range(300):
+                pg.evaluate('game.step(1)')
+                if P(pg)['g']: break
+            return P(pg)
+        a = jump_at(170); chk(mode+': cleared gap 1 (on ground right of it)', a['g'] and a['x']>256-24 and a['y']>200, str(a))
+        bq = jump_at(340); chk(mode+': cleared gap 2', bq['g'] and bq['x']>448-24 and bq['y']>200, str(bq))
+        for _ in range(300):
+            pg.evaluate('game.step(1)'); q=P(pg)
+            if q['x']>=540: break
+        won_walk=False
+        pg.keyboard.down('Space')
+        for _ in range(120):
+            pg.evaluate('game.step(1)'); q=P(pg)
+            if q['s']=='won': break
+        pg.keyboard.up('Space')
+        pg.keyboard.up('ArrowRight'); q=P(pg)
+        chk(mode+': flag reached -> state won', q['s']=='won', str(q))
+        # restart with R
+        pg.keyboard.press('r'); q=P(pg); chk(mode+': R restarts', q['s']=='playing' and q['x']<60, str(q))
+        # jump at flag from best positions (reachability scan)
+        flag = pg.evaluate('game.flag'); reach=False
+        fy=flag['row']*32; best=1e9
+        for xs in range(0,600,8):
+            pg.evaluate('game.restart(); game.step(5)'); pg.evaluate(f'game.player.x={xs}'); 
+            if pg.evaluate('game.player.y')>260 or P(pg)['x']!=xs: continue
+            pg.keyboard.down('Space')
+            for _ in range(50):
+                pg.evaluate('game.step(1)'); best=min(best,P(pg)['y'])
+            pg.keyboard.up('Space'); pg.evaluate('game.step(40)')
+        print('   best (lowest) player top y reached by jumping', best, 'flag box y', fy, '-', fy+32, 'player bottom', best+30)
+
+        errs=[e for e in errs if 'URL scheme "file"' not in e]; chk(mode+': no page errors (file:// level.json fetch refusal ignored; falls back)', not errs, str(errs))
+        pg.close()
+    # real-time (no ?manual) keyboard playthrough over file://
+    print('== realtime file')
+    pg = b.new_page(); pg.goto('file://'+root+'/index.html'); pg.wait_for_function('window.game && game.ready')
+    f0=pg.evaluate('game.frame'); pg.wait_for_timeout(300); f1=pg.evaluate('game.frame')
+    chk('realtime: loop advances', f1>f0, f'{f0}->{f1}')
+    pg.keyboard.down('ArrowRight'); pg.wait_for_timeout(500); xr=P(pg)['x']; pg.keyboard.up('ArrowRight')
+    chk('realtime: right key moves', xr>60, str(xr))
+    pg.screenshot(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shot_'+os.path.basename(root)+'.png'))
+    b.close()
+print('RESULT', sum(res), '/', len(res), 'passed')

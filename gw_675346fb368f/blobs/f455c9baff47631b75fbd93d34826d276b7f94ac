@@ -1,0 +1,132 @@
+$ node checks/sim.js attentive 20 21 120
+{"score":[5,0],"winner":"player","rallies":93,"secs":98}
+{"score":[5,1],"winner":"player","rallies":47,"secs":162}
+{"score":[5,1],"winner":"player","rallies":96,"secs":281}
+{"score":[5,3],"winner":"player","rallies":123,"secs":423}
+{"score":[5,4],"winner":"player","rallies":185,"secs":633}
+{"score":[5,1],"winner":"player","rallies":149,"secs":796}
+{"score":[5,2],"winner":"player","rallies":72,"secs":882}
+{"score":[5,0],"winner":"player","rallies":43,"secs":945}
+{"score":[5,0],"winner":"player","rallies":48,"secs":1019}
+{"score":[5,0],"winner":"player","rallies":106,"secs":1133}
+{"score":[5,3],"winner":"player","rallies":111,"secs":1268}
+{"score":[5,2],"winner":"player","rallies":85,"secs":1374}
+{"score":[5,1],"winner":"player","rallies":125,"secs":1502}
+{"score":[5,2],"winner":"player","rallies":152,"secs":1664}
+{"score":[5,0],"winner":"player","rallies":101,"secs":1768}
+{"score":[5,1],"winner":"player","rallies":77,"secs":1859}
+{"score":[5,0],"winner":"player","rallies":49,"secs":1920}
+{"score":[5,1],"winner":"player","rallies":45,"secs":1986}
+{"score":[5,1],"winner":"player","rallies":60,"secs":2074}
+{"score":[5,4],"winner":"player","rallies":137,"secs":2232}
+attentive latency 120ms: player won 20/20, points player 100 cpu 27
+$ node checks/sim.js attentive 20 22 120
+{"score":[5,3],"winner":"player","rallies":156,"secs":162}
+{"score":[5,1],"winner":"player","rallies":74,"secs":252}
+{"score":[5,0],"winner":"player","rallies":40,"secs":318}
+{"score":[5,0],"winner":"player","rallies":72,"secs":404}
+{"score":[5,0],"winner":"player","rallies":35,"secs":458}
+{"score":[5,1],"winner":"player","rallies":132,"secs":603}
+{"score":[5,2],"winner":"player","rallies":87,"secs":710}
+{"score":[5,2],"winner":"player","rallies":123,"secs":841}
+{"score":[5,0],"winner":"player","rallies":52,"secs":911}
+{"score":[5,0],"winner":"player","rallies":24,"secs":956}
+{"score":[5,1],"winner":"player","rallies":54,"secs":1035}
+{"score":[5,1],"winner":"player","rallies":99,"secs":1152}
+{"score":[5,0],"winner":"player","rallies":47,"secs":1216}
+{"score":[5,0],"winner":"player","rallies":133,"secs":1351}
+{"score":[5,1],"winner":"player","rallies":88,"secs":1455}
+{"score":[5,1],"winner":"player","rallies":36,"secs":1507}
+{"score":[5,1],"winner":"player","rallies":62,"secs":1588}
+{"score":[5,2],"winner":"player","rallies":97,"secs":1699}
+{"score":[5,1],"winner":"player","rallies":105,"secs":1817}
+{"score":[5,1],"winner":"player","rallies":44,"secs":1877}
+attentive latency 120ms: player won 20/20, points player 100 cpu 18
+$ node checks/sim.js attentive 20 23 60
+{"score":[5,0],"winner":"player","rallies":101,"secs":105}
+{"score":[5,0],"winner":"player","rallies":178,"secs":281}
+{"score":[5,0],"winner":"player","rallies":68,"secs":356}
+{"score":[5,0],"winner":"player","rallies":94,"secs":461}
+{"score":[5,0],"winner":"player","rallies":105,"secs":564}
+{"score":[5,0],"winner":"player","rallies":49,"secs":629}
+{"score":[5,2],"winner":"player","rallies":103,"secs":751}
+{"score":[5,0],"winner":"player","rallies":120,"secs":877}
+{"score":[5,0],"winner":"player","rallies":12,"secs":904}
+{"score":[5,0],"winner":"player","rallies":61,"secs":979}
+{"score":[5,0],"winner":"player","rallies":62,"secs":1054}
+{"score":[5,0],"winner":"player","rallies":110,"secs":1169}
+{"score":[5,0],"winner":"player","rallies":184,"secs":1353}
+{"score":[5,0],"winner":"player","rallies":57,"secs":1423}
+{"score":[5,0],"winner":"player","rallies":42,"secs":1482}
+{"score":[5,0],"winner":"player","rallies":28,"secs":1527}
+{"score":[5,0],"winner":"player","rallies":100,"secs":1629}
+{"score":[5,0],"winner":"player","rallies":135,"secs":1765}
+{"score":[5,2],"winner":"player","rallies":163,"secs":1943}
+{"score":[5,0],"winner":"player","rallies":56,"secs":2011}
+attentive latency 60ms: player won 20/20, points player 100 cpu 4
+$ node checks/sim.js casual 20 21 200
+{"score":[0,5],"winner":"cpu","rallies":26,"secs":55}
+{"score":[2,5],"winner":"cpu","rallies":25,"secs":108}
+{"score":[0,5],"winner":"cpu","rallies":23,"secs":156}
+{"score":[0,5],"winner":"cpu","rallies":24,"secs":208}
+{"score":[1,5],"winner":"cpu","rallies":21,"secs":261}
+{"score":[0,5],"winner":"cpu","rallies":21,"secs":308}
+{"score":[0,5],"winner":"cpu","rallies":21,"secs":361}
+{"score":[3,5],"winner":"cpu","rallies":24,"secs":421}
+{"score":[0,5],"winner":"cpu","rallies":15,"secs":462}
+{"score":[1,5],"winner":"cpu","rallies":30,"secs":530}
+{"score":[0,5],"winner":"cpu","rallies":17,"secs":573}
+{"score":[2,5],"winner":"cpu","rallies":15,"secs":615}
+{"score":[0,5],"winner":"cpu","rallies":21,"secs":662}
+{"score":[0,5],"winner":"cpu","rallies":14,"secs":703}
+{"score":[1,5],"winner":"cpu","rallies":21,"secs":757}
+{"score":[0,5],"winner":"cpu","rallies":10,"secs":792}
+{"score":[1,5],"winner":"cpu","rallies":19,"secs":847}
+{"score":[0,5],"winner":"cpu","rallies":16,"secs":892}
+{"score":[1,5],"winner":"cpu","rallies":14,"secs":931}
+{"score":[0,5],"winner":"cpu","rallies":21,"secs":978}
+casual latency 200ms: player won 0/20, points player 12 cpu 100
+$ node checks/sim.js casual 20 22 150
+{"score":[1,5],"winner":"cpu","rallies":27,"secs":52}
+{"score":[0,5],"winner":"cpu","rallies":20,"secs":96}
+{"score":[0,5],"winner":"cpu","rallies":20,"secs":144}
+{"score":[0,5],"winner":"cpu","rallies":31,"secs":206}
+{"score":[1,5],"winner":"cpu","rallies":20,"secs":256}
+{"score":[0,5],"winner":"cpu","rallies":16,"secs":296}
+{"score":[0,5],"winner":"cpu","rallies":15,"secs":338}
+{"score":[2,5],"winner":"cpu","rallies":31,"secs":405}
+{"score":[1,5],"winner":"cpu","rallies":40,"secs":484}
+{"score":[1,5],"winner":"cpu","rallies":21,"secs":528}
+{"score":[0,5],"winner":"cpu","rallies":18,"secs":575}
+{"score":[1,5],"winner":"cpu","rallies":11,"secs":611}
+{"score":[2,5],"winner":"cpu","rallies":37,"secs":683}
+{"score":[0,5],"winner":"cpu","rallies":20,"secs":726}
+{"score":[1,5],"winner":"cpu","rallies":16,"secs":774}
+{"score":[2,5],"winner":"cpu","rallies":29,"secs":832}
+{"score":[0,5],"winner":"cpu","rallies":16,"secs":872}
+{"score":[0,5],"winner":"cpu","rallies":26,"secs":924}
+{"score":[1,5],"winner":"cpu","rallies":27,"secs":988}
+{"score":[3,5],"winner":"cpu","rallies":26,"secs":1047}
+casual latency 150ms: player won 0/20, points player 16 cpu 100
+$ node checks/sim.js casual 20 23 250
+{"score":[0,5],"winner":"cpu","rallies":8,"secs":30}
+{"score":[0,5],"winner":"cpu","rallies":13,"secs":70}
+{"score":[1,5],"winner":"cpu","rallies":18,"secs":113}
+{"score":[1,5],"winner":"cpu","rallies":15,"secs":156}
+{"score":[0,5],"winner":"cpu","rallies":11,"secs":185}
+{"score":[0,5],"winner":"cpu","rallies":24,"secs":243}
+{"score":[1,5],"winner":"cpu","rallies":15,"secs":287}
+{"score":[0,5],"winner":"cpu","rallies":17,"secs":326}
+{"score":[1,5],"winner":"cpu","rallies":8,"secs":358}
+{"score":[0,5],"winner":"cpu","rallies":11,"secs":392}
+{"score":[0,5],"winner":"cpu","rallies":18,"secs":433}
+{"score":[0,5],"winner":"cpu","rallies":10,"secs":461}
+{"score":[1,5],"winner":"cpu","rallies":17,"secs":501}
+{"score":[0,5],"winner":"cpu","rallies":18,"secs":548}
+{"score":[0,5],"winner":"cpu","rallies":7,"secs":577}
+{"score":[0,5],"winner":"cpu","rallies":14,"secs":615}
+{"score":[0,5],"winner":"cpu","rallies":7,"secs":641}
+{"score":[1,5],"winner":"cpu","rallies":5,"secs":668}
+{"score":[0,5],"winner":"cpu","rallies":13,"secs":703}
+{"score":[3,5],"winner":"cpu","rallies":9,"secs":738}
+casual latency 250ms: player won 0/20, points player 9 cpu 100

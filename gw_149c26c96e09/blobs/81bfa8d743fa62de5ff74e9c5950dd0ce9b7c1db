@@ -1,0 +1,32 @@
+import sys, asyncio, json, os, subprocess, time
+from playwright.sync_api import sync_playwright
+root=sys.argv[1]; out=sys.argv[2]; os.makedirs(out,exist_ok=True)
+srv=subprocess.Popen([sys.executable,'-m','http.server','8765','-d',root],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+time.sleep(1)
+errs=[]
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':900,'height':800})
+    pg.on('console', lambda m: errs.append((m.type,m.text)) if m.type in('error','warning') else None)
+    pg.on('pageerror', lambda e: errs.append(('pageerror',str(e))))
+    pg.goto('http://localhost:8765/index.html'); pg.wait_for_timeout(1500)
+    pg.screenshot(path=out+'/1-title.png')
+    print('scrollY0',pg.evaluate('scrollY'))
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(600)
+    pg.screenshot(path=out+'/2-play.png')
+    print('score',pg.inner_text('#score'))
+    # try to eat: crude — press keys over time and observe score
+    pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(300)  # reversal attempt if moving right
+    pg.screenshot(path=out+'/3-after-left.png')
+    pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(300)
+    print('scrollY',pg.evaluate('scrollY'))
+    for i in range(80):
+        pg.wait_for_timeout(150)
+        if not pg.is_hidden('#gameover-screen'): break
+    pg.screenshot(path=out+'/4-gameover.png')
+    print('gameover visible', pg.is_visible('#gameover-screen'), 'final', pg.inner_text('#final-score'))
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
+    print('after replay: gameover hidden', pg.is_hidden('#gameover-screen'),'score',pg.inner_text('#score'))
+    pg.screenshot(path=out+'/5-replay.png')
+    print('errors',errs)
+    b.close()
+srv.terminate()

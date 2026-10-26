@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gap Runner</title>
+<style>
+  html, body { margin: 0; background: #1b1b2f; color: #eee; font-family: monospace; }
+  #wrap { text-align: center; padding: 8px; }
+  canvas { background: #8fd3ff; border: 2px solid #000; image-rendering: pixelated; }
+  #msg { height: 1.4em; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="640" height="352"></canvas>
+  <div id="msg">Loading...</div>
+</div>
+<script type="application/json" id="level-fallback">{"tile":32,"map":["....................","....................","....................","....................","....................","....................","....................","....................",".P..................","######..####..######","######..####..######"],"flag":{"col":18,"row":6}}</script>
+<script>
+(function () {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var msg = document.getElementById('msg');
+
+  var SPEED = 3, GRAVITY = 0.5, JUMP_V = -7.5, MAX_FALL = 12;
+  var PW = 24, PH = 30;
+
+  var level = null, T = 32, solid = null, start = null, flag = null;
+  var player = { x: 0, y: 0, vx: 0, vy: 0, onGround: false };
+  var keys = { left: false, right: false, jump: false };
+  var jumpHeld = false;
+  var state = 'loading'; // loading | playing | won
+  var frame = 0;
+
+  var game = {
+    get state() { return state; },
+    get player() { return player; },
+    get flag() { return flag; },
+    get level() { return level; },
+    get frame() { return frame; },
+    ready: false,
+    keys: keys,
+    step: step,
+    restart: restart
+  };
+  window.game = game;
+
+  function isSolid(c, r) {
+    if (c < 0 || c >= level.map[0].length) return true;
+    if (r < 0) return false;
+    if (r >= level.map.length) return false;
+    return solid[r][c];
+  }
+
+  function collidesAt(x, y) {
+    var c0 = Math.floor(x / T), c1 = Math.floor((x + PW - 1) / T);
+    var r0 = Math.floor(y / T), r1 = Math.floor((y + PH - 1) / T);
+    for (var r = r0; r <= r1; r++)
+      for (var c = c0; c <= c1; c++)
+        if (isSolid(c, r)) return true;
+    return false;
+  }
+
+  function restart() {
+    player.x = start.col * T + (T - PW) / 2;
+    player.y = (start.row + 1) * T - PH;
+    player.vx = 0; player.vy = 0; player.onGround = false;
+    state = 'playing';
+    frame = 0;
+  }
+
+  function step(n) {
+    n = n || 1;
+    for (var i = 0; i < n; i++) tick();
+  }
+
+  function tick() {
+    if (state !== 'playing') return;
+    frame++;
+    player.vx = (keys.right ? SPEED : 0) - (keys.left ? SPEED : 0);
+    if (keys.jump && player.onGround && !jumpHeld) {
+      player.vy = JUMP_V;
+      player.onGround = false;
+    }
+    jumpHeld = keys.jump;
+    player.vy = Math.min(player.vy + GRAVITY, MAX_FALL);
+
+    var nx = player.x + player.vx;
+    if (!collidesAt(nx, player.y)) player.x = nx;
+    else if (player.vx !== 0) {
+      var sgn = player.vx > 0 ? 1 : -1;
+      while (!collidesAt(player.x + sgn, player.y)) player.x += sgn;
+    }
+
+    var ny = player.y + player.vy;
+    player.onGround = false;
+    if (!collidesAt(player.x, ny)) player.y = ny;
+    else {
+      var d = player.vy > 0 ? 1 : -1;
+      while (!collidesAt(player.x, player.y + d)) player.y += d;
+      if (player.vy > 0) player.onGround = true;
+      player.vy = 0;
+    }
+
+    if (player.y > canvas.height + 64) restart();
+
+    var fx = flag.col * T, fy = flag.row * T;
+    if (player.x < fx + T && player.x + PW > fx && player.y < fy + T && player.y + PH > fy) {
+      state = 'won';
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!level) return;
+    ctx.fillStyle = '#4a7c3a';
+    for (var r = 0; r < level.map.length; r++)
+      for (var c = 0; c < level.map[r].length; c++)
+        if (solid[r][c]) ctx.fillRect(c * T, r * T, T, T);
+    // flag
+    var fx = flag.col * T, fy = flag.row * T;
+    ctx.fillStyle = '#444';
+    ctx.fillRect(fx + 6, fy, 4, T);
+    ctx.fillStyle = '#e63946';
+    ctx.beginPath();
+    ctx.moveTo(fx + 10, fy + 2); ctx.lineTo(fx + T - 2, fy + 10); ctx.lineTo(fx + 10, fy + 18);
+    ctx.fill();
+    // player
+    ctx.fillStyle = '#ffd60a';
+    ctx.fillRect(Math.round(player.x), Math.round(player.y), PW, PH);
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(Math.round(player.x) + 0.5, Math.round(player.y) + 0.5, PW - 1, PH - 1);
+    if (state === 'won') {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.font = '32px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('You reached the flag!', canvas.width / 2, canvas.height / 2);
+    }
+    msg.textContent = state === 'won' ? 'You win! Press R to play again.' : 'Arrows / A D to move, Space / Up / W to jump, R to restart';
+  }
+
+  var KEYMAP = {
+    ArrowLeft: 'left', a: 'left', A: 'left',
+    ArrowRight: 'right', d: 'right', D: 'right',
+    ArrowUp: 'jump', w: 'jump', W: 'jump', ' ': 'jump'
+  };
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'r' || e.key === 'R') { if (level) restart(); return; }
+    var k = KEYMAP[e.key];
+    if (k) { keys[k] = true; e.preventDefault(); }
+  });
+  window.addEventListener('keyup', function (e) {
+    var k = KEYMAP[e.key];
+    if (k) { keys[k] = false; e.preventDefault(); }
+  });
+
+  var manual = /[?&]manual\b/.test(location.search);
+  var acc = 0, last = null;
+  function loop(ts) {
+    if (last === null) last = ts;
+    acc += Math.min(ts - last, 100);
+    last = ts;
+    while (acc >= 1000 / 60) { acc -= 1000 / 60; if (!manual) tick(); }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function init(data) {
+    level = data;
+    T = level.tile;
+    flag = level.flag;
+    solid = level.map.map(function (row, r) {
+      return row.split('').map(function (ch, c) {
+        if (ch === 'P') start = { col: c, row: r };
+        return ch === '#';
+      });
+    });
+    canvas.width = level.map[0].length * T;
+    canvas.height = level.map.length * T;
+    restart();
+    game.ready = true;
+    requestAnimationFrame(loop);
+  }
+
+  // Chromium blocks reading level.json from a file:// page, so when the load
+  // fails the page uses the built-in copy above (identical to level.json;
+  // smoke.mjs checks they match) and says so in game.levelSource.
+  function useFallback() {
+    game.levelSource = 'built-in copy';
+    init(JSON.parse(document.getElementById('level-fallback').textContent));
+  }
+  game.levelSource = 'level.json';
+  fetch('level.json').then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(init).catch(useFallback);
+})();
+</script>
+</body>
+</html>

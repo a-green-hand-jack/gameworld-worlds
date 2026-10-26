@@ -1,0 +1,21 @@
+# Game assets (owner: `artist`)
+
+Everything the game loads is listed in `manifest.json` (shape and names: `world/game-developer` `docs/assets.md`).
+
+- `sprites/player.png` — Mario: `small_*`, `big_*`, `fire_*`, `star1_*`..`star3_*` (facing right, bottom-centre anchored).
+- `sprites/enemies_<theme>.png` — enemies (facing left); base = overworld, variants underground / castle.
+- `sprites/items_<theme>.png` — items, effects, score popups, HUD coin, menu cursor, flags, axe, bridge, chain.
+- `tiles/<theme>.png`, `tiles/scenery_<theme>.png` — level tiles and background pictures.
+- `ui/font.png` (8×8 grid, `font.chars`), `ui/title.png` (title board).
+- `audio/sfx/*`, `audio/music/*` — chiptune SFX, music loops (`loopStart`/`loopEnd` in seconds) and jingles.
+
+All graphics and audio are original work made for this project in the NES 8-bit style
+(no ROM data, no ripped sprites, no recorded or transcribed Nintendo music).
+They are generated from source in `tools/` of `world/artist`:
+
+    python3 tools/gfx/build_gfx.py        # sprites, tiles, font, title  -> assets/, build/gfx.json
+    python3 tools/audio/build_audio.py    # SFX + music                  -> assets/audio/
+    python3 tools/build_manifest.py       # merge + validate             -> assets/manifest.json
+
+`tools/build_manifest.py` fails on a missing file, a rect outside its image or a stray file,
+and lists every name from the game's contract (`tools/required_names.txt`) still missing.

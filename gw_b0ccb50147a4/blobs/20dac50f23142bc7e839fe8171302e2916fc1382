@@ -1,0 +1,12 @@
+html,body{margin:0;height:100%;background:#0b0d1a;color:#fff;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+body{display:flex;align-items:center;justify-content:center}
+#wrap{position:relative;width:800px;height:600px}
+canvas{display:block;width:800px;height:600px;background:#10142b;border:2px solid #3b4170;border-radius:6px}
+#hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:10px 18px;font-size:22px;text-shadow:0 2px 4px #000;pointer-events:none}
+#hud b{color:#ffd84a;font-variant-numeric:tabular-nums}
+#overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,8,25,.62);text-align:center;border-radius:6px}
+#overlay.hidden{display:none}
+#overlay h1{font-size:56px;margin:0 0 12px;color:#ffd84a;text-shadow:0 3px 8px #000}
+#overlay p{font-size:22px;margin:6px 0;text-shadow:0 2px 4px #000}
+#overlay .hint{margin-top:22px;color:#cfd6ff}
+kbd{background:#2a3060;border:1px solid #6a73c0;border-radius:4px;padding:2px 8px}

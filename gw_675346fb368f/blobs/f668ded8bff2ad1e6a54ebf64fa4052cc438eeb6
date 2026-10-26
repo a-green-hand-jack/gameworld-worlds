@@ -1,0 +1,83 @@
+"""Headless Chromium check of the Pong build: title -> play -> score -> both end screens -> play again.
+Usage: python3 checks/run_check.py [GAME_DIR] [OUT_DIR]   (writes screenshots + log to OUT_DIR)"""
+import json, sys, time, pathlib
+from playwright.sync_api import sync_playwright
+
+game = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+out = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else "checks/latest").resolve()
+out.mkdir(parents=True, exist_ok=True)
+log = []
+def note(msg):
+    print(msg, flush=True); log.append(msg)
+
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    page = b.new_page(viewport={"width": 1024, "height": 768})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: log.append(f"console.{m.type}: {m.text}"))
+    page.goto((game / "index.html").as_uri() + "?seed=7")
+    page.wait_for_function("window.pong && pong.getState().screen === 'title'", timeout=10000)
+    st = lambda: page.evaluate("pong.getState()")
+    note(f"title screen reached; assets {st()['assets']}")
+    page.screenshot(path=str(out / "1-title.png"))
+
+    page.keyboard.press("Enter")
+    s = st(); assert s["screen"] == "play" and s["score"] == {"player": 0, "cpu": 0}, s
+    note("Enter -> play, score 0-0")
+    y0 = s["player"]["y"]; page.keyboard.down("ArrowUp"); time.sleep(0.4); page.keyboard.up("ArrowUp")
+    y1 = st()["player"]["y"]; page.keyboard.down("KeyS"); time.sleep(0.4); page.keyboard.up("KeyS")
+    y2 = st()["player"]["y"]
+    assert y1 < y0 and y2 > y1, (y0, y1, y2)
+    note(f"keyboard moves paddle: ArrowUp {y0:.0f}->{y1:.0f}, S {y1:.0f}->{y2:.0f}")
+    page.screenshot(path=str(out / "2-play.png"))
+
+    # Match 1: player idle -> computer should reach 5 and win.
+    t0 = time.time(); seen = set()
+    while st()["screen"] == "play" and time.time() - t0 < 90:
+        seen.add(tuple(st()["score"].values())); time.sleep(0.2)
+    s = st(); assert s["screen"] == "over" and s["winner"] == "cpu" and s["score"]["cpu"] == 5, s
+    note(f"idle player: computer wins {s['score']} in {time.time()-t0:.1f}s; scores seen {sorted(seen)}")
+    page.screenshot(path=str(out / "3a-cpu-wins-locked.png"))
+
+    page.keyboard.press("Enter"); page.mouse.click(512, 384)
+    s = st(); assert s["screen"] == "over" and s["endLocked"], s
+    note("Enter/click right after the match ends are ignored (end screen stays up)")
+    page.wait_for_function("!pong.getState().endLocked", timeout=3000)
+    page.screenshot(path=str(out / "3-cpu-wins.png"))
+    page.keyboard.press("Enter")
+    s = st(); assert s["screen"] == "play" and s["score"] == {"player": 0, "cpu": 0}, s
+    note("Enter on end screen after the lock -> new match at 0-0")
+
+    # Match 2: a keyboard bot steers toward the ball -> player should be able to win.
+    t0 = time.time(); held = None
+    while st()["screen"] == "play" and time.time() - t0 < 240:
+        s = st(); c = s["player"]["y"] + 48
+        bl = s["ball"]
+        if bl["vx"] < 0:  # anticipate where the ball meets the paddle face, as a player would
+            y = bl["y"] + bl["vy"] * ((bl["x"] - 40) / -bl["vx"]); span = 584
+            y %= 2 * span; y = 2 * span - y if y > span else y; target = y + 8
+        else: target = 300
+        want = "ArrowUp" if target < c - 10 else "ArrowDown" if target > c + 10 else None
+        if want != held:
+            if held: page.keyboard.up(held)
+            if want: page.keyboard.down(want)
+            held = want
+        if s["score"]["player"] + s["score"]["cpu"] == 3 and not (out / "4-midgame.png").exists():
+            page.screenshot(path=str(out / "4-midgame.png"))
+        time.sleep(0.02)
+    if held: page.keyboard.up(held)
+    s = st()
+    note(f"bot player: screen {s['screen']} winner {s['winner']} score {s['score']} rallies {s['rallies']} in {time.time()-t0:.1f}s")
+    assert s["screen"] == "over" and s["winner"] == "player", s
+    page.wait_for_function("!pong.getState().endLocked", timeout=3000)
+    page.screenshot(path=str(out / "5-player-wins.png"))
+
+    page.keyboard.press("Escape"); assert st()["screen"] == "title"; note("Esc on end screen -> title")
+    page.mouse.click(512, 384); assert st()["screen"] == "play"; note("click on title -> play")
+    page.keyboard.press("p"); assert st()["paused"]; page.screenshot(path=str(out / "6-paused.png"))
+    page.keyboard.press("p"); assert not st()["paused"]; note("P pauses and resumes")
+    assert not errors, errors
+    note("no page errors; ALL CHECKS PASSED")
+    b.close()
+(out / "log.txt").write_text("\n".join(log) + "\n")

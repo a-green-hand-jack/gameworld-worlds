@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Difficulty probe: skilled bot (intercept prediction + edge aiming, with input latency) vs the CPU.
+Usage: bot_eval.py <delivery_dir> <seed> <latency_s> <n_matches>"""
+import sys, os, threading, http.server, functools, time, json
+from playwright.sync_api import sync_playwright
+root, seed, lat, n = sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4])
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self,*a): pass
+srv=http.server.ThreadingHTTPServer(("127.0.0.1",0),functools.partial(Q,directory=root)); threading.Thread(target=srv.serve_forever,daemon=True).start()
+H=600;B=16
+def predict(b, px):
+    if b["vx"]>=0: return None
+    t=(b["x"]-px)/-b["vx"]; y=b["y"]+b["vy"]*t; span=H-B
+    y=((y%(2*span))+2*span)%(2*span)
+    if y>span: y=2*span-y
+    return y+B/2
+out=[]
+with sync_playwright() as p:
+    br=p.chromium.launch(); pg=br.new_page()
+    pg.goto(f"http://127.0.0.1:{srv.server_port}/index.html?seed={seed}"); pg.wait_for_function("window.pong.getState().screen!=='loading'")
+    for m in range(n):
+        pg.wait_for_function("window.pong.getState().endLocked!==true"); pg.keyboard.press("Enter"); held=None; hist=[]; t0=time.time(); off=0
+        while time.time()-t0<300:
+            s=pg.evaluate("window.pong.getState()")
+            if s["screen"]=="over": break
+            now=time.time(); hist.append((now,s)); 
+            o=[h for h in hist if h[0]<=now-lat]; hist=hist[-400:]
+            if o:
+                ob=o[-1][1]; tgt=predict(ob["ball"],40)
+                if tgt is None: tgt=300
+                else: tgt+= (-35 if ob["ball"]["y"]<300 else 35)*0  # aim at paddle centre (baseline)
+                c=s["player"]["y"]+48
+                new="ArrowUp" if tgt<c-8 else "ArrowDown" if tgt>c+8 else None
+                if new!=held:
+                    if held: pg.keyboard.up(held)
+                    if new: pg.keyboard.down(new)
+                    held=new
+            pg.wait_for_timeout(12)
+        if held: pg.keyboard.up(held)
+        s=pg.evaluate("window.pong.getState()"); out.append((s["score"],s["winner"],round(time.time()-t0)))
+        print(json.dumps(out[-1]),flush=True)
+    br.close()

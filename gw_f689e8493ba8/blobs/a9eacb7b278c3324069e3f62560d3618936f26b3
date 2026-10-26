@@ -1,0 +1,26 @@
+# Brief
+
+## What the input asks (quoted)
+> 做一个单屏网页小游戏：空格键让小方块跳过迎面而来的障碍，碰到就结束，屏幕上显示分数和最高分，打开 index.html 就能玩。能玩的 build 打成 zip（解压后 index.html 在根目录）作为 release 文件发布。
+
+## Requirements (each must be met)
+1. Single-screen web game; a small square (the player) jumps with the Space key.
+2. Obstacles approach the square from the front (right to left); jumping clears them.
+3. Touching an obstacle ends the game (game-over state, with a way to restart).
+4. Score and high score are both visible on screen during play. High score updates when beaten (persisting across reloads via localStorage is welcome, but must not break when storage is unavailable, e.g. file://).
+5. Opening `index.html` directly (file://, double-click) plays the game: no server, no build step, no network dependency (all code/assets local or inline).
+6. The playable build is packaged as a zip with `index.html` at the zip root and published as a file of a release (tag + zip asset) in the `game-developer` repository.
+
+## Focus and priorities
+1. Correct, fair core loop first: jump physics feel, obstacle spawn that is always clearable, accurate collision, score increasing with survival/obstacles passed, restart with Space.
+2. Clarity: score / high score / game-over / start prompt readable at a glance.
+3. Robustness: works from file://, no console errors, no key-repeat double-jumps, speed ramps gently.
+4. Art/audio: minimal, consistent, local/inline; no external fetches. Sound optional and must not block play.
+
+## Work split
+- game-developer: build, art, quality — `index.html` (plus any local assets) at repo root, its own check of each build, zip release.
+- playtester: plays the released zip (extracted, opened via index.html) as a player, reports with evidence.
+- producer: brief, assignment, acceptance.
+
+## Could not establish
+- Exact visual style, difficulty curve and score formula are unspecified; left to the builder within the priorities above.

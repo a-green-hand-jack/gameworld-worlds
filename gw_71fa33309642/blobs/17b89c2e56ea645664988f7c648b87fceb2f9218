@@ -1,0 +1,68 @@
+"""World 2 layout check: the build's level data (SMB.LevelDefs[..].areas[..]()) against the reference decode of the original maps
+(game-developer tools/levels_w2.json). BUILD_DIR=... REF=path/to/levels_w2.json python3 qa/map_compare.py
+Compares tile classes per cell, item contents, enemies, pipes, lifts, firebars; 'hard' (second-quest only) objects are excluded from the expectation."""
+import os, sys, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness import Game
+REF = json.load(open(os.environ['REF']))
+g = Game(os.path.abspath(os.environ['BUILD_DIR']), '')
+AREAS = {'2-1': ['main', 'cloud', 'coinroom'], '2-2': ['intro', 'main', 'exit'], '2-3': ['main'], '2-4': ['main']}
+dump = {}
+ALIAS = {'2-1/cloud': '2-1/exit'}
+for lv, names in AREAS.items():
+    for n in names:
+        dump[f'{lv}/{n}'] = g.js("((a) => { const r = SMB.LevelDefs[a[0]].areas[a[1]](); const b = r.b; return {w: b.w, tiles: Array.from(b.tiles), contents: b.contents, enemies: b.enemies, pipes: b.pipes, lifts: b.lifts, firebars: b.firebars, flag: b.flag || null, axe: b.axe || null, bridge: b.bridge || null, extra: b.extra || null, theme: r.def.theme, water: r.def.water, frenzies: r.def.frenzies}; })(%s)" % json.dumps([lv, n]))
+g.close()
+json.dump(dump, open(os.environ.get('DUMP', '/tmp/w2dump.json'), 'w'))
+# tile classes: code -> char class
+T = dict(EMPTY=0, GROUND=1, BRICK=2, QUESTION=3, USED=4, BLOCK=5, PIPE_TL=6, PIPE_TR=7, PIPE_L=8, PIPE_R=9, COIN=16, HIDDEN=17)
+cls_build = {1: '#', 2: 'B', 3: '?', 4: 'U', 5: 'X', 6: '[', 7: ']', 8: '{', 9: '}', 16: 'o', 17: 'h', 0: '.'}
+ref_cls = {'#': '#', 'B': 'B', '?': '?', 'U': 'U', 'X': 'X', 'F': 'X', '[': '[', ']': ']', '{': '{', '}': '}', 'o': 'o', 'h': 'h'}
+out = {}
+problems = 0
+def rep(msg):
+    global problems
+    problems += 1; print('DIFF', msg)
+for aid, a in REF['areas'].items():
+    d = dump[{v: k for k, v in ALIAS.items()}.get(aid, aid)]; w = d['w']
+    print(f'== {aid}: width ref {a["width"]} build {w}')
+    if w != a['width']: rep(f'{aid} width {w} != {a["width"]}')
+    rows = a['rows']
+    bad = []
+    for y in range(15):
+        for x in range(min(w, a['width'])):
+            rc = ref_cls.get(rows[y][x] if y < len(rows) else '.', None)
+            bc = cls_build.get(d['tiles'][y * w + x], '?code')
+            if rc is None:
+                if bc in ('#', 'B', '?', 'U', 'X', '[', ']', '{', '}', 'h'): bad.append((x, y, rows[y][x], bc))
+            elif rc != bc and not (rc == '.' and bc == '.'):
+                bad.append((x, y, rows[y][x], bc))
+    # tolerate the solid classes that legitimately map differently (water, sideways pipes, castle wall art, extras, etc. have rc None)
+    solid_bad = [b for b in bad]
+    print(f'   tile cells differing in tracked classes: {len(solid_bad)}', solid_bad[:25])
+    if solid_bad: rep(f'{aid} {len(solid_bad)} tile cells differ')
+    # contents
+    rc = {(c['x'], c['y']): c['kind'] for c in a['contents']}
+    bc = {tuple(map(int, k.split(','))): v for k, v in d['contents'].items()}
+    miss = {k: v for k, v in rc.items() if k not in bc}; extra = {k: v for k, v in bc.items() if k not in rc}; diff = {k: (rc[k], bc[k]) for k in rc if k in bc and rc[k] != bc[k]}
+    print('   contents ref', len(rc), 'build', len(bc), 'missing', miss, 'extra', extra, 'kind-differs', diff)
+    if miss or extra: rep(f'{aid} contents')
+    # enemies (non-hard)
+    emap = {'goomba': 'goomba', 'koopa': 'koopa', 'koopa_red': 'redkoopa', 'paratroopa_green_hop': 'parakoopa', 'blooper': 'blooper', 'podoboo': 'podoboo', 'bowser': 'bowser'}
+    ren = sorted((e['type'], round(e['x'], 1)) for e in a['enemies'] if not e.get('hard') and not e.get('neverSpawns'))
+    ben = sorted((e['type'], round(e['x'], 1)) for e in d['enemies'])
+    from collections import Counter
+    rc_ = Counter(t for t, _ in ren); bc_ = Counter(t for t, _ in ben)
+    print('   enemies ref(non-hard)', dict(rc_), '| build', dict(bc_))
+    hard = Counter(e['type'] for e in a['enemies'] if e.get('hard'))
+    if hard: print('   ref hard-mode-only (excluded):', dict(hard))
+    out[aid] = {'ref_enemies': ren, 'build_enemies': ben}
+    # pipes, lifts, firebars
+    print('   pipes build', [(p['x'], p['y'], p.get('dir')) for p in d['pipes']], '| ref', [(p['x'], p['y'], p.get('dir')) for p in a['pipes']])
+    rl = [(o['kind'], o['x'], o['y']) for o in a['objects'] if o['type'] == 'lift']
+    print('   lifts build', d['lifts'], '| ref', rl)
+    rf = [(o['x'], o['y'], o['length'], o['dir']) for o in a['objects'] if o['type'] == 'firebar' and not o.get('hard')]
+    rfh = [(o['x'], o['y']) for o in a['objects'] if o['type'] == 'firebar' and o.get('hard')]
+    print('   firebars build', [(f.get('x'), f.get('y'), f.get('len', f.get('length')), f.get('dir')) for f in d['firebars']], '| ref non-hard', rf, '| ref hard-only', rfh)
+json.dump(out, open('/tmp/w2enemies.json', 'w'))
+print('problems', problems)

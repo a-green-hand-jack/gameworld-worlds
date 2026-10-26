@@ -1,0 +1,89 @@
+import sys, json, time, threading, http.server, functools, socketserver
+from playwright.sync_api import sync_playwright
+root=sys.argv[1]
+class Hd(http.server.SimpleHTTPRequestHandler):
+    def __init__(s,*a,**k): super().__init__(*a,directory=root,**k)
+    def log_message(s,*a): pass
+srv=socketserver.ThreadingTCPServer(('127.0.0.1',0),Hd); port=srv.server_address[1]
+threading.Thread(target=srv.serve_forever,daemon=True).start()
+R={}
+INIT="""
+window.__log=[];window.__ups=[];window.__starts=0;
+document.addEventListener('DOMContentLoaded',()=>{
+ const t0=performance.now();
+ document.querySelectorAll('.hole').forEach((h,i)=>{
+  let s=null;
+  new MutationObserver(()=>{const up=h.classList.contains('up');
+    if(up&&s===null){s=performance.now();} else if(!up&&s!==null){window.__ups.push([i,s,performance.now()-s]);s=null;}
+  }).observe(h,{attributes:true,attributeFilter:['class']});
+ });
+});
+const _S=AudioBufferSourceNode.prototype.start;
+AudioBufferSourceNode.prototype.start=function(){window.__starts++;window.__dur=this.buffer&&this.buffer.duration;window.__sr=this.buffer&&this.buffer.sampleRate;return _S.apply(this,arguments)};
+"""
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+    pg=b.new_page(viewport={'width':1280,'height':800})
+    errs=[];pg.on('console',lambda m: errs.append((m.type,m.text)) if m.type in('error','warning') else None);pg.on('pageerror',lambda e:errs.append(('pageerror',str(e))))
+    pg.add_init_script(INIT)
+    pg.goto(f'http://127.0.0.1:{port}/')
+    R['title_visible']=pg.is_visible('#title-screen'); R['start_visible']=pg.is_visible('#start-btn')
+    R['game_hidden_on_title']=not pg.is_visible('#game-screen'); R['holes']=pg.locator('.hole').count()
+    def hb(i): return pg.locator('.hole').nth(i).bounding_box()
+    def click_hole(i):
+        bb=hb(i);pg.mouse.click(bb['x']+bb['width']/2,bb['y']+bb['height']/2)
+    pg.click('#start-btn'); t0=time.time()
+    R['grid_visible']=pg.is_visible('#grid'); R['hud']=pg.inner_text('#hud')
+    # grid layout 3x3
+    bbs=[hb(i) for i in range(9)]
+    R['cols']=sorted(set(round(b['x']) for b in bbs)); R['rows']=sorted(set(round(b['y']) for b in bbs))
+    R['in_viewport']=all(b['y']+b['height']<=800 for b in bbs)
+    # play: hit when mole up (real mouse click), also click empty holes, double click, late click
+    hits=0; empty_clicks=0; doubles=0; hud_samples=[]; late_ok=0
+    last_up=None; sc_prev=0
+    while time.time()-t0<31.5:
+        st=pg.evaluate('({p:__whack.phase,s:__whack.score,u:__whack.upHole,t:__whack.timeLeft,tx:document.getElementById("time").textContent,sx:document.getElementById("score").textContent})')
+        if len(hud_samples)<400 and st['p']=='playing': hud_samples.append((round(time.time()-t0,1),st['t'],st['tx'],st['s'],st['sx']))
+        if st['p']!='playing': break
+        u=st['u']
+        if u>=0 and u!=last_up:
+            last_up=u
+            time.sleep(0.15)  # human-ish delay
+            before=pg.evaluate('__whack.score')
+            if pg.evaluate('__whack.upHole')==u:
+                click_hole(u)
+                after=pg.evaluate('__whack.score')
+                if after==before+1: hits+=1
+                # immediate second click on same hole (double whack)
+                click_hole(u); 
+                if pg.evaluate('__whack.score')!=after: doubles+=1
+                # click an empty hole
+                e=(u+1)%9; s0=pg.evaluate('__whack.score'); click_hole(e)
+                if pg.evaluate('__whack.score')!=s0: empty_clicks+=1
+        elif u<0: last_up=None
+        time.sleep(0.01)
+    # wait for end
+    pg.wait_for_function('__whack.phase=="ended"',timeout=5000); t_end=time.time()-t0
+    R['round_wall_s']=round(t_end,2); R['hits_counted']=hits; R['score_end']=pg.evaluate('__whack.score')
+    R['double_click_extra_score']=doubles; R['empty_click_extra_score']=empty_clicks
+    R['sounds_started']=pg.evaluate('__starts'); R['sound_dur']=pg.evaluate('__dur'); R['sound_sr']=pg.evaluate('__sr')
+    R['final_text']=pg.inner_text('#final-score'); R['end_visible']=pg.is_visible('#end-screen'); R['again_visible']=pg.is_visible('#again-btn')
+    ups=pg.evaluate('__ups'); d=[u[2] for u in ups]
+    R['appearances']=len(d); R['max_up_ms']=round(max(d),1); R['min_up_ms']=round(min(d),1)
+    R['hud_mismatch']=[h for h in hud_samples if str(h[1])!=h[2] or str(h[3])!=h[4]][:5]
+    R['time_values_seen']=sorted(set(h[1] for h in hud_samples),reverse=True)
+    R['holes_used']=sorted(set(u[0] for u in ups))
+    # no mole visible after end?
+    time.sleep(1.2); R['up_after_end']=pg.evaluate('document.querySelectorAll(".hole.up").length'); R['score_after_end_const']=pg.evaluate('__whack.score')==R['score_end']
+    # replay
+    pg.evaluate('window.__ups=[];window.__starts=0'); pg.click('#again-btn'); t1=time.time()
+    R['replay_state']=pg.evaluate('({p:__whack.phase,s:__whack.score,t:__whack.timeLeft,sx:document.getElementById("score").textContent})')
+    pg.wait_for_function('__whack.phase=="ended"',timeout=35000); R['replay_wall_s']=round(time.time()-t1,2)
+    R['replay_score_no_clicks']=pg.evaluate('__whack.score'); R['replay_final_text']=pg.inner_text('#final-score')
+    ups=pg.evaluate('__ups'); R['replay_max_up_ms']=round(max(u[2] for u in ups),1)
+    # third round: replay twice, ensure no duplicated mole timers (appearance rate)
+    pg.click('#again-btn'); time.sleep(10); n=pg.evaluate('__ups.length'); R['third_round_10s_appearances']=n
+    # mid-round hidden-hole click then restart quickly; clicking again-btn not available mid-round
+    R['console']=errs
+    b.close()
+print(json.dumps(R,indent=1))

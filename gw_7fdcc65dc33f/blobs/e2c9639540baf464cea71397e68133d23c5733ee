@@ -1,0 +1,19 @@
+import sys, time, json
+from playwright.sync_api import sync_playwright
+d, out = sys.argv[1], sys.argv[2]
+with sync_playwright() as p:
+  b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+  pg = b.new_page(viewport={'width': 1000, 'height': 800}); errs=[]
+  pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
+  pg.on('pageerror', lambda e: errs.append(str(e)))
+  pg.goto('file://' + d + '/index.html'); pg.click('#start-btn'); t0=time.time(); hits=0
+  while time.time()-t0 < 8:
+    u = pg.evaluate('window.__whack.upHole')
+    if u >= 0:
+      pg.locator(f'.hole[data-index="{u}"]').click(); hits += 1
+      if hits == 1: pg.screenshot(path=f'{out}/file-hit.png')
+      time.sleep(0.1)
+    time.sleep(0.03)
+  time.sleep(0.5)
+  print(json.dumps({'hits_clicked': hits, 'state': pg.evaluate('({...window.__whack})'), 'sound': pg.evaluate('window.__whackSound && window.__whackSound.duration'), 'console': errs}))
+  b.close()

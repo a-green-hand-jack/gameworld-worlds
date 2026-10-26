@@ -1,0 +1,54 @@
+import sys, time, subprocess, json
+from playwright.sync_api import sync_playwright
+d, out = sys.argv[1], sys.argv[2]
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', '8765', '-d', d], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(1)
+log = {}
+try:
+  with sync_playwright() as p:
+    b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
+    pg = b.new_page(viewport={'width': 1000, 'height': 800})
+    errs = []
+    pg.on('console', lambda m: errs.append(m.text) if m.type in ('error','warning') else None)
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto('http://localhost:8765/')
+    pg.screenshot(path=f'{out}/1-title.png')
+    pg.click('#start-btn')
+    t0 = time.time(); ups = {}; durs = []; cur = None; clicks = 0; missclicks = 0
+    shot = False
+    while True:
+      s = pg.evaluate('({...window.__whack})')
+      now = time.time()
+      if s['upHole'] != (cur[0] if cur else -1):
+        if cur: durs.append(now - cur[1])
+        cur = (s['upHole'], now) if s['upHole'] >= 0 else None
+      if s['phase'] != 'playing': break
+      if cur and now - cur[1] > 0.25 and (now - t0) < 25:
+        before = s['score']
+        pg.locator(f'.hole[data-index="{cur[0]}"]').click()   # real mouse click
+        clicks += 1
+        if not shot and now - t0 > 3:
+          pg.screenshot(path=f'{out}/2-play.png'); shot = True
+      elif (now - t0) > 25 and (now - t0) < 26 and missclicks < 3:
+        empty = [i for i in range(9) if i != s['upHole']][0]
+        sc = s['score']; pg.locator(f'.hole[data-index="{empty}"]').click(); missclicks += 1
+        log.setdefault('emptyclick_delta', []).append(pg.evaluate('window.__whack.score') - sc)
+      time.sleep(0.02)
+    log['round_s'] = round(time.time() - t0, 2)
+    log['max_up_s'] = round(max(durs), 3) if durs else None
+    log['n_ups'] = len(durs)
+    s = pg.evaluate('({...window.__whack})')
+    log['end_state'] = s; log['clicks'] = clicks
+    log['final_text'] = pg.inner_text('#final-score')
+    log['end_visible'] = pg.is_visible('#end-screen')
+    log['sound_dur'] = pg.evaluate('window.__whackSound && window.__whackSound.duration')
+    log['sound_rate'] = pg.evaluate('window.__whackSound && window.__whackSound.sampleRate')
+    pg.screenshot(path=f'{out}/3-end.png')
+    pg.click('#again-btn'); time.sleep(1.2)
+    log['replay'] = {'state': pg.evaluate('({...window.__whack})'), 'score_text': pg.inner_text('#score'), 'time_text': pg.inner_text('#time')}
+    pg.screenshot(path=f'{out}/4-replay.png')
+    log['console'] = errs
+    b.close()
+finally:
+  srv.terminate()
+print(json.dumps(log, indent=1))

@@ -1,0 +1,14 @@
+title text: Arrow keys turn the snake. Eat food to grow and score. | Don't hit the walls or yourself. |  | Start |  | or press Enter / Space
+hud hidden on title: True
+scrollY before arrows 0 doc h 800 win h 800
+state after ArrowDown on title: title
+start {'state': 'playing', 'snake': [[7, 10], [6, 10], [5, 10]], 'food': [6, 8], 'score': 0, 'dir': [1, 0], 'cause': None}
+heads sampled (60ms apart): [[8, 10], [8, 10], [9, 10], [9, 10], [10, 10], [11, 10], [11, 10], [12, 10], [12, 10], [13, 10]]
+after Left while going Right: dir [1, 0] state playing
+double turn Up+Left trail [[16, 10], [16, 9], [16, 9], [15, 9], [14, 9], [14, 9], [13, 9], [13, 9]] dir [-1, 0] state playing
+paused head unchanged: True paused
+died over wall score 0
+gameover text: Game Over |  | Final score: 0 |  | Best: 0 |  | Play again |  | or press Enter / Space
+errors: []
+audio plays: ['start.ogg', 'music.ogg(loop)', 'music.ogg(loop)', 'gameover.ogg']
+asset status: {'head': 'assets/images/snake-head.png', 'body': 'assets/images/snake-body.png', 'tail': 'assets/images/snake-tail.png', 'food': 'assets/images/food.png', 'tile': 'assets/images/board-tile.png', 'logo': 'assets/images/title-logo.png', 'eat': 'assets/audio/eat.ogg', 'music': 'assets/audio/music.ogg', 'gameover': 'assets/audio/gameover.ogg', 'start': 'assets/audio/start.ogg'}

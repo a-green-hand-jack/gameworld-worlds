@@ -1,0 +1,6 @@
+html, body { margin: 0; height: 100%; background: #0b0f1a; }
+#stage { display: flex; align-items: center; justify-content: center; height: 100%; }
+#game {
+  display: block; background: #0b0f1a; outline: none;
+  width: min(100vw, calc(100vh * 4 / 3)); height: auto; aspect-ratio: 4 / 3;
+}

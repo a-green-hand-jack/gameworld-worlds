@@ -1,0 +1,101 @@
+"""Merge build/gfx.json + assets/audio/audio.json into assets/manifest.json and validate it.
+
+Shape: game-developer docs/assets.md (manifest_schema 1).
+Checks: every referenced file exists; every frame rect lies inside its image and
+inside every theme variant; variant images have the base image's size; every
+frame name the game requests (tools/required_names.txt, if present) exists;
+no stray asset files the manifest does not list.  Exit 1 on any error.
+"""
+import json
+import os
+import sys
+from PIL import Image
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+A = os.path.join(ROOT, "assets")
+
+
+def main():
+    gfx = json.load(open(os.path.join(ROOT, "build", "gfx.json")))
+    audio_p = os.path.join(A, "audio", "audio.json")
+    audio = json.load(open(audio_p)) if os.path.exists(audio_p) else {"sfx": {}, "music": {}}
+    man = {"manifest_schema": 1, "sheets": gfx["sheets"]}
+    for k in ("font", "title", "palette"):
+        if k in gfx:
+            man[k] = gfx[k]
+    man["audio"] = {}
+    for kind in ("sfx", "music"):
+        for k, v in audio.get(kind, {}).items():
+            e = {"files": v["files"]}
+            if v.get("loop"):
+                e.update(loop=True, loopStart=v.get("loopStart", 0.0), loopEnd=v.get("loopEnd", 0.0))
+            if "volume" in v:
+                e["volume"] = v["volume"]
+            e["duration"] = v.get("duration")
+            man["audio"][k] = e
+    errs, listed = [], {"audio/audio.json"}
+    for name, s in man["sheets"].items():
+        files = [s["file"]] + list(s.get("variants", {}).values())
+        size = None
+        for f in files:
+            listed.add(f)
+            p = os.path.join(A, f)
+            if not os.path.exists(p):
+                errs.append(f"{name}: missing {f}")
+                continue
+            w, h = Image.open(p).size
+            if size and size != (w, h):
+                errs.append(f"{name}: {f} size {w}x{h} differs from base {size}")
+            size = size or (w, h)
+            for fn, (x, y, fw, fh) in s["frames"].items():
+                if x < 0 or y < 0 or x + fw > w or y + fh > h:
+                    errs.append(f"{name}/{fn}: rect outside {f}")
+    if "font" in man:
+        f = man["font"]
+        listed.add(f["file"])
+        w, h = Image.open(os.path.join(A, f["file"])).size
+        n = len(f["chars"])
+        if (n - 1) // f["columns"] * f["cell"][1] + f["cell"][1] > h:
+            errs.append("font: chars exceed image")
+    if "title" in man:
+        listed.add(man["title"]["file"])
+        if not os.path.exists(os.path.join(A, man["title"]["file"])):
+            errs.append("title missing")
+    for k, v in man["audio"].items():
+        for f in v["files"]:
+            listed.add(f)
+            if not os.path.exists(os.path.join(A, f)):
+                errs.append(f"audio {k}: missing {f}")
+    req = os.path.join(ROOT, "tools", "required_names.txt")
+    missing = []
+    if os.path.exists(req):
+        for line in open(req):
+            line = line.split("#")[0].strip()
+            if not line:
+                continue
+            sec, nm = line.split(":", 1)
+            if sec == "audio":
+                ok = nm in man["audio"]
+            else:
+                ok = sec in man["sheets"] and nm in man["sheets"][sec]["frames"]
+            if not ok:
+                missing.append(line)
+    for dp, _, fs in os.walk(A):
+        for f in fs:
+            rel = os.path.relpath(os.path.join(dp, f), A)
+            if rel != "manifest.json" and rel != "README.md" and rel not in listed:
+                errs.append(f"unlisted file {rel}")
+    with open(os.path.join(A, "manifest.json"), "w") as fh:
+        json.dump(man, fh, indent=1)
+    for e in errs:
+        print("ERROR", e)
+    for m in missing:
+        print("MISSING", m)
+    n = sum(len(s["frames"]) for s in man["sheets"].values())
+    print(f"manifest: {len(man['sheets'])} sheets, {n} frames, {len(man['audio'])} audio; "
+          f"{len(errs)} errors, {len(missing)} contract names missing")
+    sys.exit(1 if errs else 0)
+
+
+if __name__ == "__main__":
+    main()

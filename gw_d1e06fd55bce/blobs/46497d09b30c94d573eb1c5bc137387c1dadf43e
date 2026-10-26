@@ -1,0 +1,32 @@
+from playwright.sync_api import sync_playwright
+O='/hutian/repo/evidence/'; out=[]
+def L(*a): s=' '.join(map(str,a)); print(s); out.append(s)
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    for url in ['http://localhost:8765/index.html']:
+        pg=b.new_page(viewport={'width':1366,'height':768}); errs=[]
+        pg.on('console',lambda m: errs.append(m.text) if m.type=='error' else None); pg.on('requestfailed',lambda r: errs.append(r.url)); pg.on('response',lambda r: errs.append(f'{r.status} {r.url}') if r.status>=400 else None)
+        pg.goto(url); pg.wait_for_function('pong.ready'); pg.screenshot(path=O+'08_http_1366x768_title.png')
+        L('http: loaded, errors',errs)
+        st=lambda: pg.evaluate('pong.game.state')
+        pg.keyboard.press('Space'); pg.wait_for_timeout(1500); L('Space starts ->',st())
+        pg.keyboard.press('p'); L('P ->',st()); pg.screenshot(path=O+'09_paused.png'); pg.keyboard.press('p'); L('P again ->',st())
+        # blur auto pause
+        pg.evaluate("window.dispatchEvent(new Event('blur'))"); L('window blur ->',st())
+        pg.keyboard.press('Enter'); L('Enter resumes ->',st())
+        # paddle response: hold Down 0.5s
+        y0=pg.evaluate('pong.game.player.y'); pg.keyboard.down('ArrowDown'); pg.wait_for_timeout(500); pg.keyboard.up('ArrowDown'); y1=pg.evaluate('pong.game.player.y'); L('ArrowDown 0.5s moved paddle',round(y1-y0),'px')
+        y0=y1; pg.keyboard.down('w'); pg.wait_for_timeout(300); pg.keyboard.up('w'); L('W 0.3s moved',round(pg.evaluate('pong.game.player.y')-y0),'px')
+        # ball speed
+        pg.evaluate("pong.game.score.computer=4; pong.game.score.player=4")
+        L('serve ball speed (px/s)', round(pg.evaluate('(()=>{const g=pong.game;return Math.hypot(g.ball.vx,g.ball.vy)})()')))
+        pg.keyboard.press('Escape'); L('Esc during play ->',st())
+        pg.keyboard.press('Escape'); L('Esc again ->',st())
+        # layout at small window
+        pg.set_viewport_size({'width':640,'height':400}); pg.wait_for_timeout(300); pg.screenshot(path=O+'10_small_640x400.png')
+        L('canvas css size at 640x400', pg.evaluate("[document.getElementById('game').style.width,document.getElementById('game').style.height]"))
+        # Esc to title from gameover
+        pg.evaluate("pong.game.startMatch(); pong.game.score.player=4"); 
+        pg.set_viewport_size({'width':1000,'height':640})
+    b.close()
+open(O+'edge_checks.txt','w').write('\n'.join(out))

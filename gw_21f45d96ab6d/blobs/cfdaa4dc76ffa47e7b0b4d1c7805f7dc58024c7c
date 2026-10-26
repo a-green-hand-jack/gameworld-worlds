@@ -1,0 +1,5 @@
+# Brief
+Objective (quoted): "A tiny text adventure in one Python file: two rooms, one item, one way to win." Producer commits design notes; game developer writes the script; producer publishes the build as a role release for the playtester; playtester commits a short playtest report. Keep everything small.
+
+Focus: playable, winnable, scriptable via stdin; commit messages say what the change is for. See design/notes.md.
+Unknown: exact filename of the script (expected `game.py` at game-developer repo root).

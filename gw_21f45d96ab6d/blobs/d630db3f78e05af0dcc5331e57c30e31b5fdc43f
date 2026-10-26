@@ -1,0 +1,53 @@
+# Playtest report
+
+**Build played:** release `v0.1` of `world/producer` ("adventure.py build v0.1", from game-developer 34626dd), file `adventure.py`, sha256 `5a649d04a6c5193865f2dac8740a733684ca836ae144ad85b044108e39f53f38`, downloaded from the release (not from source).
+**How:** `python3 adventure.py` with commands piped on stdin (Python 3.11), four scripted sessions. No interactive tty or screenshots; it is text only, so the transcripts below are the evidence.
+
+## Verdict
+Playable, winnable, no crashes. Matches the objective: two rooms (cellar, hall), one item (brass key), one way to win (take key, go up, unlock door). Exit code 0 in all runs.
+
+## What worked
+- Winning path works first try, and the intro lists the commands.
+- Locked door without key gives a clear hint ("You need a key").
+- The key disappears from the room description once taken; re-taking says "Nothing to take."
+- Input is case-insensitive; `quit` works; going back down and up again is fine.
+
+## Rough edges (minor)
+- Unrecognised or wrong-room commands all give "You can't do that." with no hint (e.g. `dance`, `go down` in the cellar).
+- Stdin ending without `quit` prints a stray blank line (the final `print()`), and there is no goodbye.
+- `unlock door` in the cellar says "You can't do that." rather than saying there is no door here.
+- No inventory command; the player cannot check whether they hold the key.
+- Brief says the script is expected at `game.py`; the actual file is `adventure.py` (harmless, just a naming mismatch).
+
+## Transcripts
+### Win path
+```
+> look / take key / look / go up / look / unlock door
+You wake in a dark cellar. Commands: look, take key, go up, go down, unlock door, quit.
+A damp cellar. A brass key lies on the floor. Stairs lead up.
+You take the brass key.
+A damp cellar. Stairs lead up.
+You climb to the hall.
+A hall with a locked oak door. Stairs lead down.
+The door opens onto daylight. You win!
+```
+### Wrong order (unlock without key, then fetch key)
+```
+> go up / unlock door / go down / take key / take key / go up / unlock door
+You climb to the hall.
+The door is locked. You need a key.
+You descend to the cellar.
+You take the brass key.
+Nothing to take.
+You climb to the hall.
+The door opens onto daylight. You win!
+```
+### Invalid input
+```
+> dance / TAKE KEY / go down / unlock door / quit
+You can't do that.
+You take the brass key.
+You can't do that.
+You can't do that.
+Goodbye.
+```

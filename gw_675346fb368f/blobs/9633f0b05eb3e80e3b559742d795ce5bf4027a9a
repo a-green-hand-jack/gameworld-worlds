@@ -1,0 +1,25 @@
+loaded screen= title assets= {"loaded": ["img/logo.svg", "audio/wall_hit.wav", "audio/paddle_hit.wav", "audio/score.wav", "audio/concede.wav", "audio/start.wav", "audio/win.wav", "audio/lose.wav"], "missing": []}
+after Enter: play {'player': 0, 'cpu': 0}
+paddle y: start 252 after Up 113.99999999999972 after S 259.6666666666667
+match 1 (tracking player):
+  score {'player': 0, 'cpu': 0} t=0s
+  score {'player': 1, 'cpu': 0} t=14s
+  score {'player': 1, 'cpu': 1} t=51s
+  score {'player': 2, 'cpu': 1} t=70s
+  score {'player': 2, 'cpu': 2} t=90s
+  score {'player': 2, 'cpu': 3} t=114s
+  score {'player': 3, 'cpu': 3} t=121s
+  score {'player': 4, 'cpu': 3} t=127s
+  score {'player': 5, 'cpu': 3} t=139s
+match 1 end: over player {'player': 5, 'cpu': 3} rallies 85
+play again: play {'player': 0, 'cpu': 0} None
+match 2 (idle player):
+  score {'player': 0, 'cpu': 0} t=0s
+  score {'player': 0, 'cpu': 1} t=8s
+  score {'player': 0, 'cpu': 2} t=14s
+  score {'player': 0, 'cpu': 3} t=27s
+  score {'player': 0, 'cpu': 4} t=29s
+  score {'player': 0, 'cpu': 5} t=35s
+match 2 end: over cpu {'player': 0, 'cpu': 5}
+Esc on end screen -> title
+console/page errors: []

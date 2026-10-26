@@ -1,0 +1,2 @@
+{"assignment_schema": 1,
+ "items": [{"owner": "artist", "paths": ["assets/", "README.md"], "work": "assets/sky.png (800x600 pixel-art night sky from an image-generation model) plus generation note in README.md and/or under assets/"}]}

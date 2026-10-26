@@ -1,0 +1,5 @@
+# Brief: Click Ten
+Input: "Make 'Click Ten' as a tiny web game played in the browser: one page with a button and a counter; each click adds one, and at ten clicks the game shows 'You did it!' and a button to play again, which resets the counter to zero. One HTML file with its script and style inside it; no images, sound or libraries."
+
+Focus: a single `index.html` (inline CSS/JS, no external assets) delivered by game-developer. Counter starts at 0; each click +1; at 10 show "You did it!" and a play-again button; play again resets to 0 and the game is playable again. Clicking must not exceed 10.
+Unestablished: filename not specified; we use index.html.

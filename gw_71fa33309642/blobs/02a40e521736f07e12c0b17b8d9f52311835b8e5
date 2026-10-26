@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Review screens for World 2, built only from the delivered files in assets/.
+Run after export.py:  python3 tools/gfx/mock_w2.py  -> tools/gfx/check/scene_2-*_x3.png"""
+import os
+from PIL import Image
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+A = os.path.join(HERE, "..", "..", "assets")
+CHECK = os.path.join(HERE, "check")
+FONT = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-x!c."
+
+
+def img(rel, n=None, w=None):
+    im = Image.open(os.path.join(A, rel)).convert("RGBA")
+    return im if n is None else im.crop((n * w, 0, n * w + w, im.size[1]))
+
+
+def T(theme, name, n=None):
+    p = f"tiles/{theme}/{name}.png"
+    if not os.path.exists(os.path.join(A, p)):
+        p = f"tiles/overworld/{name}.png"
+    return img(p, n, 16) if n is not None else img(p)
+
+
+def text(im, s, x, y):
+    font = img("ui/font.png")
+    for ch in s:
+        if ch != " ":
+            i = FONT.index(ch)
+            im.alpha_composite(font.crop((i * 8, 0, i * 8 + 8, 8)), (x, y))
+        x += 8
+
+
+def hud(im, world):
+    text(im, "MARIO", 24, 16); text(im, "WORLD", 144, 16); text(im, "TIME", 200, 16)
+    text(im, "004350", 24, 24); im.alpha_composite(img("ui/coin_icon.png", 0, 8), (88, 24))
+    text(im, "x21", 96, 24); text(im, world, 152, 24); text(im, "287", 208, 24)
+
+
+def save(im, name):
+    os.makedirs(CHECK, exist_ok=True)
+    im.resize((768, 720), Image.NEAREST).save(os.path.join(CHECK, name))
+
+
+SKY = (92, 148, 252, 255)
+
+# 2-1 overworld: trees, fences, springboard, beanstalk rising from a brick
+im = Image.new("RGBA", (256, 240), SKY); a = im.alpha_composite
+a(img("scenery/cloud_2.png"), (120, 40))
+a(img("scenery/tree_large.png"), (16, 160)); a(img("scenery/tree_small.png"), (32, 176))
+a(img("scenery/tree_small.png"), (176, 176))
+for x in (48, 64, 80, 192, 208):
+    a(img("scenery/fence.png"), (x, 192))
+for x in range(0, 256, 16):
+    a(T("overworld", "ground"), (x, 208)); a(T("overworld", "ground"), (x, 224))
+for x in (96, 112, 128):
+    a(T("overworld", "brick"), (x, 144))
+a(T("overworld", "used"), (112, 144))
+a(img("sprites/vine.png", 0, 16), (112, 64))
+for y in range(80, 144, 16):
+    a(img("sprites/vine.png", 1, 16), (112, y))
+a(img("sprites/mario_big.png", 7, 16), (106, 80))
+for i, x in enumerate((152, 176, 200)):
+    a(img("sprites/jumpspring.png", i, 16), (x, 176))
+a(img("sprites/parakoopa_green.png", 0, 16), (232, 120))
+a(img("sprites/piranha.png", 0, 16), (60, 100))
+hud(im, "2-1"); save(im, "scene_2-1_x3.png")
+
+# coin heaven
+im = Image.new("RGBA", (256, 240), SKY); a = im.alpha_composite
+a(img("scenery/cloud_1.png"), (180, 48))
+for x in range(0, 256, 16):
+    a(T("overworld", "cloud_block"), (x, 192))
+for x in range(32, 224, 16):
+    a(T("overworld", "coin", 0), (x, 112))
+for i in range(6):
+    a(img("sprites/lift_cloud.png"), (40 + 8 * i, 160))
+a(img("sprites/mario_small.png", 0, 16), (56, 144))
+a(img("sprites/mario_fire.png", 5, 16), (160, 128))
+hud(im, "2-1"); save(im, "scene_coinheaven_x3.png")
+
+# 2-2 underwater
+im = Image.new("RGBA", (256, 240), SKY); a = im.alpha_composite
+for x in range(0, 256, 16):
+    a(T("water", "water_top"), (x, 32))
+    a(T("water", "ground"), (x, 208)); a(T("water", "ground"), (x, 224))
+for x, h in ((32, 3), (144, 5)):
+    a(T("water", "coral_top"), (x, 208 - 16 * h))
+    for k in range(1, h):
+        a(T("water", "coral"), (x, 208 - 16 * k))
+for x in (176, 192, 208):
+    a(T("water", "ground"), (x, 128))
+for x in (80, 96, 112):
+    a(T("water", "coin", 0), (x, 96))
+for i, (x, y) in enumerate(((60, 140), (80, 104), (100, 70))):
+    a(img("sprites/mario_small.png", 9 + i, 16), (x - 40, y + 40))
+for i in range(3):
+    a(img("sprites/mario_big.png", 9 + i, 16), (64 + 24 * i, 150))
+    a(img("sprites/mario_fire.png", 9 + i, 16), (64 + 24 * i, 64))
+a(img("sprites/cheep_red.png", 0, 16), (200, 80)); a(img("sprites/cheep_grey.png", 1, 16), (224, 160))
+a(img("sprites/blooper.png", 0, 16), (170, 150)); a(img("sprites/blooper.png", 1, 16), (220, 96))
+hud(im, "2-2"); save(im, "scene_2-2_x3.png")
+
+# 2-3 bridges over open sky (no water in its area header), leaping red Cheep-cheeps
+im = Image.new("RGBA", (256, 240), SKY); a = im.alpha_composite
+a(img("scenery/cloud_3.png"), (60, 48))
+for x in range(0, 256, 16):
+    pass
+for x in range(0, 48, 16):
+    for y in range(144, 208, 16):
+        a(T("overworld", "block" if y > 144 else "ground"), (x, y))
+for x in range(48, 208, 16):
+    a(T("overworld", "rail"), (x, 128)); a(T("overworld", "bridge"), (x, 144))
+for x in range(208, 256, 16):
+    for y in range(144, 208, 16):
+        a(T("overworld", "ground"), (x, y))
+a(img("sprites/mario_big.png", 1, 16), (70, 112))
+a(img("sprites/cheep_red.png", 0, 16), (130, 80)); a(img("sprites/cheep_red.png", 1, 16), (180, 104))
+a(img("sprites/parakoopa_red.png", 1, 16), (220, 80))
+hud(im, "2-3"); save(im, "scene_2-3_x3.png")
+
+# 2-4 castle with Podoboos
+im = Image.new("RGBA", (256, 240), (0, 0, 0, 255)); a = im.alpha_composite
+for x in range(0, 256, 16):
+    a(T("castle", "brick"), (x, 32))
+for x in list(range(0, 64, 16)) + list(range(160, 256, 16)):
+    for y in (176, 192, 208, 224):
+        a(T("castle", "ground"), (x, y))
+for x in range(64, 160, 16):
+    a(T("castle", "lava_top"), (x, 208)); a(T("castle", "lava"), (x, 224))
+pod = img("sprites/podoboo.png")
+a(pod, (88, 120)); a(pod.transpose(Image.FLIP_TOP_BOTTOM), (128, 160))
+for i in range(4):
+    a(img("sprites/lift.png"), (176 + 8 * i, 120))
+a(T("castle", "block"), (200, 96))
+for k in range(5):
+    a(img("sprites/fireball.png", k % 4, 8), (204 + 8 * k, 100))
+a(img("sprites/mario_fire.png", 5, 16), (30, 130))
+a(img("sprites/bowser.png", 0, 32), (210, 144))
+hud(im, "2-4"); save(im, "scene_2-4_x3.png")

@@ -1,0 +1,58 @@
+from playwright.sync_api import sync_playwright
+EV='/hutian/repo/playtest/evidence/'
+S="()=>{const g=SnakeGame.game;return {state:g.state,snake:g.snake.map(c=>[c.x,c.y]),score:g.score,dir:[g.dir.x,g.dir.y],q:g.queue.map(d=>[d.x,d.y])}}"
+log=[]
+def L(*a):
+    s=' '.join(str(x) for x in a); print(s); log.append(s)
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    pg=b.new_page(viewport={'width':1280,'height':800})
+    errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
+    # file:// check
+    pg.goto('file:///hutian/pt1/snake-pt1/index.html'); pg.wait_for_timeout(600)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    L('file:// start works:',pg.evaluate(S)['state'], 'pageerrors',errs)
+    pg.goto('http://localhost:8000/'); pg.wait_for_timeout(500)
+    # three quick turns in one tick
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(30)
+    pg.keyboard.press('ArrowUp'); pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowDown')
+    s=pg.evaluate(S); L('3 quick presses Up,Left,Down -> queued',s['q'])
+    pg.wait_for_timeout(400); L('after 400ms dir',pg.evaluate(S)['dir'],'(Down press dropped => expected Left if so)')
+    # Up then Down in one tick while moving Right (reversal attempt)
+    pg.keyboard.press('Enter')  # no-op during play
+    pg.evaluate("SnakeGame.start()"); pg.wait_for_timeout(30)
+    pg.keyboard.press('ArrowUp'); pg.keyboard.press('ArrowDown')
+    s=pg.evaluate(S); L('Up then Down within a tick -> queued',s['q'],'state',s['state'])
+    pg.wait_for_timeout(500); L('state after',pg.evaluate(S)['state'])
+    # Response latency: press at random phase, measure time until head direction change shows
+    import time
+    pg.evaluate("SnakeGame.start()"); pg.wait_for_timeout(20)
+    lat=[]
+    for k in ['ArrowUp','ArrowRight','ArrowDown','ArrowRight']:
+        h0=pg.evaluate(S)['snake'][0]; t=time.time(); pg.keyboard.press(k)
+        while True:
+            s=pg.evaluate(S)
+            if s['snake'][0]!=h0 and s['dir']!=None: 
+                if s['snake'][0][0]-h0[0]!=0 and k in('ArrowUp','ArrowDown'): h0=s['snake'][0]; continue
+                break
+        lat.append(round((time.time()-t)*1000))
+        if s['state']!='playing': break
+        pg.wait_for_timeout(37)
+    L('ms from keypress to next head move:',lat,'(tick 120ms)')
+    # pause on blur
+    pg.evaluate("SnakeGame.start()"); pg.wait_for_timeout(100)
+    pg.evaluate("window.dispatchEvent(new Event('blur'))"); L('after blur state',pg.evaluate(S)['state'])
+    # Escape on title
+    pg.goto('http://localhost:8000/'); pg.wait_for_timeout(400); pg.keyboard.press('Escape'); L('Esc on title state',pg.evaluate(S)['state'])
+    # window sizes
+    for w,h in [(1366,768),(1024,600),(800,500),(1920,1080)]:
+        pg.set_viewport_size({'width':w,'height':h}); pg.wait_for_timeout(200)
+        pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+        sh=pg.evaluate('document.documentElement.scrollHeight'); 
+        r=pg.evaluate("(()=>{const r=document.getElementById('board').getBoundingClientRect();const f=document.querySelector('footer').getBoundingClientRect();const h=document.getElementById('hud').getBoundingClientRect();return [r.top,r.bottom,h.top,f.bottom]})()")
+        L(f'viewport {w}x{h}: scrollHeight {sh} board top/bottom, hud top, footer bottom {r}')
+        pg.screenshot(path=EV+f'09-viewport-{w}x{h}.png')
+        pg.evaluate("SnakeGame.game.state='over';location.reload()"); pg.wait_for_timeout(400)
+    L('pageerrors',errs)
+    b.close()
+open(EV+'run3.log','w').write('\n'.join(log))

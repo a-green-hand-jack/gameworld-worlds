@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""Full QA pass for the Pong build. Usage: full_checks.py <delivery_dir> <out_dir>"""
+import sys, os, json, threading, http.server, functools, time, random
+from playwright.sync_api import sync_playwright
+
+root, out = sys.argv[1], sys.argv[2]
+os.makedirs(out, exist_ok=True)
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Q, directory=root))
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+URL = f"http://127.0.0.1:{srv.server_port}/index.html"
+res = {}; errs = []
+def rec(k, ok, note=""):
+    res[k] = {"ok": bool(ok), "note": note}; print(("PASS" if ok else "FAIL"), k, note, flush=True)
+
+SAMPLER = """() => { window.__s = []; window.__ev=[]; let last=null;
+ const f=()=>{ const s=window.pong.getState(); s.t=performance.now(); window.__s.push(s);
+   if(window.__s.length>20000) window.__s.shift();
+   if(last && (last.score.player!==s.score.player||last.score.cpu!==s.score.cpu)) window.__ev.push({prev:last,now:s});
+   last=s; requestAnimationFrame(f)}; requestAnimationFrame(f)}"""
+
+def newpage(b, url=URL, vp=(1280,720), seed=None):
+    pg = b.new_page(viewport={"width": vp[0], "height": vp[1]})
+    pg.on("console", lambda m: m.type in ("error","warning") and errs.append(f"{m.type}: {m.text}"))
+    pg.on("pageerror", lambda e: errs.append(f"pageerror: {e}"))
+    pg.on("response", lambda r: r.status>=400 and errs.append(f"HTTP {r.status} {r.url}"))
+    pg.goto(url + (f"?seed={seed}" if seed else "")); pg.wait_for_function("window.pong && window.pong.getState().screen!=='loading'")
+    pg.evaluate(SAMPLER)
+    return pg
+S = lambda pg: pg.evaluate("window.pong.getState()")
+
+def play_match(pg, mode, maxsec=240, delay=0.0):
+    """mode idle|bot. Returns final state & seconds"""
+    t0 = time.time(); held=None
+    hist=[]
+    while time.time()-t0 < maxsec:
+        s = S(pg)
+        if s["screen"]=="over": break
+        if mode=="bot":
+            hist.append((time.time(), s["ball"]["y"]+8, s["ball"]["vx"]))
+            # use delayed observation
+            obs = [h for h in hist if h[0] <= time.time()-delay]
+            if obs:
+                _,by,vx = obs[-1]
+                c = s["player"]["y"]+48
+                want = by if vx<0 else 300
+                if want < c-10: new="ArrowUp"
+                elif want > c+10: new="ArrowDown"
+                else: new=None
+                if new!=held:
+                    if held: pg.keyboard.up(held)
+                    if new: pg.keyboard.down(new)
+                    held=new
+            hist=hist[-200:]
+        pg.wait_for_timeout(15)
+    if held: pg.keyboard.up(held)
+    return S(pg), time.time()-t0
+
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    # ---- load / title
+    pg = newpage(b, seed=11)
+    s = S(pg)
+    rec("R2 loads over http, title screen first", s["screen"]=="title", f"screen={s['screen']} assets={s['assets']}")
+    pg.screenshot(path=f"{out}/title.png")
+    rec("R2 no console errors/warnings/404 on load", not errs, str(errs))
+    # ---- start variants
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    rec("R6 Enter starts match", S(pg)["screen"]=="play")
+    # paddle control
+    y0=S(pg)["player"]["y"]; pg.keyboard.down("ArrowUp"); pg.wait_for_timeout(300); y1=S(pg)["player"]["y"]; pg.keyboard.up("ArrowUp")
+    pg.wait_for_timeout(100); y1b=S(pg)["player"]["y"]; pg.wait_for_timeout(200); y1c=S(pg)["player"]["y"]
+    rec("R4 ArrowUp moves paddle up, stops on release", y1<y0-50 and abs(y1c-y1b)<0.5, f"{y0:.0f}->{y1:.0f}, after release {y1b:.0f},{y1c:.0f}")
+    pg.keyboard.down("ArrowUp"); pg.wait_for_timeout(1500); ymin=S(pg)["player"]["y"]; pg.keyboard.up("ArrowUp")
+    pg.keyboard.down("ArrowDown"); pg.wait_for_timeout(2000); ymax=S(pg)["player"]["y"]; pg.keyboard.up("ArrowDown")
+    c=S(pg) ; 
+    rec("R4 paddle clamped to court (0..H-96)", ymin==0 and abs(ymax-(600-96))<0.5, f"min={ymin} max={ymax}")
+    for k,d in (("KeyW",-1),("KeyS",1)):
+        a=S(pg)["player"]["y"]; pg.keyboard.down(k); pg.wait_for_timeout(200); bb=S(pg)["player"]["y"]; pg.keyboard.up(k)
+        rec(f"R4 {k} moves paddle", (bb-a)*d>20, f"{a:.0f}->{bb:.0f}")
+    a=S(pg)["player"]["y"]; pg.keyboard.down("ArrowUp"); pg.keyboard.down("ArrowDown"); pg.wait_for_timeout(300); bb=S(pg)["player"]["y"]
+    pg.keyboard.up("ArrowUp"); pg.keyboard.up("ArrowDown")
+    rec("R4 up+down together: net movement small (<=2 steps)", abs(bb-a)<10, f"{a:.0f}->{bb:.0f}")
+    # idle for the rest of the match
+    pg.screenshot(path=f"{out}/play.png")
+    fin, secs = play_match(pg, "idle")
+    sc=fin["score"]
+    rec("R3/R5 idle player: computer wins exactly 5-x, match ends at 5", fin["screen"]=="over" and fin["winner"]=="cpu" and sc["cpu"]==5 and sc["player"]<5, f"{sc} in {secs:.0f}s")
+    # score progression in events
+    ev = pg.evaluate("window.__ev.map(e=>[e.prev.score,e.now.score])")
+    steps_ok = all((n["player"]-pv["player"])+(n["cpu"]-pv["cpu"])==1 for pv,n in ev)
+    rec("R1/R7 score increments by exactly 1 per point", steps_ok, str(ev))
+    pg.screenshot(path=f"{out}/over_cpu.png")
+    # R7: score visible during play: check screenshots later by eye
+    # ---- tunnel check: ball y vs cpu/player paddle when point scored
+    sus=[]
+    for e in pg.evaluate("window.__ev"):
+        pv=e["prev"]; b_=pv["ball"]
+        who = "player" if e["now"]["score"]["player"]>pv["score"]["player"] else "cpu"
+        pad = pv["cpu"]["y"] if who=="player" else pv["player"]["y"]
+        if pad-16 < b_["y"] < pad+96:  # ball overlaps paddle band yet scored
+            sus.append((who, b_["y"], pad, b_["x"]))
+    rec("R1 no ball passes through a paddle (overlap at score time)", not sus, str(sus))
+    # ---- play again via Space
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+    locked_ignored = S(pg)["screen"]=="over"
+    rec("R8 end screen ignores Enter during the lock", locked_ignored)
+    pg.wait_for_function("window.pong.getState().endLocked===false"); pg.keyboard.press("Space"); pg.wait_for_timeout(300)
+    s=S(pg); rec("R9 Space on end screen starts new match at 0-0", s["screen"]=="play" and s["score"]=={"player":0,"cpu":0} and s["winner"] is None, str(s["score"]))
+    # ---- bot match
+    fin, secs = play_match(pg, "bot", delay=0.15)
+    rec("R5 human-like bot (150ms latency) match ends at 5", fin["screen"]=="over" and 5 in (fin["score"]["player"],fin["score"]["cpu"]) and max(fin["score"].values())==5, f"{fin['score']} winner={fin['winner']} rallies={fin['rallies']} {secs:.0f}s")
+    pg.screenshot(path=f"{out}/over_bot.png")
+    res["bot_match_1"]={"score":fin["score"],"winner":fin["winner"],"rallies":fin["rallies"],"secs":secs}
+    # click to play again
+    pg.wait_for_function("window.pong.getState().endLocked===false"); pg.mouse.click(640,360); pg.wait_for_timeout(300)
+    s=S(pg); rec("R9 click on end screen starts new match at 0-0", s["screen"]=="play" and s["score"]=={"player":0,"cpu":0}, str(s["score"]))
+    # pause
+    pg.keyboard.press("p"); pg.wait_for_timeout(100); b0=S(pg)["ball"]; pg.wait_for_timeout(500); b1=S(pg)["ball"]
+    rec("pause freezes ball", S(pg)["paused"] and b0==b1)
+    pg.screenshot(path=f"{out}/paused.png")
+    pg.keyboard.press("p"); pg.wait_for_timeout(100)
+    # ---- ball stuck / bounds during idle & invariants from sampler
+    smp = pg.evaluate("window.__s")
+    oob=[x for x in smp if x["screen"]=="play" and (x["ball"]["y"]<-1 or x["ball"]["y"]>585 or x["ball"]["x"]<-40 or x["ball"]["x"]>840)]
+    rec("R1 ball stays within court vertically (never escapes top/bottom)", not [x for x in oob if not (-1<=x["ball"]["y"]<=585)], f"{len(oob)} oob samples")
+    mx=max(max(abs(x["ball"]["vx"]),abs(x["ball"]["vy"])) for x in smp)
+    rec("ball speed bounded", mx<=1400, f"max comp speed {mx:.0f}")
+    # stuck: ball not serving, position unchanged >1s
+    longest=0; run0=None
+    for a_ in smp:
+        fz = a_["screen"]=="play" and not a_["paused"] and a_["ball"]["vx"]==0 and a_["ball"]["vy"]==0
+        if fz:
+            run0 = a_["t"] if run0 is None else run0
+            longest=max(longest,a_["t"]-run0)
+        else: run0=None
+    rec("ball never frozen longer than the 1s serve delay", longest<1300, f"longest frozen run {longest:.0f} ms")
+    # near-vertical / trapped ball: max |vy|/|vx|
+    ratio=max((abs(x["ball"]["vy"])/abs(x["ball"]["vx"]) for x in smp if x["ball"]["vx"]), default=0)
+    rec("ball never near-vertical (no endless wall bouncing)", ratio<3, f"max |vy/vx|={ratio:.2f}")
+    pg.close()
+
+    # ---- Esc to title and cycle several times
+    pg=newpage(b, seed=5)
+    for i in range(3):
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+        ok1=S(pg)["screen"]=="play"
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(100); pg.keyboard.press("q"); pg.wait_for_timeout(200)
+        ok2=S(pg)["screen"]=="title"
+        rec(f"title<->play cycle {i+1} (Enter, Esc pause, Q quit)", ok1 and ok2)
+    # click on title starts
+    pg.mouse.click(640,360); pg.wait_for_timeout(200); rec("R6 click on title starts match", S(pg)["screen"]=="play")
+    pg.close()
+
+    # ---- bot full matches, more samples (difficulty), seeds
+    outcomes=[]
+    for seed in (101,202):
+        pg=newpage(b, seed=seed); pg.keyboard.press("Enter")
+        fin,secs=play_match(pg,"bot",delay=0.25,maxsec=240)
+        outcomes.append((seed,fin["score"],fin["winner"],round(secs)))
+        pg.close()
+    res["bot_outcomes_250ms"]=outcomes; print("bot 250ms latency matches:", outcomes)
+
+    # ---- resize / viewport
+    for vp in ((1920,1080),(800,600),(500,300),(1024,500)):
+        pg=newpage(b, vp=vp, seed=3); pg.keyboard.press("Enter"); pg.wait_for_timeout(1500)
+        r=pg.evaluate("(()=>{const r=document.getElementById('game').getBoundingClientRect();return [r.x,r.y,r.width,r.height,innerWidth,innerHeight, document.documentElement.scrollHeight, document.documentElement.scrollWidth]})()")
+        pg.screenshot(path=f"{out}/vp_{vp[0]}x{vp[1]}.png")
+        fits = r[2]<=vp[0]+1 and r[3]<=vp[1]+1
+        rec(f"canvas fits viewport {vp}", fits, str([round(x) for x in r]))
+        pg.close()
+
+    # ---- file:// loading
+    fpg = newpage(b, url="file://"+os.path.abspath(root)+"/index.html", seed=9)
+    e0=len(errs); fpg.keyboard.press("Enter"); fpg.wait_for_timeout(1500)
+    rec("R2 works from file://", S(fpg)["screen"]=="play", f"assets={S(fpg)['assets']}")
+    fpg.close()
+    b.close()
+print("ERRORS/WARNINGS seen across run:", errs)
+res["console_errors"]=errs
+json.dump(res, open(f"{out}/results.json","w"), indent=1)

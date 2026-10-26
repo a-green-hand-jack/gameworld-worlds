@@ -1,0 +1,9 @@
+# Playtest harness
+
+Drives a build in headless Chromium with real keyboard events and keeps screenshots, frame strips, video and console/network logs.
+
+    python3 tools/playtest/playtest.py --root <build dir | http URL> --script steps.json --out evidence/<build-id>
+
+Step format is in the docstring of `playtest.py`. Verified end-to-end on a stub canvas page (held ArrowRight moved the sprite across a 4-frame strip).
+
+Versions: Python 3.11.2, playwright 1.64.0, Chrome Headless Shell 156.0.8078.4 (`PLAYWRIGHT_BROWSERS_PATH=/hutian/.pw`), Pillow 13.0.0.

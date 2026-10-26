@@ -1,0 +1,14 @@
+{
+  "model": "gemini-3.8-flash",
+  "input": [
+    {
+      "type": "text",
+      "text": "What do you hear in this audio clip, and how long does it last? Describe the sound (is it short, percussive, tonal, noisy?) and give the duration in seconds."
+    },
+    {
+      "type": "audio",
+      "mime_type": "audio/wav",
+      "data": "<base64 of sound/hit.wav, 22094 bytes>"
+    }
+  ]
+}

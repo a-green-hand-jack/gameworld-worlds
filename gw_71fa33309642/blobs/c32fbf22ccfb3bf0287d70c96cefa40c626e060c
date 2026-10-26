@@ -1,0 +1,76 @@
+{
+ "down_lift_ride_120f": {
+  "first_lost": {
+   "f": 40,
+   "lift_y": -15,
+   "lift_dy": 1,
+   "mario_feet": -15.56,
+   "riding": false
+  },
+  "n_lost_frames": 1,
+  "around_wrap": [
+   {
+    "f": 38,
+    "lift_y": 248,
+    "lift_dy": 1,
+    "mario_feet": 248,
+    "riding": true
+   },
+   {
+    "f": 39,
+    "lift_y": -16,
+    "lift_dy": -264,
+    "mario_feet": -16,
+    "riding": true
+   },
+   {
+    "f": 40,
+    "lift_y": -15,
+    "lift_dy": 1,
+    "mario_feet": -15.56,
+    "riding": false
+   },
+   {
+    "f": 41,
+    "lift_y": -14,
+    "lift_dy": 1,
+    "mario_feet": -14,
+    "riding": true
+   },
+   {
+    "f": 42,
+    "lift_y": -13,
+    "lift_dy": 1,
+    "mario_feet": -13,
+    "riding": true
+   }
+  ]
+ },
+ "up_lift_2_24x40f": {
+  "lost": 3,
+  "examples": [
+   {
+    "f": 29,
+    "lift_y": 247,
+    "lift_dy": -1,
+    "feet": -15.56,
+    "vy": 0.438
+   },
+   {
+    "f": 12,
+    "lift_y": 247,
+    "lift_dy": -1,
+    "feet": -15.56,
+    "vy": 0.438
+   },
+   {
+    "f": 25,
+    "lift_y": 247,
+    "lift_dy": -1,
+    "feet": -15.56,
+    "vy": 0.438
+   }
+  ]
+ },
+ "page_errors": []
+}

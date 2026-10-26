@@ -1,0 +1,56 @@
+import asyncio, json
+from playwright.async_api import async_playwright
+JS = """
+(()=>{
+let fake=1e6; performance.now=()=>fake;
+const g=window.__game; const key=()=>window.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',key:' '}));
+function fresh(){ // get to over then restart => reset
+  key(); // start (or restart if over)
+  let s=g.state; if(s.over){fake+=1000;key();}
+}
+function clear(){ g.state.obstacles.length=0; }
+function trial(speedT,w,h,n,dist,jumpDelay){
+  fake+=1000; if(g.state.over){key();} else if(!g.state.started){key();}
+  // reset game: force die? simpler: reach game over by dummy and restart
+  return null;
+}
+const res={};
+function scenario(speedT,w,h,n,dist){
+  // hard reset: make over true by placing obstacle on player, step
+  if(!g.state.started) key();
+  if(!g.state.over){ g.state.obstacles.push({x:g.state.player.x,y:g.state.player.y,w:20,h:20}); g.step(0.01); }
+  fake+=1000; key(); // restart
+  const tgt=(speedT-320)/9;
+  for(let t=0;t<tgt;t+=1/120){ clear(); g.step(1/120); if(g.state.over) return 'err'; }
+  clear();
+  // wait grounded
+  const p=g.state.player; const obs=[];
+  for(let i=0;i<n;i++){ const o={x:p.x+p.w+dist+i*(w+4),y:300-h,w:w,h:h}; g.state.obstacles.push(o); obs.push(o);}
+  key();
+  for(let i=0;i<600;i++){
+    // keep injected only: remove spawned
+    const arr=g.state.obstacles; for(let k=arr.length-1;k>=0;k--) if(!obs.includes(arr[k])) arr.splice(k,1);
+    g.step(1/120); if(g.state.over) return false;
+    if(obs[n-1].x+obs[n-1].w < p.x-5) return true;
+  }
+  return 'timeout';
+}
+const out={};
+for(const sp of [320,400,500,600,700]){
+  for(const [name,w,h,n] of [['single45',32,45,1],['tall60',40,60,1],['double60w40',40,60,2],['double50w40',40,50,2]]){
+    const ok=[];
+    for(let d=0; d<=400; d+=2){ if(scenario(sp,w,h,n,d)===true) ok.push(d); }
+    out[sp+':'+name]= ok.length? [ok[0],ok[ok.length-1],ok.length*2]:'NONE';
+  }
+}
+return out;
+})()
+"""
+async def main():
+    async with async_playwright() as pw:
+        b=await pw.chromium.launch(); p=await (await b.new_context()).new_page()
+        await p.goto("file:///hutian/work/game/index.html")
+        r=await p.evaluate(JS)
+        print(json.dumps(r,indent=1))
+        await b.close()
+asyncio.run(main())

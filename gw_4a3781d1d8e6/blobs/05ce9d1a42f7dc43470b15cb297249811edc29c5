@@ -1,0 +1,452 @@
+[
+ {
+  "req": "R7",
+  "check": "title shown on load",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "title names game, says how to start and control",
+  "ok": true,
+  "detail": "steer with the \u2190 \u2191 \u2192 \u2193 arrow keys.\n\neat food to grow and score. don't hit the walls or yourself.\n\nstart\n\nor press enter / space \u00b7 p pauses"
+ },
+ {
+  "req": "R7",
+  "check": "game not playing before start (no game object)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "arrows/other keys on title do not start play",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "score HUD hidden on title",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R1",
+  "check": "no console errors/warnings on load",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R1",
+  "check": "no failed (>=400) responses",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R1",
+  "check": "no network requests outside the local server (offline play)",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R1",
+  "check": "all assets loaded",
+  "ok": true,
+  "detail": "{'images': ['snake_body', 'snake_head', 'snake_tail', 'food', 'tile'], 'sounds': ['eat', 'game_over', 'start'], 'logo': True, 'font': True}"
+ },
+ {
+  "req": "R1",
+  "check": "opens and starts from file:// without errors",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "req": "R7",
+  "check": "start with 'Enter'",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "Enter/Space during play do not restart ('Enter' start)",
+  "ok": true,
+  "detail": "({'x': 12, 'y': 10}, {'x': 12, 'y': 10})"
+ },
+ {
+  "req": "R7",
+  "check": "start with ' '",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "Enter/Space during play do not restart (' ' start)",
+  "ok": true,
+  "detail": "({'x': 12, 'y': 10}, {'x': 12, 'y': 10})"
+ },
+ {
+  "req": "R7",
+  "check": "start by clicking button",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R7",
+  "check": "rapid Enter,Enter,Space starts exactly once (still state playing, 3 long)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R8",
+  "check": "HUD visible during play with score 0",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R2",
+  "check": "snake advances continuously rightwards in real time",
+  "ok": true,
+  "detail": "[12, 12, 13, 13, 14, 14, 15, 15, 16, 17, 17, 18, 18, 19]"
+ },
+ {
+  "req": "R2",
+  "check": "board is a visible grid 20x20 of 32px cells",
+  "ok": true,
+  "detail": "[640, 640]"
+ },
+ {
+  "req": "R2",
+  "check": "board fully inside 1280x720 viewport",
+  "ok": true,
+  "detail": "[57, 697, 320, 960]"
+ },
+ {
+  "req": "R3",
+  "check": "Up turns snake on next step",
+  "ok": true,
+  "detail": "{'x': 10, 'y': 9}"
+ },
+ {
+  "req": "R3",
+  "check": "Left turns",
+  "ok": true,
+  "detail": "{'x': 9, 'y': 9}"
+ },
+ {
+  "req": "R3",
+  "check": "Down turns",
+  "ok": true,
+  "detail": "{'x': 9, 'y': 10}"
+ },
+ {
+  "req": "R3",
+  "check": "Right turns",
+  "ok": true,
+  "detail": "{'x': 10, 'y': 10}"
+ },
+ {
+  "req": "R3",
+  "check": "immediate 180 (Left while moving Right) does not kill and keeps going right",
+  "ok": true,
+  "detail": "[{'x': 13, 'y': 10}, {'x': 12, 'y': 10}, {'x': 11, 'y': 10}]"
+ },
+ {
+  "req": "R3",
+  "check": "Up,Down within one step does not self-kill",
+  "ok": true,
+  "detail": "[{'x': 10, 'y': 7}, {'x': 10, 'y': 8}, {'x': 10, 'y': 9}]"
+ },
+ {
+  "req": "R3",
+  "check": "Up,Left pressed within one step -> up then left (neither lost)",
+  "ok": true,
+  "detail": "{'x': 9, 'y': 9}"
+ },
+ {
+  "req": "R3",
+  "check": "three quick presses Up,Left,Down: no self-kill on a 3-long snake",
+  "ok": true,
+  "detail": "('playing', [{'x': 7, 'y': 9}, {'x': 8, 'y': 9}, {'x': 9, 'y': 9}])"
+ },
+ {
+  "req": "R3",
+  "check": "real-time: Up+Left pressed back-to-back both applied (dir ends left, alive)",
+  "ok": true,
+  "detail": "('playing', 'left')"
+ },
+ {
+  "req": "R3",
+  "check": "arrow keys/Space do not scroll page (page scrollable in 500x300: True)",
+  "ok": true,
+  "detail": "([0, 4], [0, 4])"
+ },
+ {
+  "req": "R4",
+  "check": "eating: length +1",
+  "ok": true,
+  "detail": "(3, 4)"
+ },
+ {
+  "req": "R4",
+  "check": "eating: score +1 (game and HUD)",
+  "ok": true,
+  "detail": "(1, '1')"
+ },
+ {
+  "req": "R4",
+  "check": "new food off the snake and on board",
+  "ok": true,
+  "detail": "{'x': 1, 'y': 0}"
+ },
+ {
+  "req": "R4",
+  "check": "length stays after growth tick (no drift)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R4",
+  "check": "consecutive foods each exactly +1 length/+1 score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R4",
+  "check": "autopilot, 150 games: food never on snake/off board; every eat is +1/+1 (eaten=4484)",
+  "ok": true,
+  "detail": "{'viol': 0, 'eaten': 4484, 'games': 150, 'notBoard': 0}"
+ },
+ {
+  "req": "R5",
+  "check": "wall right ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 19, 'y': 10}, 10)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after right wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R5",
+  "check": "wall up ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 10, 'y': 0}, 10)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after up wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R5",
+  "check": "wall down ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 10, 'y': 19}, 9)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after down wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R5",
+  "check": "wall left ends the game (no wrap)",
+  "ok": true,
+  "detail": "('gameover', {'x': 0, 'y': 9}, 10)"
+ },
+ {
+  "req": "R9",
+  "check": "game over shown after left wall with final score",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R8",
+  "check": "HUD score shows 3 after 3 foods",
+  "ok": true,
+  "detail": "3"
+ },
+ {
+  "req": "R9",
+  "check": "final score equals 3 on game-over screen",
+  "ok": true,
+  "detail": "Game Over\n\nFinal score 3\n\nNew best!\n\nPlay again\n\nor press Enter / Space"
+ },
+ {
+  "req": "R9",
+  "check": "game over screen mentions game over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "arrow keys on game over do not restart / change screen",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "Play again button starts fresh run: playing, score 0 (game+HUD), length 3, dir right, queue empty",
+  "ok": true,
+  "detail": "('playing', 0, 3, 'right')"
+ },
+ {
+  "req": "R10",
+  "check": "no page reload on restart",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "fresh run has food off snake",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "game over screen hidden after restart",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "restarted game moves",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "restart with 'Enter' key from game over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "extra Enter/Space after restart does not double-start",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "restart with ' ' key from game over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "extra Enter/Space after restart does not double-start",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R10",
+  "check": "no stale queued turns carried into restarted run",
+  "ok": true,
+  "detail": "({'x': 10, 'y': 10}, {'x': 11, 'y': 10})"
+ },
+ {
+  "req": "R10",
+  "check": "5 consecutive runs each score/final-score correct",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R6",
+  "check": "U-turn loop into body ends game (length 6)",
+  "ok": true,
+  "detail": "('gameover', [{'x': 9, 'y': 9}, {'x': 10, 'y': 9}, {'x': 10, 'y': 10}])"
+ },
+ {
+  "req": "R9",
+  "check": "game over screen after self collision",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R4",
+  "check": "length 6 after 3 foods from 3",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R6",
+  "check": "natural play: grown snake (6) turning up,left,down dies",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R9",
+  "check": "final score 3 after self-death",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R6",
+  "check": "moving into the cell the tail just vacated is allowed (standard Snake)",
+  "ok": true,
+  "detail": "playing"
+ },
+ {
+  "req": "R6",
+  "check": "entering tail cell while eating (food on it) is a collision",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R6",
+  "check": "head into a mid-body cell ends game",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R6",
+  "check": "real-time: loop into itself ends game",
+  "ok": true,
+  "detail": "gameover"
+ },
+ {
+  "req": "R2",
+  "check": "P pauses (no movement) and resume continues",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R2",
+  "check": "resume after pause moves again and not dead",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "req": "R1",
+  "check": "full game (HUD+board) fits in 1280x720 viewport",
+  "ok": true,
+  "detail": "[23, 697, 320, 960]"
+ },
+ {
+  "req": "R1",
+  "check": "full game (HUD+board) fits in 1366x650 viewport",
+  "ok": false,
+  "detail": "[-12, 662, 363, 1003]"
+ },
+ {
+  "req": "R1",
+  "check": "full game (HUD+board) fits in 1366x768 viewport",
+  "ok": true,
+  "detail": "[47, 721, 363, 1003]"
+ },
+ {
+  "req": "R1",
+  "check": "full game (HUD+board) fits in 1024x600 viewport",
+  "ok": false,
+  "detail": "[-37, 637, 192, 832]"
+ },
+ {
+  "req": "R1",
+  "check": "full game (HUD+board) fits in 800x600 viewport",
+  "ok": false,
+  "detail": "[-37, 637, 80, 720]"
+ }
+]

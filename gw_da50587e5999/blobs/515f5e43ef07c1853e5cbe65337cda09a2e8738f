@@ -1,0 +1,28 @@
+import functools,http.server,threading,json,wave,hashlib,pathlib
+import numpy as np
+from playwright.sync_api import sync_playwright
+root=pathlib.Path('/hutian/qa-build'); out=pathlib.Path('/hutian/repo/qa-evidence')
+p=root/'sound/beep.wav'
+with wave.open(str(p)) as w:
+ rate=w.getframerate(); frames=w.getnframes(); channels=w.getnchannels(); width=w.getsampwidth(); x=np.frombuffer(w.readframes(frames),dtype='<i2')
+tone=x[:13230]; silent=x[13230:]; freq=float(np.fft.rfftfreq(len(tone),1/rate)[np.argmax(abs(np.fft.rfft(tone)))])
+r={'build':{'game-developer':'b13743fd2bd8580add386db748c4bbba02f8d386','artist':'2c9f5839740bb87fb1c90ea754a223b4c912e609'},'wav':{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'sample_rate':rate,'frames':frames,'channels':channels,'sample_width':width,'duration_seconds':frames/rate,'tone_fft_peak_hz':freq,'last_nonzero_sample':int(np.flatnonzero(x)[-1]),'silence_max_abs':int(abs(silent).max()),'rms_per_50ms':[float(np.sqrt(np.mean(s.astype(float)**2))) for s in np.array_split(tone,6)]}}
+server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(root)))
+threading.Thread(target=server.serve_forever,daemon=True).start()
+with sync_playwright() as pw:
+ browser=pw.chromium.launch(); page=browser.new_page(); errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ page.add_init_script('''window.audioEvents=[]; const OriginalAudio=window.Audio; window.Audio=function(...args){const a=new OriginalAudio(...args);window.qaAudio=a;for(const type of ['playing','ended','error'])a.addEventListener(type,()=>window.audioEvents.push({type,time:a.currentTime}));return a;};''')
+ page.goto(f'http://127.0.0.1:{server.server_port}/');assert page.locator('button').count()==1
+ assert page.locator('#n').inner_text()=='0'
+ page.get_by_role('button',name='Beep').click();page.wait_for_function('window.audioEvents.some(e=>e.type==="ended")')
+ assert page.locator('#n').inner_text()=='1'
+ page.get_by_role('button',name='Beep').focus();page.keyboard.press('Enter');page.wait_for_timeout(550); assert page.locator('#n').inner_text()=='2'
+ page.keyboard.press('Space');page.wait_for_timeout(550); assert page.locator('#n').inner_text()=='3'
+ for _ in range(10):page.get_by_role('button',name='Beep').click()
+ assert page.locator('#n').inner_text()=='13';page.wait_for_timeout(550)
+ r['browser']={'version':browser.version,'button_count':1,'initial_count':0,'count_after_mouse_enter_space_and_10_clicks':13,'audio':page.evaluate('({src:qaAudio.currentSrc,duration:qaAudio.duration,events:audioEvents})'),'page_errors':errors}
+ page.screenshot(path=str(out/'desktop.png'))
+ page.set_viewport_size({'width':375,'height':667});page.screenshot(path=str(out/'mobile.png'))
+ r['browser']['mobile_no_horizontal_overflow']=page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+ browser.close()
+server.shutdown();(out/'checks.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r,indent=2))

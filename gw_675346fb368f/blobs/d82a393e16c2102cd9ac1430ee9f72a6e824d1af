@@ -1,0 +1,5 @@
+Check of the `ht-role delivery` assembly of game-developer a7bc95f2f1d393fbce150f265e06861cb7fc00e2
++ artist 92b3b8e2f66c0b127388dca16b270890e9eb8c17, headless Chromium (Playwright), 2026-10-18.
+- `checks/run_check.py` over file:// (`log.txt`, screenshots 1-6): ALL CHECKS PASSED, no page errors.
+  Idle player: computer wins 0-5 in 18 s. Anticipating keyboard bot: player wins 5-0, 62 rallies, 86 s.
+- qa's `qa/run_checks.py` over http (`qa-smoke/smoke.json`): no console errors, no failed requests.

@@ -1,0 +1,27 @@
+# Playtester listening record
+
+File: `sound/beep.wav` from the delivery assembled at producer c971f0f (game-developer b13743f). Resource: `audio-understanding`, model gemini-3.8-flash, mime audio/wav.
+
+## Request
+Request and raw response are saved in `listening-request.json` and `listening-response.json`. Question text:
+
+> Describe this audio: what do you hear and when (MM:SS or seconds)? Give the pitch (Hz) of any tone, whether it fades, and where there is silence. Estimate total duration.
+
+## Answer, as it came
+```
+Here is a detailed breakdown of the audio:
+
+- **Audio Content**: A single, short, low-frequency pure sine wave tone (a low beep/pulse).
+- **Timing**: 
+  - **00:00.00 – ~00:00.35 (0 to ~0.35 s)**: The low tone plays.
+  - **~00:00.35 – end**: Complete silence.
+- **Pitch / Frequency**: Approximately **150–200 Hz** (a low bass/mid-bass tone).
+- **Fading**: The tone has a gentle decay/fade-out at its tail to avoid an abrupt click/transient.
+- **Silence**: Occurs after the tone decays, from around **0.35 seconds to the end** of the file.
+- **Total Duration**: Approximately **0.6 to 0.8 seconds**.
+```
+
+## Does it match?
+Partly. Matches: one short pure tone at the start, fading out, followed by silence. Does not match: pitch (heard 150–200 Hz vs expected 660 Hz) and total duration (0.6–0.8 s vs 0.5 s); the tone end (~0.35 s) is roughly right for 0.3 s, but the 0.2 s silence was not reported separately.
+
+My own check of the file (wave module + FFT): mono, 44100 Hz, 22050 frames = 0.5 s, peak envelope per 0.1 s: 26169, 17435, 8700, 0, 0 (fade over 0.3 s, then exactly 0.2 s of zero); FFT peak of the first 0.3 s is 660.0 Hz. So the file conforms to the spec; the listener's pitch estimate is the inaccurate part (a single run, not repeated).

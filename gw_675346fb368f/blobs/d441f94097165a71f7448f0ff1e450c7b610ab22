@@ -1,0 +1,144 @@
+{
+ "R2 loads over http, title screen first": {
+  "ok": true,
+  "note": "screen=title assets={'loaded': ['img/logo.svg', 'audio/wall_hit.wav', 'audio/start.wav', 'audio/concede.wav', 'audio/score.wav', 'audio/win.wav', 'audio/paddle_hit.wav', 'audio/lose.wav'], 'missing': []}"
+ },
+ "R2 no console errors/warnings/404 on load": {
+  "ok": true,
+  "note": "[]"
+ },
+ "R6 Enter starts match": {
+  "ok": true,
+  "note": ""
+ },
+ "R4 ArrowUp moves paddle up, stops on release": {
+  "ok": true,
+  "note": "252->91, after release 91,91"
+ },
+ "R4 paddle clamped to court (0..H-96)": {
+  "ok": true,
+  "note": "min=0 max=504"
+ },
+ "R4 KeyW moves paddle": {
+  "ok": true,
+  "note": "504->397"
+ },
+ "R4 KeyS moves paddle": {
+  "ok": true,
+  "note": "397->489"
+ },
+ "R4 up+down together: net movement small (<=2 steps)": {
+  "ok": true,
+  "note": "496->489"
+ },
+ "R3/R5 idle player: computer wins exactly 5-x, match ends at 5": {
+  "ok": true,
+  "note": "{'player': 0, 'cpu': 5} in 7s"
+ },
+ "R1/R7 score increments by exactly 1 per point": {
+  "ok": true,
+  "note": "[[{'player': 0, 'cpu': 0}, {'player': 0, 'cpu': 1}], [{'player': 0, 'cpu': 1}, {'player': 0, 'cpu': 2}], [{'player': 0, 'cpu': 2}, {'player': 0, 'cpu': 3}], [{'player': 0, 'cpu': 3}, {'player': 0, 'cpu': 4}], [{'player': 0, 'cpu': 4}, {'player': 0, 'cpu': 5}]]"
+ },
+ "R1 no ball passes through a paddle (overlap at score time)": {
+  "ok": true,
+  "note": "[]"
+ },
+ "R9 Space on end screen starts new match at 0-0": {
+  "ok": true,
+  "note": "{'player': 0, 'cpu': 0}"
+ },
+ "R5 human-like bot (150ms latency) match ends at 5": {
+  "ok": true,
+  "note": "{'player': 2, 'cpu': 5} winner=cpu rallies=31 70s"
+ },
+ "bot_match_1": {
+  "score": {
+   "player": 2,
+   "cpu": 5
+  },
+  "winner": "cpu",
+  "rallies": 31,
+  "secs": 70.44247841835022
+ },
+ "R9 click on end screen starts new match at 0-0": {
+  "ok": true,
+  "note": "{'player': 0, 'cpu': 0}"
+ },
+ "pause freezes ball": {
+  "ok": true,
+  "note": ""
+ },
+ "R1 ball stays within court vertically (never escapes top/bottom)": {
+  "ok": true,
+  "note": "0 oob samples"
+ },
+ "ball speed bounded": {
+  "ok": true,
+  "note": "max comp speed 545"
+ },
+ "ball never frozen longer than the 1s serve delay": {
+  "ok": true,
+  "note": "longest frozen run 1008 ms"
+ },
+ "ball never near-vertical (no endless wall bouncing)": {
+  "ok": true,
+  "note": "max |vy/vx|=1.37"
+ },
+ "title<->play cycle 1 (Enter, Esc pause, Q quit)": {
+  "ok": true,
+  "note": ""
+ },
+ "title<->play cycle 2 (Enter, Esc pause, Q quit)": {
+  "ok": true,
+  "note": ""
+ },
+ "title<->play cycle 3 (Enter, Esc pause, Q quit)": {
+  "ok": true,
+  "note": ""
+ },
+ "R6 click on title starts match": {
+  "ok": true,
+  "note": ""
+ },
+ "bot_outcomes_250ms": [
+  [
+   101,
+   {
+    "player": 1,
+    "cpu": 5
+   },
+   "cpu",
+   51
+  ],
+  [
+   202,
+   {
+    "player": 0,
+    "cpu": 5
+   },
+   "cpu",
+   48
+  ]
+ ],
+ "canvas fits viewport (1920, 1080)": {
+  "ok": true,
+  "note": "[240, 0, 1440, 1080, 1920, 1080, 1080, 1920]"
+ },
+ "canvas fits viewport (800, 600)": {
+  "ok": true,
+  "note": "[0, 0, 800, 600, 800, 600, 600, 800]"
+ },
+ "canvas fits viewport (500, 300)": {
+  "ok": true,
+  "note": "[50, 0, 400, 300, 500, 300, 300, 500]"
+ },
+ "canvas fits viewport (1024, 500)": {
+  "ok": true,
+  "note": "[179, 0, 667, 500, 1024, 500, 500, 1024]"
+ },
+ "R2 works from file://": {
+  "ok": true,
+  "note": "assets={'loaded': ['img/logo.svg', 'audio/paddle_hit.wav', 'audio/wall_hit.wav', 'audio/score.wav', 'audio/lose.wav', 'audio/start.wav', 'audio/win.wav', 'audio/concede.wav'], 'missing': []}"
+ },
+ "console_errors": []
+}

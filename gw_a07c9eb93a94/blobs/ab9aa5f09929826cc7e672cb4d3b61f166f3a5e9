@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8"><title>跳方块</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#111;display:flex;align-items:center;justify-content:center}
+canvas{background:#1c2430;max-width:100%;border:2px solid #345}</style></head>
+<body><canvas id="c" width="800" height="300"></canvas>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=800,H=300,G=240;
+const GRAV=2400,JUMP=800;
+let best=0;try{best=+(localStorage.getItem('jumpbest')||0)||0;}catch(e){}
+let p,obs,score,speed,spawn,state,last;
+function reset(){p={x:80,y:G-40,w:40,h:40,vy:0};obs=[];score=0;speed=330;spawn=0;state='play';}
+function jump(){if(state==='over'){reset();return;}if(state==='ready'){reset();}
+ if(p.y>=G-p.h-0.5){p.vy=-JUMP;}}
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();if(!e.repeat)jump();}});
+cv.addEventListener('pointerdown',jump);
+function update(dt){
+ if(state!=='play')return;
+ p.vy+=GRAV*dt;p.y+=p.vy*dt;if(p.y>G-p.h){p.y=G-p.h;p.vy=0;}
+ score+=dt*10;speed=Math.min(560,speed+dt*8);
+ const lastO=obs[obs.length-1];
+ if(!lastO||W-(lastO.x+lastO.w)>=spawn){const h=30+Math.random()*35,w=22+Math.random()*24;obs.push({x:W,w,h});spawn=speed*(0.9+Math.random()*0.7);}
+ for(const o of obs)o.x-=speed*dt;
+ obs=obs.filter(o=>o.x+o.w>0);
+ for(const o of obs){const oy=G-o.h;
+  if(p.x+p.w-3>o.x+2&&p.x+3<o.x+o.w-2&&p.y+p.h-3>oy+2){state='over';
+   if(Math.floor(score)>best){best=Math.floor(score);try{localStorage.setItem('jumpbest',best);}catch(e){}}}}
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle='#2e3b4e';ctx.fillRect(0,G,W,H-G);
+ ctx.fillStyle='#f5c542';ctx.fillRect(p.x,p.y,p.w,p.h);
+ ctx.fillStyle='#e0533d';for(const o of obs)ctx.fillRect(o.x,G-o.h,o.w,o.h);
+ ctx.fillStyle='#fff';ctx.font='20px monospace';ctx.textAlign='left';
+ ctx.fillText('分数 '+Math.floor(score),20,30);
+ ctx.textAlign='right';ctx.fillText('最高分 '+best,W-20,30);
+ ctx.textAlign='center';
+ if(state==='ready'){ctx.font='28px sans-serif';ctx.fillText('按空格键开始 / 跳跃',W/2,120);}
+ if(state==='over'){ctx.font='32px sans-serif';ctx.fillText('游戏结束',W/2,110);ctx.font='20px sans-serif';ctx.fillText('按空格键重新开始',W/2,145);}
+}
+function loop(t){const dt=Math.min(0.05,(t-(last||t))/1000);last=t;update(dt);draw();requestAnimationFrame(loop);}
+reset();state='ready';requestAnimationFrame(loop);
+</script></body></html>
