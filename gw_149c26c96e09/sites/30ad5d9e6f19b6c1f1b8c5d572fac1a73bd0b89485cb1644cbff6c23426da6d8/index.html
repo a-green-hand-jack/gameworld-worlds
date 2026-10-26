@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snake</title>
+<link rel="stylesheet" href="src/style.css">
+<link rel="stylesheet" href="assets/theme.css">
+</head>
+<body>
+<main id="game">
+  <header id="hud" hidden>
+    <span>Score: <strong id="score">0</strong></span>
+    <span>Best: <strong id="best">0</strong></span>
+  </header>
+  <div id="stage">
+    <canvas id="board" width="704" height="704" aria-label="Snake board"></canvas>
+
+    <section id="title-screen" class="screen" aria-label="Title screen">
+      <img id="title-logo" alt="" hidden>
+      <h1 id="title-text">SNAKE</h1>
+      <p>Arrow keys turn the snake. Eat food to grow and score.<br>Don't hit the walls or yourself.</p>
+      <button id="start-button" type="button">Start</button>
+      <p class="hint">or press Enter / Space</p>
+    </section>
+
+    <section id="pause-screen" class="screen" aria-label="Paused" hidden>
+      <h2>Paused</h2>
+      <p class="hint">Press P or Esc to resume</p>
+    </section>
+
+    <section id="gameover-screen" class="screen" aria-label="Game over screen" hidden>
+      <h2 id="gameover-title">Game Over</h2>
+      <p class="final">Final score: <strong id="final-score">0</strong></p>
+      <p class="best-line" id="best-line"></p>
+      <button id="restart-button" type="button">Play again</button>
+      <p class="hint">or press Enter / Space</p>
+    </section>
+  </div>
+  <footer class="hint">Arrows: turn &middot; P / Esc: pause &middot; M: sound on/off</footer>
+</main>
+<script src="src/assets.js"></script>
+<script src="src/game.js"></script>
+</body>
+</html>

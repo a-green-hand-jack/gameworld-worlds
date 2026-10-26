@@ -1,0 +1,277 @@
+{
+  "format_note": "Documentation only (the game does not read this file). All sounds live in assets/audio/ as <name>.ogg (Ogg Vorbis q4) and <name>.mp3 (MP3 96 kbit/s CBR), 44.1 kHz mono, synthesised by tools/audio/gen_audio.py with an NES 2A03-style model; all melodies are original. The game tries .ogg first, then .mp3. SFX and jingles are one-shots with no leading silence, peak -1 dBFS. Music files are exactly one loop body (loopStart 0, loopEnd = file length; the decoded .ogg is sample-exact) for <audio loop>; the last beat flows into the first. MP3 fallback: the encoder adds ~1105 samples (25 ms) of delay and frame padding, so an MP3 loop may have a tiny gap; prefer .ogg. '_fast' variants are the same pieces re-rendered at 1.5x tempo (same pitch) for after the hurry jingle. Music RMS is about -17 dBFS, below the SFX.",
+  "sfx": {
+    "jump_small": {
+      "files": [
+        "audio/jump_small.ogg",
+        "audio/jump_small.mp3"
+      ],
+      "event": "Small Mario jumps",
+      "duration": 0.2099
+    },
+    "jump_big": {
+      "files": [
+        "audio/jump_big.ogg",
+        "audio/jump_big.mp3"
+      ],
+      "event": "Big/Fire Mario jumps",
+      "duration": 0.261
+    },
+    "coin": {
+      "files": [
+        "audio/coin.ogg",
+        "audio/coin.mp3"
+      ],
+      "event": "Coin collected (block coin or floating coin)",
+      "duration": 0.4702
+    },
+    "stomp": {
+      "files": [
+        "audio/stomp.ogg",
+        "audio/stomp.mp3"
+      ],
+      "event": "Mario stomps an enemy",
+      "duration": 0.1589
+    },
+    "kick": {
+      "files": [
+        "audio/kick.ogg",
+        "audio/kick.mp3"
+      ],
+      "event": "Shell kicked, or enemy killed by fireball/shell",
+      "duration": 0.0889
+    },
+    "bump": {
+      "files": [
+        "audio/bump.ogg",
+        "audio/bump.mp3"
+      ],
+      "event": "Mario's head hits a solid/used block (or small Mario hits a brick)",
+      "duration": 0.1459
+    },
+    "break": {
+      "files": [
+        "audio/break.ogg",
+        "audio/break.mp3"
+      ],
+      "event": "Big Mario breaks a brick",
+      "duration": 0.4926
+    },
+    "powerup_appear": {
+      "files": [
+        "audio/powerup_appear.ogg",
+        "audio/powerup_appear.mp3"
+      ],
+      "event": "Mushroom/flower/star/1-up sprouts out of a ? block",
+      "duration": 0.5773
+    },
+    "powerup": {
+      "files": [
+        "audio/powerup.ogg",
+        "audio/powerup.mp3"
+      ],
+      "event": "Mario collects a mushroom or fire flower (grow / upgrade)",
+      "duration": 0.8782
+    },
+    "oneup": {
+      "files": [
+        "audio/oneup.ogg",
+        "audio/oneup.mp3"
+      ],
+      "event": "Extra life gained",
+      "duration": 0.5785
+    },
+    "pipe": {
+      "files": [
+        "audio/pipe.ogg",
+        "audio/pipe.mp3"
+      ],
+      "event": "Pipe travel, and damage / shrink (power-down)",
+      "duration": 0.5908
+    },
+    "fireball": {
+      "files": [
+        "audio/fireball.ogg",
+        "audio/fireball.mp3"
+      ],
+      "event": "Fire Mario throws a fireball",
+      "duration": 0.0769
+    },
+    "flagpole": {
+      "files": [
+        "audio/flagpole.ogg",
+        "audio/flagpole.mp3"
+      ],
+      "event": "Mario grabs the flagpole and slides down",
+      "duration": 1.0632
+    },
+    "fireworks": {
+      "files": [
+        "audio/fireworks.ogg",
+        "audio/fireworks.mp3"
+      ],
+      "event": "Each firework explosion over the castle",
+      "duration": 0.7826
+    },
+    "bowser_fire": {
+      "files": [
+        "audio/bowser_fire.ogg",
+        "audio/bowser_fire.mp3"
+      ],
+      "event": "Bowser breathes a flame",
+      "duration": 0.9815
+    },
+    "bowser_fall": {
+      "files": [
+        "audio/bowser_fall.ogg",
+        "audio/bowser_fall.mp3"
+      ],
+      "event": "Bowser falls into the lava (bridge collapses)",
+      "duration": 2.0441
+    },
+    "beep": {
+      "files": [
+        "audio/beep.ogg",
+        "audio/beep.mp3"
+      ],
+      "event": "One tick of the remaining-time -> score count",
+      "duration": 0.0539
+    },
+    "pause": {
+      "files": [
+        "audio/pause.ogg",
+        "audio/pause.mp3"
+      ],
+      "event": "Game paused / unpaused",
+      "duration": 0.3331
+    }
+  },
+  "jingles": {
+    "hurry": {
+      "files": [
+        "audio/hurry.ogg",
+        "audio/hurry.mp3"
+      ],
+      "event": "Timer reaches 100: play once, then restart level music as the _fast variant",
+      "duration": 2.7613
+    },
+    "death": {
+      "files": [
+        "audio/death.ogg",
+        "audio/death.mp3"
+      ],
+      "event": "Mario dies",
+      "duration": 2.4503
+    },
+    "game_over": {
+      "files": [
+        "audio/game_over.ogg",
+        "audio/game_over.mp3"
+      ],
+      "event": "Game over screen (lives exhausted)",
+      "duration": 3.4562
+    },
+    "course_clear": {
+      "files": [
+        "audio/course_clear.ogg",
+        "audio/course_clear.mp3"
+      ],
+      "event": "After the flagpole slide, while Mario walks into the castle",
+      "duration": 5.0972
+    },
+    "world_clear": {
+      "files": [
+        "audio/world_clear.ogg",
+        "audio/world_clear.mp3"
+      ],
+      "event": "Bowser defeated (axe touched) in castle levels like 1-4",
+      "duration": 7.1796
+    }
+  },
+  "music": {
+    "overworld": {
+      "files": [
+        "audio/overworld.ogg",
+        "audio/overworld.mp3"
+      ],
+      "event": "Above-ground levels (World 1-1 etc.)",
+      "loopStart": 0.0,
+      "loopEnd": 28.8,
+      "loopEndSamples": 1270080,
+      "bpm": 200,
+      "bars": 24
+    },
+    "overworld_fast": {
+      "files": [
+        "audio/overworld_fast.ogg",
+        "audio/overworld_fast.mp3"
+      ],
+      "event": "Above-ground levels after the hurry jingle (timer < 100)",
+      "loopStart": 0.0,
+      "loopEnd": 19.2,
+      "loopEndSamples": 846720,
+      "bpm": 300,
+      "bars": 24
+    },
+    "underground": {
+      "files": [
+        "audio/underground.ogg",
+        "audio/underground.mp3"
+      ],
+      "event": "Underground levels / bonus rooms",
+      "loopStart": 0.0,
+      "loopEnd": 25.6,
+      "loopEndSamples": 1128960,
+      "bpm": 150,
+      "bars": 16
+    },
+    "underground_fast": {
+      "files": [
+        "audio/underground_fast.ogg",
+        "audio/underground_fast.mp3"
+      ],
+      "event": "Underground after the hurry jingle (timer < 100)",
+      "loopStart": 0.0,
+      "loopEnd": 17.066667,
+      "loopEndSamples": 752640,
+      "bpm": 225,
+      "bars": 16
+    },
+    "castle": {
+      "files": [
+        "audio/castle.ogg",
+        "audio/castle.mp3"
+      ],
+      "event": "Castle levels (1-4)",
+      "loopStart": 0.0,
+      "loopEnd": 24.0,
+      "loopEndSamples": 1058400,
+      "bpm": 160,
+      "bars": 16
+    },
+    "castle_fast": {
+      "files": [
+        "audio/castle_fast.ogg",
+        "audio/castle_fast.mp3"
+      ],
+      "event": "Castle after the hurry jingle (timer < 100)",
+      "loopStart": 0.0,
+      "loopEnd": 16.0,
+      "loopEndSamples": 705600,
+      "bpm": 240,
+      "bars": 16
+    },
+    "starman": {
+      "files": [
+        "audio/starman.ogg",
+        "audio/starman.mp3"
+      ],
+      "event": "Starman invincibility active (overrides level music)",
+      "loopStart": 0.0,
+      "loopEnd": 27.428571,
+      "loopEndSamples": 1209600,
+      "bpm": 210,
+      "bars": 24
+    }
+  }
+}
